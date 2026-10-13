@@ -732,7 +732,9 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: 168px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 168px;
   border: 0;
   background: none;
   padding: 0;
@@ -884,7 +886,307 @@ textarea {
   width: 13%;
 }
 
+/* ---- Settings ------------------------------------------------------------ */
+
+.nav a.gear {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+}
+.settings .lead {
+  margin: 10px 0 0;
+  font-size: 15px;
+  color: var(--color-card-ink-2);
+}
+.settings-block {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.integration-grid {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+.integration {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--sheet) 60%, white);
+  transition:
+    border-color 0.3s var(--ease-gallery),
+    box-shadow 0.3s var(--ease-gallery);
+}
+.integration.is-on {
+  border-color: color-mix(in srgb, var(--color-cobalt) 35%, var(--rule));
+}
+.integration-head,
+.connect-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+.integration-name {
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 28px;
+  color: var(--color-card-ink);
+}
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-card-ink-2);
+  white-space: nowrap;
+}
+.status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-rule-ink);
+}
+.status.on {
+  color: var(--color-cobalt);
+}
+.status.on::before {
+  background: var(--color-cobalt);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-cobalt) 18%, transparent);
+}
+.who {
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-card-ink);
+  overflow-wrap: anywhere;
+}
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.connect-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+.field input {
+  border: 0;
+  border-bottom: 1px solid var(--color-card-ink);
+  background: transparent;
+  outline: none;
+  padding: 7px 0;
+  font-size: 15px;
+}
+.field input:focus {
+  border-bottom-color: var(--color-cobalt);
+}
+.field input::placeholder {
+  color: var(--color-done);
+}
+.hint {
+  margin: -4px 0 0;
+  font-size: 12px;
+}
+.hint a {
+  color: var(--color-card-ink-2);
+}
+.integration .frame-design {
+  border-top-color: var(--rule);
+}
+
+.client-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+.client {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  transition:
+    border-color 0.25s var(--ease-gallery),
+    background-color 0.25s var(--ease-gallery),
+    transform 0.3s var(--ease-gallery);
+}
+.client:hover {
+  border-color: var(--color-card-ink-2);
+  transform: translateY(-1px);
+}
+.client.on {
+  border-color: var(--color-card-ink);
+  background: color-mix(in srgb, var(--sheet) 50%, white);
+}
+.client-mark {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--color-card-ink);
+  color: var(--sheet);
+  font-family: var(--font-display);
+  font-size: 17px;
+}
+.client-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.client-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-card-ink);
+}
+.client-tag {
+  font-size: 12px;
+  color: var(--color-card-ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.client-count {
+  position: absolute;
+  top: 8px;
+  right: 9px;
+  font-size: 11px;
+  color: var(--color-cobalt);
+}
+.connect-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 10px;
+  border: 1px solid var(--color-card-ink);
+  animation: rise 0.45s var(--ease-gallery) both;
+}
+.where {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-card-ink-2);
+}
+.where.cloud {
+  color: var(--color-cobalt);
+}
+.warn-note {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-amber);
+  background: color-mix(in srgb, var(--color-amber) 9%, transparent);
+}
+.steps {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-card-ink);
+}
+.snippets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+.snippet {
+  width: 100%;
+  border-radius: 8px;
+  background: var(--color-card-ink);
+  color: var(--color-bone);
+  overflow: hidden;
+}
+.snippet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(236, 230, 216, 0.12);
+}
+.snippet-head .label {
+  color: rgba(236, 230, 216, 0.7);
+  font-size: 11px;
+}
+.snippet-head .link-btn {
+  color: var(--color-gilt);
+  font-size: 12px;
+}
+.snippet pre {
+  margin: 0;
+  padding: 12px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.pill.install {
+  text-decoration: none;
+}
+.tokens .row {
+  gap: 12px;
+}
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px 20px;
+}
+.facts dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-card-ink-2);
+}
+.facts dd {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--color-card-ink);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 860px) {
+  .integration-grid {
+    flex-direction: column;
+  }
+}
+
 /* ---- Phones and narrow windows ----------------------------------------- */
+
+/* Where the wide placard would reach the nav pill, hang it just below. */
+@media (max-width: 1560px) {
+  .placard.wide {
+    top: 112px;
+  }
+}
 
 @media (max-width: 1100px) {
   .placard.wide {

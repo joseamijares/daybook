@@ -12,7 +12,19 @@ in `lib/daybook.ts`, so they behave the same way.
 
 ## Authentication
 
-There is one secret, `DAYBOOK_KEY`. Send it in one of these ways:
+The easy way is **Settings → AI agents** in Daybook. Pick your client, press
+"Create a token", and copy the ready-made setup: a one-click install link, a
+command, or a config file. Each connection gets its own `dbk_…` token. You can
+revoke a token without touching the others, and the master key never leaves
+the server. Tokens can use every tool, but they can't create tokens or change
+integrations; only the signed-in owner can.
+
+Daybook accepts these credentials:
+
+- an agent token (`dbk_…`) from Settings;
+- the master `DAYBOOK_KEY`.
+
+Send either one in one of these ways:
 
 - `Authorization: Bearer <key>`, the preferred way;
 - `?key=<key>`, for clients that can't set headers. The URL then works like a
@@ -24,6 +36,9 @@ Vercel the app refuses to run that way.
 
 ## Client setup
 
+Settings → AI agents generates all of this for you, with the token filled in.
+It covers Claude, ChatGPT, Cursor, Grok, Claude Code, Codex, Gemini CLI,
+VS Code, Windsurf, Meta Llama Stack and any other MCP client. By hand:
 `node cli/daybook.mjs setup` prints every snippet below, filled in with
 `DAYBOOK_URL` and `DAYBOOK_KEY`. Add `--write` to merge them into the config
 files. The original is kept as `<file>.daybook.bak`, and the config files end
@@ -144,6 +159,9 @@ in clients that support prompts.
 | `GET /api/frame?date=` / `POST /api/frame` | Preview the Frame Dashboard plan, or run a two-way sync |
 | `GET /api/frame/settings` / `PUT /api/frame/settings` | The Frame's design and the designs it offers / `{ layout }` to switch |
 | `GET /api/cron/sync` | Vercel Cron: sync Linear and Frame (bearer `CRON_SECRET` or `DAYBOOK_KEY`) |
+| `GET/POST /api/tokens`, `DELETE /api/tokens/:id` | Agent tokens: list, create (the token is shown once), revoke. Owner only |
+| `GET/PUT/DELETE /api/integrations/linear` | Linear status / `{ apiKey }` to connect (checked, stored encrypted) / disconnect. Owner only |
+| `GET/PUT/DELETE /api/integrations/frame` | Frame status / `{ url, writeKey }` to connect / disconnect. Owner only |
 | `GET /api/health` | Public: commit, storage and which integrations are on |
 
 ## Frame Dashboard

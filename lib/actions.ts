@@ -16,7 +16,7 @@ export async function patchTask(id: string, patch: TaskPatch): Promise<ActionRes
   const before = await getTask(id);
   const task = await updateTask(id, patch);
   const warnings: string[] = [];
-  if (patch.done === true && !before.done && isLinear(task) && linearEnabled()) {
+  if (patch.done === true && !before.done && isLinear(task) && (await linearEnabled())) {
     try {
       await completeIssue(task.source!.id);
     } catch (err) {
@@ -29,7 +29,7 @@ export async function patchTask(id: string, patch: TaskPatch): Promise<ActionRes
 // Keep the TV current after a change, when the user opted in. The sync runs
 // after the response is sent, so Frame never slows down an edit.
 export async function maybeSyncFrame(date?: string): Promise<string[]> {
-  if (!frameEnabled() || process.env.FRAME_AUTO_SYNC !== 'true') return [];
+  if (process.env.FRAME_AUTO_SYNC !== 'true' || !(await frameEnabled())) return [];
   const run = () => syncFrame(date).catch((err) => console.error('Frame sync failed:', (err as Error).message));
   try {
     after(run);

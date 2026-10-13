@@ -25,6 +25,11 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
   `/api/session` and `/api/week`). Mirror API shape changes in `mac/DaybookPackage/Sources/DaybookFeature/Models.swift`
   and run `swift test --package-path mac/DaybookPackage`.
 - Motion lives in `app/globals.css` (section "Motion") and must respect `prefers-reduced-motion`.
+- `lib/secrets.ts` stores integration keys set in Settings, encrypted, and env vars win. `lib/tokens.ts` holds
+  agent tokens (hashed). `lib/auth.ts`: `authorized()` accepts the master key, tokens or the session cookie;
+  `isOwner()` (cookie or master key only) guards token and integration management.
+- `lib/clients.ts` is the catalog behind Settings → AI agents (steps + snippets per client). Keep it in sync with
+  docs/agents.md.
 - `lib/frame.ts` is a three-way merge with Frame Dashboard (see docs/agents.md); change its rules only with a
   test in `test/frame.test.ts`.
 

@@ -4,7 +4,7 @@
 
 ## For agents
 
-- MCP endpoint: /api/mcp (Streamable HTTP, JSON responses, stateless). Auth: `Authorization: Bearer <DAYBOOK_KEY>` or `?key=<DAYBOOK_KEY>`.
+- MCP endpoint: /api/mcp (Streamable HTTP, JSON responses, stateless). Auth: an agent token from Settings (`dbk_…`) or DAYBOOK_KEY, as `Authorization: Bearer …` or `?key=…`.
 - Tools: get_today, get_week, list_backlog, add_task, update_task, complete_task, delete_task, set_focus, plan_day, shutdown_day, sync_linear, send_to_frame (two-way sync with Frame Dashboard), frame_design (get or switch the TV's design).
 - Prompts: plan_my_day, shut_down, plan_my_week.
 - REST: /api/day, /api/week, /api/tasks, /api/tasks/:id, /api/shutdown, /api/linear, /api/frame, /api/frame/settings, /api/health.

@@ -10,7 +10,7 @@ const CORS = {
 };
 
 export async function POST(req: Request) {
-  if (!authorized(req)) {
+  if (!(await authorized(req))) {
     return Response.json({ jsonrpc: '2.0', id: null, error: { code: -32001, message: 'missing or wrong key' } }, { status: 401, headers: { ...CORS, 'WWW-Authenticate': 'Bearer' } });
   }
   let payload: unknown;

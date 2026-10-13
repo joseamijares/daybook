@@ -14,10 +14,18 @@ import { type Artwork, artFor, credit } from '@/lib/art';
 import { addDays, mondayOf } from '@/lib/time';
 import { api, type Session, SessionContext, stringsFor } from './client';
 
-export type View = 'today' | 'week' | 'backlog' | 'shutdown';
+export type View = 'today' | 'week' | 'backlog' | 'shutdown' | 'settings';
 
 const viewFor = (path: string): View =>
-  path.startsWith('/week') ? 'week' : path.startsWith('/backlog') ? 'backlog' : path.startsWith('/shutdown') ? 'shutdown' : 'today';
+  path.startsWith('/week')
+    ? 'week'
+    : path.startsWith('/backlog')
+      ? 'backlog'
+      : path.startsWith('/shutdown')
+        ? 'shutdown'
+        : path.startsWith('/settings')
+          ? 'settings'
+          : 'today';
 
 export function Salon({ children }: { children: ReactNode }) {
   const view = viewFor(usePathname() || '/');
@@ -72,7 +80,7 @@ export function Salon({ children }: { children: ReactNode }) {
   // Week shows the painting of the Sunday before, so it differs from every weekday's.
   const art = session ? artFor(view === 'week' ? addDays(mondayOf(session.today), -1) : session.today) : null;
   const t = stringsFor(session?.locale || 'en');
-  const pageClass = ['room', view === 'shutdown' && 'dusk-page', view === 'week' && 'wide-page', 'scroll-page'].filter(Boolean).join(' ');
+  const pageClass = ['room', view === 'shutdown' && 'dusk-page', (view === 'week' || view === 'settings') && 'wide-page', 'scroll-page'].filter(Boolean).join(' ');
 
   return (
     <div className={pageClass}>
@@ -100,6 +108,12 @@ export function Salon({ children }: { children: ReactNode }) {
               {label}
             </Link>
           ))}
+          <Link className="link gear" href="/settings" aria-current={view === 'settings' ? 'page' : undefined} aria-label={t.settings} title={t.settings}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
+              <circle cx="12" cy="12" r="3.2" />
+              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+            </svg>
+          </Link>
         </div>
       </nav>
       {!session ? (

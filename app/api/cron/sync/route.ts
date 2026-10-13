@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!(secret && token === secret) && !sameKey(token)) return json({ error: 'missing or wrong secret' }, 401);
   const result: Record<string, unknown> = {};
-  if (linearEnabled()) result.linear = await syncLinear().catch((e: Error) => ({ error: e.message }));
-  if (frameEnabled()) result.frame = await syncFrame().catch((e: Error) => ({ error: e.message }));
+  if (await linearEnabled()) result.linear = await syncLinear().catch((e: Error) => ({ error: e.message }));
+  if (await frameEnabled()) result.frame = await syncFrame().catch((e: Error) => ({ error: e.message }));
   return json({ ok: true, ...result });
 }

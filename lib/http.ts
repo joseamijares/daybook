@@ -1,4 +1,4 @@
-import { authorized } from './auth';
+import { authorized, isOwner } from './auth';
 import { NotFound } from './daybook';
 
 export const json = (data: unknown, status = 200) =>
@@ -13,9 +13,11 @@ export async function body<T = Record<string, unknown>>(req: Request): Promise<T
 }
 
 // Wraps a route handler: auth, JSON errors, 400 for bad input, 404 for missing.
-export function route<C = unknown>(fn: (req: Request, ctx: C) => Promise<Response>) {
+export function route<C = unknown>(fn: (req: Request, ctx: C) => Promise<Response>, opts: { owner?: boolean } = {}) {
   return async (req: Request, ctx: C) => {
-    if (!authorized(req)) return json({ error: 'missing or wrong key' }, 401);
+    if (!(await (opts.owner ? isOwner(req) : authorized(req)))) {
+      return json({ error: opts.owner ? 'only the signed-in owner can change this' : 'missing or wrong key' }, 401);
+    }
     try {
       return await fn(req, ctx);
     } catch (err) {

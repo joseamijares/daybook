@@ -3,15 +3,17 @@
 // Uses a personal API key (Linear → Settings → Security & access → API keys).
 
 import { addTask, allTasks, type Task, updateTask } from './daybook';
+import { getSecret } from './secrets';
 import { store } from './store';
 
 const API = 'https://api.linear.app/graphql';
 
-export const linearEnabled = () => Boolean(process.env.LINEAR_API_KEY);
+export const linearKey = () => getSecret('LINEAR_API_KEY');
+export const linearEnabled = async () => Boolean(await linearKey());
 
-async function gql<T>(query: string, variables: Record<string, unknown> = {}): Promise<T> {
-  const key = process.env.LINEAR_API_KEY;
-  if (!key) throw new Error('LINEAR_API_KEY is not set');
+async function gql<T>(query: string, variables: Record<string, unknown> = {}, apiKey?: string): Promise<T> {
+  const key = apiKey || (await linearKey());
+  if (!key) throw new Error('Linear is not connected: add your API key in Settings');
   const res = await fetch(API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: key },
@@ -110,3 +112,13 @@ export async function linearSyncedAt() {
 }
 
 export const isLinear = (t: Task) => t.source?.type === 'linear';
+
+/** Who a key belongs to; used to check a key before saving it. */
+export async function linearViewer(apiKey?: string) {
+  const data = await gql<{ viewer: { name: string; organization: { name: string } } }>(
+    `query Me { viewer { name organization { name } } }`,
+    {},
+    apiKey,
+  );
+  return { name: data.viewer.name, organization: data.viewer.organization.name };
+}

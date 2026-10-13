@@ -16,6 +16,8 @@ export interface Session {
   capacity: number;
   linear: boolean;
   frame: boolean;
+  owner?: boolean;
+  storage?: 'upstash' | 'file';
   linearSyncedAt?: string | null;
   frameSentAt?: string | null;
 }

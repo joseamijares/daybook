@@ -18,13 +18,14 @@
 
 import { createHash } from 'node:crypto';
 import { addTask, getWeek, setDay, setWeekFocus, type Task, updateTask, type WeekView } from './daybook';
+import { getSecret } from './secrets';
 import { store } from './store';
 import { weekDays } from './time';
 
 const MAX_TASKS = 20;
 const MAX_TEXT = 200;
 
-export const frameEnabled = () => Boolean(process.env.FRAME_DASHBOARD_URL && process.env.FRAME_DASHBOARD_WRITE_KEY);
+export const frameEnabled = async () => Boolean((await getSecret('FRAME_DASHBOARD_URL')) && (await getSecret('FRAME_DASHBOARD_WRITE_KEY')));
 
 export interface FrameTask {
   text: string;
@@ -168,15 +169,16 @@ export async function mergeFromFrame(local: WeekView, remote: FramePlan, base: F
   return r;
 }
 
-function frameConfig() {
-  const base = process.env.FRAME_DASHBOARD_URL?.replace(/\/+$/, '');
-  const key = process.env.FRAME_DASHBOARD_WRITE_KEY;
-  if (!base || !key) throw new Error('Set FRAME_DASHBOARD_URL and FRAME_DASHBOARD_WRITE_KEY to sync with your Frame');
+async function frameConfig(override?: { base: string; key: string }) {
+  if (override) return { base: override.base.replace(/\/+$/, ''), key: override.key };
+  const base = (await getSecret('FRAME_DASHBOARD_URL'))?.replace(/\/+$/, '');
+  const key = await getSecret('FRAME_DASHBOARD_WRITE_KEY');
+  if (!base || !key) throw new Error('Frame Dashboard is not connected: add it in Settings');
   return { base, key };
 }
 
-async function frameFetch<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
-  const { base, key } = frameConfig();
+async function frameFetch<T>(path: string, init: { method?: string; body?: unknown; config?: { base: string; key: string } } = {}): Promise<T> {
+  const { base, key } = await frameConfig(init.config);
   const res = await fetch(`${base}${path}`, {
     method: init.method || 'GET',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
@@ -191,13 +193,14 @@ async function frameFetch<T>(path: string, init: { method?: string; body?: unkno
 
 // The base belongs to one Frame: pointing Daybook at a different Frame starts
 // over with a first sync instead of merging against another TV's plan.
-const baseKey = (weekOf: string) => `frameBase:${createHash('sha1').update(frameConfig().base).digest('hex').slice(0, 10)}:${weekOf}`;
+const baseKey = async (weekOf: string) =>
+  `frameBase:${createHash('sha1').update((await frameConfig()).base).digest('hex').slice(0, 10)}:${weekOf}`;
 
 export async function syncFrame(date?: string) {
   const local = await getWeek(date);
   const [remote, base] = await Promise.all([
     frameFetch<FramePlan>(`/api/plan?week=${local.weekOf}`),
-    store().get<FramePlan>('meta', baseKey(local.weekOf)),
+    baseKey(local.weekOf).then((k) => store().get<FramePlan>('meta', k)),
   ]);
   const pulled = await mergeFromFrame(local, { ...remote, days: remote.days || {} }, base);
   const plan = toFramePlan(await getWeek(local.weekOf));
@@ -206,14 +209,14 @@ export async function syncFrame(date?: string) {
     if (day.note && plan.days[d]) plan.days[d].note = day.note;
   }
   const saved = await frameFetch<{ updatedAt?: string }>('/api/plan', { method: 'PUT', body: plan });
-  await store().put('meta', baseKey(plan.weekOf), plan);
+  await store().put('meta', await baseKey(plan.weekOf), plan);
   await store().put('meta', 'frameSentAt', new Date().toISOString());
   return { ok: true, weekOf: plan.weekOf, pulled, pushedDays: Object.keys(plan.days).length, updatedAt: saved.updatedAt ?? null };
 }
 
 // Meetings come from Frame's calendar feeds (iCal and Frame Desk's Mac calendars).
 export async function frameEvents(date?: string): Promise<Record<string, FrameEvent[]>> {
-  if (!frameEnabled()) return {};
+  if (!(await frameEnabled())) return {};
   try {
     const week = await frameFetch<{ days: { date: string; events: FrameEvent[] }[] }>(`/api/week${date ? `?date=${date}` : ''}`);
     return Object.fromEntries(week.days.map((d) => [d.date, d.events || []]));
@@ -248,4 +251,12 @@ export async function setFrameDesign(layout: string): Promise<FrameSettings> {
   }
   await frameFetch('/api/settings', { method: 'PUT', body: { layout } });
   return { ...current, layout };
+}
+
+/** Check a Frame URL and write key before saving them (the write key also reads). */
+export async function checkFrame(base: string, key: string) {
+  const u = new URL(base); // throws on a bad URL
+  if (!/^https?:$/.test(u.protocol)) throw new Error('The Frame URL must start with https://');
+  await frameFetch<unknown>('/api/plan', { config: { base, key } });
+  return { url: base.replace(/\/+$/, '') };
 }

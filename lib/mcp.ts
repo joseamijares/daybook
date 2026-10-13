@@ -248,7 +248,7 @@ export const tools: Tool[] = [
     inputSchema: { type: 'object', properties: {} },
     annotations: { ...WRITE, openWorldHint: true },
     run: async () => {
-      if (!linearEnabled()) throw new Error('Linear is not connected: set LINEAR_API_KEY.');
+      if (!(await linearEnabled())) throw new Error('Linear is not connected: add your API key in Daybook Settings.');
       return syncLinear();
     },
   },
@@ -259,7 +259,7 @@ export const tools: Tool[] = [
     inputSchema: { type: 'object', properties: { date: str('Any date in the week. Defaults to this week.') } },
     annotations: { ...WRITE, openWorldHint: true },
     run: async ({ date }) => {
-      if (!frameEnabled()) throw new Error('Frame Dashboard is not connected: set FRAME_DASHBOARD_URL and FRAME_DASHBOARD_WRITE_KEY.');
+      if (!(await frameEnabled())) throw new Error('Frame Dashboard is not connected: add it in Daybook Settings.');
       return syncFrame(date as string | undefined);
     },
   },
@@ -270,7 +270,7 @@ export const tools: Tool[] = [
     inputSchema: { type: 'object', properties: { layout: str('A design id from the list, e.g. bleed, salon, painting.') } },
     annotations: { ...WRITE, openWorldHint: true },
     run: async ({ layout }) => {
-      if (!frameEnabled()) throw new Error('Frame Dashboard is not connected: set FRAME_DASHBOARD_URL and FRAME_DASHBOARD_WRITE_KEY.');
+      if (!(await frameEnabled())) throw new Error('Frame Dashboard is not connected: add it in Daybook Settings.');
       return layout ? setFrameDesign(layout as string) : frameSettings();
     },
   },
@@ -332,12 +332,14 @@ export async function handle(msg: RpcMessage): Promise<object | null> {
     }
     case 'ping':
       return ok(msg.id, {});
-    case 'tools/list':
+    case 'tools/list': {
+      const [linear, frame] = await Promise.all([linearEnabled(), frameEnabled()]);
       return ok(msg.id, {
         tools: tools
-          .filter((t) => (t.name === 'sync_linear' ? linearEnabled() : t.name === 'send_to_frame' || t.name === 'frame_design' ? frameEnabled() : true))
+          .filter((t) => (t.name === 'sync_linear' ? linear : t.name === 'send_to_frame' || t.name === 'frame_design' ? frame : true))
           .map((t) => ({ name: t.name, title: t.title, description: t.description, inputSchema: t.inputSchema, annotations: t.annotations })),
       });
+    }
     case 'tools/call': {
       const tool = tools.find((t) => t.name === p.name);
       if (!tool) return fail(msg.id, -32602, `Unknown tool: ${p.name}`);

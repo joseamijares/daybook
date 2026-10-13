@@ -1,9 +1,11 @@
-// One secret, DAYBOOK_KEY. Agents send it as `Authorization: Bearer <key>`
-// (or `?key=` for clients that can't set headers, like ChatGPT connectors);
-// the browser gets it as an httpOnly cookie after signing in once.
-// With no key set the app is open — fine on localhost, refused on Vercel.
+// Who may use Daybook:
+// - DAYBOOK_KEY, the master key: `Authorization: Bearer <key>` or `?key=`;
+// - agent tokens (dbk_…) created in Settings, one per connection, revocable;
+// - the browser's httpOnly session cookie, set after signing in once.
+// With no DAYBOOK_KEY the app is open — fine on localhost, refused on Vercel.
 
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { looksLikeToken, verifyToken } from './tokens';
 
 export const COOKIE = 'daybook_session';
 
@@ -18,17 +20,31 @@ export function sameKey(given: string | null | undefined) {
 // The cookie holds a hash of the key, not the key itself.
 export const sessionValue = () => createHash('sha256').update(`daybook:${process.env.DAYBOOK_KEY}`).digest('hex');
 
-export function authorized(req: Request): boolean {
-  if (!process.env.DAYBOOK_KEY) return !process.env.VERCEL;
+function credentials(req: Request) {
   const header = req.headers.get('authorization') || '';
-  if (header.startsWith('Bearer ') && sameKey(header.slice(7))) return true;
-  const url = new URL(req.url);
-  if (sameKey(url.searchParams.get('key'))) return true;
+  const bearer = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const query = new URL(req.url).searchParams.get('key');
   const cookie = (req.headers.get('cookie') || '').split(/;\s*/).find((c) => c.startsWith(`${COOKIE}=`));
+  return { bearer, query, cookie: cookie ? cookie.slice(COOKIE.length + 1) : null };
+}
+
+export async function authorized(req: Request): Promise<boolean> {
+  if (!process.env.DAYBOOK_KEY) return !process.env.VERCEL;
+  const { bearer, query, cookie } = credentials(req);
+  if (sameKey(bearer) || sameKey(query)) return true;
   if (cookie) {
-    const value = cookie.slice(COOKIE.length + 1);
     const expected = sessionValue();
-    return value.length === expected.length && timingSafeEqual(Buffer.from(value), Buffer.from(expected));
+    if (cookie.length === expected.length && timingSafeEqual(Buffer.from(cookie), Buffer.from(expected))) return true;
   }
+  for (const t of [bearer, query]) if (looksLikeToken(t) && (await verifyToken(t))) return true;
   return false;
+}
+
+/** The browser session (or master key) only: managing tokens and secrets isn't for agents. */
+export async function isOwner(req: Request): Promise<boolean> {
+  if (!process.env.DAYBOOK_KEY) return !process.env.VERCEL;
+  const { bearer, query, cookie } = credentials(req);
+  if (sameKey(bearer) || sameKey(query)) return true;
+  const expected = sessionValue();
+  return !!cookie && cookie.length === expected.length && timingSafeEqual(Buffer.from(cookie), Buffer.from(expected));
 }

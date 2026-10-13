@@ -9,6 +9,6 @@ export const GET = route(async (req) => json(toFramePlan(await getWeek(new URL(r
 
 export const POST = route(async (req) => {
   const b = await body<{ date?: string }>(req);
-  if (!frameEnabled()) return json({ error: 'Set FRAME_DASHBOARD_URL and FRAME_DASHBOARD_WRITE_KEY to sync with your Frame' }, 400);
+  if (!(await frameEnabled())) return json({ error: 'Frame Dashboard is not connected: add it in Settings' }, 400);
   return json(await syncFrame(b.date));
 });

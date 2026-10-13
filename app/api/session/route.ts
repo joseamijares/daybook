@@ -3,17 +3,17 @@
 // DELETE /api/session   sign out
 import { connection } from 'next/server';
 import { artFor } from '@/lib/art';
-import { authorized, COOKIE, sameKey, sessionValue } from '@/lib/auth';
+import { authorized, COOKIE, isOwner, sameKey, sessionValue } from '@/lib/auth';
 import { capacity } from '@/lib/daybook';
 import { frameEnabled } from '@/lib/frame';
 import { body, json } from '@/lib/http';
 import { linearEnabled, linearSyncedAt } from '@/lib/linear';
-import { store } from '@/lib/store';
+import { storageKind, store } from '@/lib/store';
 import { today, tzName } from '@/lib/time';
 
 export async function GET(req: Request) {
   await connection();
-  const ok = authorized(req);
+  const [ok, owner, linear, frame] = await Promise.all([authorized(req), isOwner(req), linearEnabled(), frameEnabled()]);
   return json({
     authorized: ok,
     needsKey: Boolean(process.env.DAYBOOK_KEY),
@@ -22,9 +22,11 @@ export async function GET(req: Request) {
     today: today(),
     tz: tzName(),
     capacity: capacity(),
-    linear: linearEnabled(),
-    frame: frameEnabled(),
-    frameAutoSync: frameEnabled() && process.env.FRAME_AUTO_SYNC === 'true',
+    owner,
+    storage: storageKind(),
+    linear,
+    frame,
+    frameAutoSync: frame && process.env.FRAME_AUTO_SYNC === 'true',
     art: artFor(today()),
     ...(ok && {
       linearSyncedAt: await linearSyncedAt(),

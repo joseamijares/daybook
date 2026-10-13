@@ -18,9 +18,15 @@ struct SettingsView: View {
             SettingsSection(title: "Connection") {
                 LineField(title: "Daybook URL", text: $url, prompt: "https://your-daybook.vercel.app",
                           hint: "Your deployment, or http://localhost:3000 while developing.")
-                LineField(title: "Key", text: $key, prompt: model.hasKey ? "Saved in your Keychain" : "DAYBOOK_KEY",
-                          hint: model.hasKey ? "Leave empty to keep the saved key." : "Leave empty if your local Daybook has none.",
+                LineField(title: "Key", text: $key, prompt: model.hasKey ? "Saved in your Keychain" : "DAYBOOK_KEY or a dbk_ token",
+                          hint: model.hasKey ? "Leave empty to keep the saved key." : "Your DAYBOOK_KEY, or a token made for this Mac in Settings.",
                           secure: true)
+            }
+
+            SettingsSection(title: "Linear and AI agents") {
+                SettingRow(title: "Connections", caption: "Connect Linear, the Frame, and Claude, ChatGPT, Cursor, Grok and others.") {
+                    Button("Open") { model.open("/settings") }.buttonStyle(PillStyle())
+                }
             }
 
             SettingsSection(title: "Rituals") {

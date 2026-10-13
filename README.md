@@ -89,7 +89,18 @@ can read and change your plan, so treat it like a password.
 
 ## Connect your agents
 
-The MCP endpoint is `https://<your-daybook>/api/mcp` (Streamable HTTP, JSON
+Open **Settings** (the gear in the navigation). For Linear and Frame
+Dashboard, paste their keys; Daybook checks them and stores them encrypted.
+For an AI client, pick it from the list:
+
+- Claude, ChatGPT, Cursor and Grok;
+- Claude Code, Codex, Gemini CLI, VS Code and Windsurf;
+- Meta Llama Stack, or any other MCP client.
+
+Daybook creates a token just for that client and shows the exact setup, with
+a one-click install for Cursor and VS Code. Revoke a token there at any time.
+
+To do it by hand: the MCP endpoint is `https://<your-daybook>/api/mcp` (Streamable HTTP, JSON
 responses). Agents authenticate with `Authorization: Bearer <DAYBOOK_KEY>`.
 For clients that can't send headers, such as ChatGPT connectors, use
 `?key=<DAYBOOK_KEY>` instead.

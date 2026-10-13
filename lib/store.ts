@@ -9,7 +9,7 @@ import { Redis } from '@upstash/redis';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-export type Kind = 'tasks' | 'days' | 'weeks' | 'meta';
+export type Kind = 'tasks' | 'days' | 'weeks' | 'meta' | 'tokens';
 
 export interface Store {
   all<T>(kind: Kind): Promise<Record<string, T>>;
