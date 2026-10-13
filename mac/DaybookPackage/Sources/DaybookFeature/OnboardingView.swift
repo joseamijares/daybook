@@ -141,8 +141,7 @@ public struct OnboardingView: View {
                 }
                 step(2, "Your key") {
                     field(text: $key, prompt: "DAYBOOK_KEY or a dbk_ token", secure: true, field: .key)
-                    Text("The DAYBOOK_KEY on your server (Vercel → Settings → Environment Variables), or a token from Settings → AI agents → Daybook for Mac. It's kept in your Keychain.")
-                        .font(Salon.text(11.5)).foregroundStyle(Salon.ink2).fixedSize(horizontal: false, vertical: true)
+                    KeyHelp()
                 }
             }
             .padding(.top, 34)
@@ -249,6 +248,28 @@ public struct OnboardingView: View {
             } else {
                 failed = model.session?.authorized == false ? "That key didn’t open this Daybook. Check it and try again." : (model.error ?? "Couldn’t connect.")
             }
+        }
+    }
+}
+
+/// Where the key comes from, in the order people usually have it.
+struct KeyHelp: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text("Where to find it").font(Salon.label()).tracking(1.2).foregroundStyle(Salon.ink2)
+            line("1", "Already using Daybook in a browser? Open Settings → AI agents → **Daybook for Mac** → Create token, and paste the dbk_ token here.")
+            line("2", "Deployed it yourself? It's **DAYBOOK_KEY**: Vercel → your Daybook project → Settings → Environment Variables → DAYBOOK_KEY → reveal and copy.")
+            line("3", "Running it on this Mac? It's DAYBOOK_KEY in the project's .env.local, or no key at all.")
+            Text("It's kept in your Keychain, so you only enter it once.")
+                .font(Salon.text(11)).foregroundStyle(Salon.ink2).padding(.top, 2)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func line(_ n: String, _ text: LocalizedStringKey) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(n).font(Salon.text(11, .semibold)).foregroundStyle(Salon.cobalt).frame(width: 10, alignment: .leading)
+            Text(text).font(Salon.text(11.5)).foregroundStyle(Salon.ink2)
         }
     }
 }

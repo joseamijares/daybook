@@ -1486,3 +1486,27 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Key sign-in: where to find the key, folded away until asked. */
+.key-where {
+  margin-top: 22px;
+}
+.key-where summary {
+  cursor: pointer;
+  list-style: none;
+}
+.key-where summary::-webkit-details-marker {
+  display: none;
+}
+.key-where summary::after {
+  content: ' +';
+}
+.key-where[open] summary::after {
+  content: ' –';
+}
+.key-where ol {
+  margin: 10px 0 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 6px;
+}

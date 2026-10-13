@@ -89,14 +89,15 @@ struct WebView: NSViewRepresentable {
             guard !triedSignIn, !key.isEmpty else { return }
             triedSignIn = true
             // Sign the page in with the saved key if it isn't already, then reload.
+            // callAsyncJavaScript runs this as the body of an async function:
+            // it has to `return` (and await) the result, or the window reloads
+            // before the sign-in lands and shows the page's own key form.
             let js = """
-            (async () => {
-              const s = await fetch('/api/session', { credentials: 'same-origin' }).then(r => r.json());
-              if (s.authorized) return false;
-              const r = await fetch('/api/session', { method: 'POST', credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: KEY }) });
-              return r.ok;
-            })()
+            const s = await fetch('/api/session', { credentials: 'same-origin' }).then(r => r.json());
+            if (s.authorized) return false;
+            const r = await fetch('/api/session', { method: 'POST', credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: KEY }) });
+            return r.ok;
             """
             let encoded = (try? String(data: JSONEncoder().encode(key), encoding: .utf8)) ?? "\"\""
             webView.callAsyncJavaScript(js.replacingOccurrences(of: "KEY", with: encoded), arguments: [:], in: nil, in: .page) { result in

@@ -209,6 +209,14 @@ function KeyGate({ session, onDone }: { session: Session; onDone: () => Promise<
         </button>
       </form>
       {error && <p className="meta" style={{ color: 'var(--color-amber)' }}>{error}</p>}
+      <details className="key-where">
+        <summary className="label">{t.keyWhere}</summary>
+        <ol className="meta">
+          {t.keyWhereSteps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+      </details>
     </section>
   );
 }

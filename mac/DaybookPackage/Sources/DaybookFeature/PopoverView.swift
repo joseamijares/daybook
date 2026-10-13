@@ -91,6 +91,8 @@ public struct PopoverView: View {
                 .buttonStyle(PillStyle(solid: true))
             Button { showSettings = true } label: {
                 Image(systemName: "slider.horizontal.3").font(.system(size: 12)).foregroundStyle(Salon.ink2)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help("Settings")
@@ -306,6 +308,11 @@ struct TaskRow: View {
                 .scaleEffect(hover ? 1.1 : 1)
                 .animation(.spring(duration: 0.4, bounce: 0.45), value: task.done)
                 .animation(.smooth(duration: 0.2), value: hover)
+                // A ring is only its outline to hit-testing (the fill is
+                // invisible until done): make the whole circle and a margin
+                // around it clickable.
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help(task.done ? "Mark not done" : "Mark done")

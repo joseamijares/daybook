@@ -20,10 +20,11 @@ struct SettingsView: View {
                           hint: "Your deployment, or http://localhost:3000 while developing.")
                 LineField(title: "Key", text: $key, prompt: model.hasKey ? "Saved in your Keychain" : "DAYBOOK_KEY or a dbk_ token",
                           hint: needsKey
-                              ? "Required. Paste the DAYBOOK_KEY you set on your server (Vercel → Project → Settings → Environment Variables), or a token from Settings → AI agents → Daybook for Mac."
-                              : model.hasKey ? "Leave empty to keep the saved key." : "Your DAYBOOK_KEY, or a token made for this Mac in Settings.",
+                              ? "Required, see below."
+                              : model.hasKey ? "Leave empty to keep the saved key." : "Your DAYBOOK_KEY, or a token made for this Mac.",
                           secure: true,
                           highlight: needsKey)
+                if needsKey || !model.hasKey { KeyHelp() }
             }
 
             SettingsSection(title: "Linear and AI agents") {
