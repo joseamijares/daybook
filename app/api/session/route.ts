@@ -1,0 +1,45 @@
+// GET    /api/session   { authorized, needsKey, locale, linear, frame, today }
+// POST   /api/session   { key }  sign the browser in (httpOnly cookie)
+// DELETE /api/session   sign out
+import { connection } from 'next/server';
+import { authorized, COOKIE, sameKey, sessionValue } from '@/lib/auth';
+import { capacity } from '@/lib/daybook';
+import { frameEnabled } from '@/lib/frame';
+import { body, json } from '@/lib/http';
+import { linearEnabled, linearSyncedAt } from '@/lib/linear';
+import { store } from '@/lib/store';
+import { today, tzName } from '@/lib/time';
+
+export async function GET(req: Request) {
+  await connection();
+  const ok = authorized(req);
+  return json({
+    authorized: ok,
+    needsKey: Boolean(process.env.DAYBOOK_KEY),
+    misconfigured: !process.env.DAYBOOK_KEY && Boolean(process.env.VERCEL),
+    locale: process.env.DAYBOOK_LOCALE === 'es' ? 'es' : 'en',
+    today: today(),
+    tz: tzName(),
+    capacity: capacity(),
+    linear: linearEnabled(),
+    frame: frameEnabled(),
+    ...(ok && {
+      linearSyncedAt: await linearSyncedAt(),
+      frameSentAt: await store().get<string>('meta', 'frameSentAt'),
+    }),
+  });
+}
+
+export async function POST(req: Request) {
+  const { key } = await body<{ key?: string }>(req);
+  if (!sameKey(key)) return json({ error: 'That key does not match DAYBOOK_KEY' }, 401);
+  const res = json({ ok: true });
+  res.headers.append('Set-Cookie', `${COOKIE}=${sessionValue()}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${process.env.VERCEL ? '; Secure' : ''}`);
+  return res;
+}
+
+export function DELETE() {
+  const res = json({ ok: true });
+  res.headers.append('Set-Cookie', `${COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+  return res;
+}
