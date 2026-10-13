@@ -148,6 +148,19 @@ textarea {
   font-size: 14px;
   color: rgba(236, 230, 216, 0.8);
 }
+/* The painting's fact, up to three lines. */
+.credit .f {
+  max-width: 46ch;
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 20px;
+  color: rgba(236, 230, 216, 0.88);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
 
 .nav {
   position: fixed;
@@ -410,7 +423,8 @@ textarea {
   color: var(--color-amber);
 }
 .row .est {
-  width: 44px;
+  width: 56px;
+  white-space: nowrap;
   flex-shrink: 0;
   text-align: right;
   font-size: 14px;
@@ -423,7 +437,8 @@ textarea {
 }
 .row .actions {
   position: absolute;
-  right: 0;
+  /* Left of the tag and estimate columns, which are clickable themselves. */
+  right: 160px;
   top: 50%;
   transform: translateY(-50%);
   display: none;
@@ -884,6 +899,68 @@ textarea {
   left: 81%;
   top: 34%;
   width: 13%;
+}
+
+/* Editable tag and estimate on a task row. */
+.row .tag-btn,
+.row .est-btn {
+  border: 0;
+  background: none;
+  padding: 2px 0;
+  cursor: pointer;
+  border-radius: 4px;
+  transition:
+    color 0.2s var(--ease-gallery),
+    background-color 0.2s var(--ease-gallery);
+}
+.row .tag-btn:hover,
+.row .est-btn:hover {
+  color: var(--color-card-ink);
+  background: color-mix(in srgb, var(--color-card-ink) 6%, transparent);
+}
+.row .tag-btn.empty,
+.row .est-btn.empty {
+  color: transparent;
+}
+.row:hover .tag-btn.empty,
+.row:hover .est-btn.empty,
+.row .tag-btn.empty:focus-visible,
+.row .est-btn.empty:focus-visible {
+  color: var(--color-done);
+}
+.row .tag-input,
+.row .est-input {
+  flex-shrink: 0;
+  border: 0;
+  border-bottom: 1px solid var(--accent);
+  background: transparent;
+  outline: none;
+  padding: 2px 0;
+  text-align: right;
+}
+.row .tag-input {
+  width: 76px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+.row .est-input {
+  width: 56px;
+  font-size: 14px;
+}
+.rolled-note {
+  font-size: 12px;
+  color: var(--color-amber);
+  white-space: nowrap;
+}
+.row .actions button.delete.asking {
+  color: var(--sheet);
+  background: var(--color-amber);
+  border-color: var(--color-amber);
+}
+.row[data-confirming] .actions {
+  display: flex;
 }
 
 /* ---- Settings ------------------------------------------------------------ */

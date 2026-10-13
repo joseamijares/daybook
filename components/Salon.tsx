@@ -78,7 +78,8 @@ export function Salon({ children }: { children: ReactNode }) {
   }, [session, toast, refreshSession]);
 
   // Week shows the painting of the Sunday before, so it differs from every weekday's.
-  const art = session ? artFor(view === 'week' ? addDays(mondayOf(session.today), -1) : session.today) : null;
+  // The server picks the painting (the Frame's, when connected, so the TV and Daybook match).
+  const art = session ? ((view === 'week' ? session.weekArt : session.art) ?? artFor(view === 'week' ? addDays(mondayOf(session.today), -1) : session.today)) : null;
   const t = stringsFor(session?.locale || 'en');
   const pageClass = ['room', view === 'shutdown' && 'dusk-page', (view === 'week' || view === 'settings') && 'wide-page', 'scroll-page'].filter(Boolean).join(' ');
 
@@ -89,6 +90,7 @@ export function Salon({ children }: { children: ReactNode }) {
         <a key={art.slug} className="credit" href={art.source} target="_blank" rel="noreferrer" title={art.title}>
           <span className="t">{art.title}</span>
           <span className="s">{credit(art)}</span>
+          {art.fact && <span className="f">{art.fact}</span>}
         </a>
       )}
       <nav className="nav" aria-label="Daybook">
@@ -163,15 +165,18 @@ function Wall({ art, dusk }: { art: Artwork | null; dusk: boolean }) {
       {layers.map(({ art: a, id }, i) => (
         <div key={id} className={`hanging${i === layers.length - 1 ? ' is-new' : ''}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="fill" src={`/${a.image}`} alt="" />
+          <img className="fill" src={src(a.image)} alt="" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="art" src={`/${a.image}`} alt="" />
+          <img className="art" src={src(a.image)} alt="" />
         </div>
       ))}
       <div className="scrim" />
     </div>
   );
 }
+
+// Built-in paintings are served by Daybook; the Frame's come with a full URL.
+const src = (image: string) => (/^https?:/.test(image) ? image : `/${image}`);
 
 function KeyGate({ session, onDone }: { session: Session; onDone: () => Promise<void> }) {
   const t = stringsFor(session.locale);

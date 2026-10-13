@@ -6,15 +6,24 @@ import { artFor } from '@/lib/art';
 import { authorized, COOKIE, isOwner, sameKey, sessionValue, TOKEN_COOKIE } from '@/lib/auth';
 import { looksLikeToken, verifyToken } from '@/lib/tokens';
 import { capacity } from '@/lib/daybook';
-import { frameEnabled } from '@/lib/frame';
+import { frameArt, frameEnabled } from '@/lib/frame';
 import { body, json } from '@/lib/http';
 import { linearEnabled, linearSyncedAt } from '@/lib/linear';
 import { storageKind, store } from '@/lib/store';
-import { today, tzName } from '@/lib/time';
+import { addDays, mondayOf, today, tzName } from '@/lib/time';
 
 export async function GET(req: Request) {
   await connection();
-  const [ok, owner, linear, frame] = await Promise.all([authorized(req), isOwner(req), linearEnabled(), frameEnabled()]);
+  const day = today();
+  const sunday = addDays(mondayOf(day), 6);
+  const [ok, owner, linear, frame, tvArt, tvWeekArt] = await Promise.all([
+    authorized(req),
+    isOwner(req),
+    linearEnabled(),
+    frameEnabled(),
+    frameArt(day),
+    frameArt(sunday),
+  ]);
   return json({
     authorized: ok,
     needsKey: Boolean(process.env.DAYBOOK_KEY),
@@ -28,7 +37,10 @@ export async function GET(req: Request) {
     linear,
     frame,
     frameAutoSync: frame && process.env.FRAME_AUTO_SYNC === 'true',
-    art: artFor(today()),
+    // The painting of the day: the Frame's when one is connected, so they match.
+    art: tvArt ?? artFor(day),
+    // The Week screen hangs a different one (the week's Sunday on the Frame).
+    weekArt: tvWeekArt ?? artFor(addDays(mondayOf(day), -1)),
     ...(ok && {
       linearSyncedAt: await linearSyncedAt(),
       frameSentAt: await store().get<string>('meta', 'frameSentAt'),

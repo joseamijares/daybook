@@ -2,6 +2,12 @@
 
 const en = {
   settings: 'Settings',
+  addTag: '+ tag',
+  editTag: 'Add or change the tag',
+  tagPlaceholder: 'tag',
+  editEstimate: 'How long? 45m, 1h30',
+  editTitle: 'Double-click to rename',
+  deleteAsk: 'Delete?',
   connections: 'Connections',
   settingsLead: 'Connect Linear and your Frame, and give your AI agents a way in.',
   integrations: 'Integrations',
@@ -113,6 +119,12 @@ const en = {
 
 const es: typeof en = {
   settings: 'Ajustes',
+  addTag: '+ etiqueta',
+  editTag: 'Agregar o cambiar la etiqueta',
+  tagPlaceholder: 'etiqueta',
+  editEstimate: '¿Cuánto? 45m, 1h30',
+  editTitle: 'Doble clic para renombrar',
+  deleteAsk: '¿Borrar?',
   connections: 'Conexiones',
   settingsLead: 'Conecta Linear y tu Frame, y dale entrada a tus agentes de IA.',
   integrations: 'Integraciones',

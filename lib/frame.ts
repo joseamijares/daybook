@@ -18,6 +18,7 @@
 
 import { createHash } from 'node:crypto';
 import { addTask, getWeek, setDay, setWeekFocus, type Task, updateTask, type WeekView } from './daybook';
+import type { Artwork } from './art';
 import { getSecret } from './secrets';
 import { store } from './store';
 import { weekDays } from './time';
@@ -214,14 +215,48 @@ export async function syncFrame(date?: string) {
   return { ok: true, weekOf: plan.weekOf, pulled, pushedDays: Object.keys(plan.days).length, updatedAt: saved.updatedAt ?? null };
 }
 
+// Frame's week (meetings and the painting of each day). Cached briefly per
+// server instance, since Today, the session and get_today all ask for it.
+interface FrameWeekDay {
+  date: string;
+  events?: FrameEvent[];
+  art?: (Artwork & { image: string }) | null;
+}
+const weekCache = new Map<string, { at: number; days: FrameWeekDay[] }>();
+
+async function frameWeek(date?: string): Promise<FrameWeekDay[]> {
+  const k = date || 'this-week';
+  const hit = weekCache.get(k);
+  if (hit && Date.now() - hit.at < 5 * 60_000) return hit.days;
+  const { base } = await frameConfig();
+  const week = await frameFetch<{ days: FrameWeekDay[] }>(`/api/week${date ? `?date=${date}` : ''}`);
+  // Painting images are relative to the Frame ("art/x.jpg", "_vercel/image?…"); make them absolute.
+  const days = week.days.map((d) => ({
+    ...d,
+    art: d.art ? { ...d.art, image: new URL(d.art.image, `${base}/`).toString() } : null,
+  }));
+  weekCache.set(k, { at: Date.now(), days });
+  return days;
+}
+
 // Meetings come from Frame's calendar feeds (iCal and Frame Desk's Mac calendars).
 export async function frameEvents(date?: string): Promise<Record<string, FrameEvent[]>> {
   if (!(await frameEnabled())) return {};
   try {
-    const week = await frameFetch<{ days: { date: string; events: FrameEvent[] }[] }>(`/api/week${date ? `?date=${date}` : ''}`);
-    return Object.fromEntries(week.days.map((d) => [d.date, d.events || []]));
+    return Object.fromEntries((await frameWeek(date)).map((d) => [d.date, d.events || []]));
   } catch {
     return {};
+  }
+}
+
+/** The painting the Frame hangs on that day, so Daybook and the TV match. */
+export async function frameArt(date: string): Promise<Artwork | null> {
+  if (!(await frameEnabled())) return null;
+  try {
+    const day = (await frameWeek(date)).find((d) => d.date === date);
+    return day?.art ? ({ ...day.art, slug: day.art.slug || day.art.image } as Artwork) : null;
+  } catch {
+    return null;
   }
 }
 

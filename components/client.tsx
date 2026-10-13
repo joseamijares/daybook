@@ -4,6 +4,7 @@
 // so changes an agent makes over MCP show up without a reload.
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import type { Artwork } from '@/lib/art';
 import { type Locale, type Strings, strings } from '@/lib/i18n';
 
 export interface Session {
@@ -17,6 +18,8 @@ export interface Session {
   linear: boolean;
   frame: boolean;
   owner?: boolean;
+  art?: Artwork;
+  weekArt?: Artwork;
   storage?: 'upstash' | 'file';
   linearSyncedAt?: string | null;
   frameSentAt?: string | null;

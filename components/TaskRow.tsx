@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Task } from '@/lib/daybook';
 import { dow } from '@/lib/i18n';
 import { minutesLabel } from '@/lib/time';
@@ -21,7 +21,7 @@ export function Check({ on, onClick, label }: { on: boolean; onClick: () => void
 interface Props {
   task: Task;
   onToggle: () => void;
-  onPatch: (patch: Partial<Pick<Task, 'title' | 'date'>> & { date?: string | null }) => void;
+  onPatch: (patch: { title?: string; date?: string | null; tag?: string | null; estimate?: number | null }) => void;
   onDelete: () => void;
   moves?: ('today' | 'tomorrow' | 'backlog')[];
   draggable?: boolean;
@@ -31,26 +31,81 @@ interface Props {
   onDragOver?: () => void;
 }
 
+// "45m", "1h30", "1.5h", "90" → minutes; "" → no estimate.
+function readMinutes(s: string): number | null | undefined {
+  const v = s.trim().toLowerCase().replace(',', '.');
+  if (!v) return null;
+  const h = v.match(/^(\d+(?:\.\d+)?)\s*h(?:\s*(\d{1,2})\s*m?)?$/);
+  if (h) return Math.round(parseFloat(h[1]) * 60) + (h[2] ? Number(h[2]) : 0);
+  const m = v.match(/^(\d{1,4})\s*m?(?:in)?$/);
+  return m ? Number(m[1]) : undefined;
+}
+
 export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow', 'backlog'], ...drag }: Props) {
   const { t, session } = useSession();
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState<null | 'title' | 'tag' | 'estimate'>(null);
   const [title, setTitle] = useState(task.title);
+  const [draft, setDraft] = useState('');
   const [dragging, setDragging] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  // A first click on × asks; the question goes away by itself.
+  useEffect(() => {
+    if (!confirming) return;
+    const timer = setTimeout(() => setConfirming(false), 3000);
+    return () => clearTimeout(timer);
+  }, [confirming]);
+
+  const rolled = task.rolledFrom && !task.done && task.rolledFrom !== task.date;
+
+  const edit = (what: 'tag' | 'estimate') => {
+    setDraft(what === 'tag' ? task.tag || '' : task.estimate ? minutesLabel(task.estimate).replace(' ', '') : '');
+    setEditing(what);
+  };
+
+  const commitSmall = () => {
+    if (editing === 'tag') {
+      const tag = draft.trim().replace(/^#/, '').replace(/\s+/g, '-').slice(0, 40) || null;
+      if (tag !== (task.tag || null)) onPatch({ tag });
+    }
+    if (editing === 'estimate') {
+      const minutes = readMinutes(draft);
+      if (minutes !== undefined && minutes !== (task.estimate || null)) onPatch({ estimate: minutes });
+    }
+    setEditing(null);
+  };
+
+  const small = (cls: string, placeholder: string) => (
+    <input
+      className={cls}
+      autoFocus
+      value={draft}
+      placeholder={placeholder}
+      onChange={(e) => setDraft(e.target.value)}
+      onFocus={(e) => e.currentTarget.select()}
+      onBlur={commitSmall}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') commitSmall();
+        if (e.key === 'Escape') setEditing(null);
+      }}
+      aria-label={placeholder}
+    />
+  );
 
   const tag = task.source ? (
     <a className="tag linear" href={task.source.url} target="_blank" rel="noreferrer" title={task.source.state}>
       {task.source.key}
     </a>
-  ) : task.rolledFrom && !task.done && task.rolledFrom !== task.date ? (
-    <span className="tag rolled" title={task.rolledFrom}>
-      {session.locale === 'es' ? 'desde' : 'from'} {dow(task.rolledFrom, session.locale)}
-    </span>
+  ) : editing === 'tag' ? (
+    small('tag-input', t.tagPlaceholder)
   ) : (
-    <span className="tag">{task.tag || ''}</span>
+    <button type="button" className={`tag tag-btn${task.tag ? '' : ' empty'}`} onClick={() => edit('tag')} title={t.editTag}>
+      {task.tag || t.addTag}
+    </button>
   );
 
   const save = () => {
-    setEditing(false);
+    setEditing(null);
     if (title.trim() && title.trim() !== task.title) onPatch({ title: title.trim() });
     else setTitle(task.title);
   };
@@ -59,6 +114,7 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
     <div
       className={`row${dragging ? ' dragging' : ''}${drag.dropBefore ? ' drop-before' : ''}`}
       draggable={drag.draggable && !editing}
+      data-confirming={confirming || undefined}
       onDragStart={(e) => {
         e.dataTransfer.setData('text/plain', task.id);
         e.dataTransfer.effectAllowed = 'move';
@@ -75,7 +131,7 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
       }}
     >
       <Check on={task.done} onClick={onToggle} label={task.title} />
-      {editing ? (
+      {editing === 'title' ? (
         <input
           className="title"
           autoFocus
@@ -86,17 +142,29 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
             if (e.key === 'Enter') save();
             if (e.key === 'Escape') {
               setTitle(task.title);
-              setEditing(false);
+              setEditing(null);
             }
           }}
         />
       ) : (
-        <button type="button" className={`title${task.done ? ' is-done' : ''}`} onDoubleClick={() => setEditing(true)} title={task.notes || undefined}>
+        <button type="button" className={`title${task.done ? ' is-done' : ''}`} onDoubleClick={() => setEditing('title')} title={task.notes || t.editTitle}>
           <span className="strike">{task.title}</span>
+          {rolled && (
+            <span className="rolled-note" title={task.rolledFrom!}>
+              {' '}
+              · {session.locale === 'es' ? 'desde' : 'from'} {dow(task.rolledFrom!, session.locale)}
+            </span>
+          )}
         </button>
       )}
       {tag}
-      <span className="est">{task.estimate ? minutesLabel(task.estimate) : ''}</span>
+      {editing === 'estimate' ? (
+        small('est-input', '45m')
+      ) : (
+        <button type="button" className={`est est-btn${task.estimate ? '' : ' empty'}`} onClick={() => edit('estimate')} title={t.editEstimate}>
+          {task.estimate ? minutesLabel(task.estimate) : '–'}
+        </button>
+      )}
       {!editing && (
         <span className="actions">
           {moves.map((m) => (
@@ -108,8 +176,13 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
               {m === 'today' ? t.moveToday : m === 'tomorrow' ? t.moveTomorrow : t.moveBacklog}
             </button>
           ))}
-          <button type="button" className="keep-mobile" aria-label={t.remove} onClick={() => confirm(t.deleteConfirm) && onDelete()}>
-            ×
+          <button
+            type="button"
+            className={`keep-mobile delete${confirming ? ' asking' : ''}`}
+            aria-label={confirming ? t.deleteAsk : t.remove}
+            onClick={() => (confirming ? onDelete() : setConfirming(true))}
+          >
+            {confirming ? t.deleteAsk : '×'}
           </button>
         </span>
       )}

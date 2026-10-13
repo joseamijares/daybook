@@ -12,8 +12,10 @@ export interface Artwork {
   kind: string;
   collection: string | null;
   ratio: number;
-  image: string;
+  image: string; // relative to Daybook ("art/x.webp"), or absolute when it comes from a Frame
   source: string;
+  fact?: string | null;
+  factSource?: string | null;
 }
 
 function hash(s: string) {

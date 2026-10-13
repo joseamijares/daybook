@@ -44,6 +44,7 @@ struct WebView: NSViewRepresentable {
         config.websiteDataStore = .default()
         let view = WKWebView(frame: .zero, configuration: config)
         view.navigationDelegate = context.coordinator
+        view.uiDelegate = context.coordinator // JavaScript confirm()/alert() as sheets
         view.setValue(false, forKey: "drawsBackground")
         view.allowsBackForwardNavigationGestures = true
         view.alphaValue = 0 // fades up once the first page has painted
@@ -71,7 +72,7 @@ struct WebView: NSViewRepresentable {
     }
 
     @MainActor
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         var key: String
         var loaded: URL?
         private var triedSignIn = false
@@ -107,6 +108,24 @@ struct WebView: NSViewRepresentable {
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             webView.alphaValue = 1
+        }
+
+        // WebKit ignores confirm() and alert() unless the app shows them; without
+        // this, every "Are you sure?" in the page silently answered no.
+        func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor (Bool) -> Void) {
+            let alert = NSAlert()
+            alert.messageText = message
+            alert.addButton(withTitle: "OK")
+            alert.addButton(withTitle: "Cancel")
+            guard let window = webView.window else { return completionHandler(alert.runModal() == .alertFirstButtonReturn) }
+            alert.beginSheetModal(for: window) { completionHandler($0 == .alertFirstButtonReturn) }
+        }
+
+        func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor () -> Void) {
+            let alert = NSAlert()
+            alert.messageText = message
+            guard let window = webView.window else { alert.runModal(); return completionHandler() }
+            alert.beginSheetModal(for: window) { _ in completionHandler() }
         }
 
         // Links that leave Daybook (Linear issues, painting sources) open in the browser.

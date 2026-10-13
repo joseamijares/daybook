@@ -7,9 +7,9 @@ shut down in the evening, and let your AI agents do the typing.
 
 Daybook is a small, open-source take on [Sunsama](https://www.sunsama.com/)'s
 rituals. It shares its look and its 44 public-domain paintings with
-[Frame Dashboard](https://github.com/joseamijares/frame-dashboard). When the
-Frame shows only its built-in Impressionists pack, both hang the same painting
-on the same day.
+[Frame Dashboard](https://github.com/joseamijares/frame-dashboard). With a
+Frame connected, Daybook hangs whatever painting the TV shows that day, with its
+story; without one, it uses the same rotation as the Frame's Impressionists pack.
 
 - **Today.** One focus line, a short list of tasks with time estimates, and
   how much you've planned against your capacity (6 hours by default).
