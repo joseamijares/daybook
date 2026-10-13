@@ -5,10 +5,18 @@ The wordmark is "Daybook" in Instrument Serif Regular, outlined to paths so it r
 
 Usage:  python3 brand/build-logo.py [font]
         font defaults to brand/fonts/InstrumentSerif-Regular-latin.woff2 (Google Fonts latin subset, OFL)
-Rail thickness is optically sized per use: 0.05 mark/stacked, 0.07 horizontal (runs small), 0.085 favicon.
-Writes: public/brand/daybook-{mark,lockup,lockup-stacked}{,-dark}.svg, app/icon.svg, app/apple-icon.png
+Rail thickness is optically sized per use: 0.05 mark/stacked, 0.07 horizontal (runs small), heavier
+still on icons that render at 16-32 px. Needs rsvg-convert and ImageMagick (brew install librsvg imagemagick).
+
+Writes:
+  public/brand/daybook-{mark,lockup,lockup-stacked}{,-dark}.svg   logos
+  app/icon.svg, app/favicon.ico, app/apple-icon.png               browser tab, iOS home screen
+  public/icons/icon-{192,512,maskable-512,monochrome-512}.png     web app manifest (Android, Samsung Galaxy, desktop installs)
+  mac/Daybook/Assets.xcassets/AppIcon.appiconset/icon_*.png       Mac app (Apple's 824 px body on a 1024 grid)
+  mac/Daybook/Assets.xcassets/MenuBarIcon.imageset/menubar.svg    Mac menu bar (template image)
+  brand/icons/samsung-tv/*.png                                    Samsung TV (Tizen): Seller Office + config.xml
 """
-import pathlib, subprocess, sys
+import json, pathlib, subprocess, sys, tempfile
 
 from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.svgPathPen import SVGPathPen
@@ -100,6 +108,102 @@ def svg(w, h, body, label="Daybook"):
     )
 
 
+def stacked(d, ww, asc, desc, c):
+    """Frame centred over the word. Returns (w, h, body)."""
+    fh, gap = asc * 3, asc * 0.42
+    fw = fh * FRAME_W
+    word = f'<path fill="{c["word"]}" transform="translate(0 {f(fh + gap + asc)})" d="{d}"/>'
+    return ww, fh + gap + asc + desc, mark((ww - fw) / 2, 0, fh, c) + word
+
+
+def centred(s, fh, c, rail):
+    """The mark centred in an s×s square, frame height fh."""
+    return mark((s - fh * FRAME_W) / 2, (s - fh) / 2, fh, c, rail=rail)
+
+
+def fit(body_w, body_h, body, cw, ch, height):
+    """Scale a body to `height` and centre it on a cw×ch canvas."""
+    k = height / body_h
+    x, y = (cw - body_w * k) / 2, (ch - height) / 2
+    return f'<g transform="translate({f(x)} {f(y)}) scale({k:.5f})">{body}</g>'
+
+
+def png(svg_text, out, w, h=None, rgb=None):
+    """Render SVG to PNG. rgb=<hex> flattens onto that colour and drops alpha (24-bit)."""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["rsvg-convert", "-w", str(w), "-h", str(h or w), "-o", str(out)], input=svg_text.encode(), check=True)
+    if rgb:
+        subprocess.run(["magick", str(out), "-background", rgb, "-alpha", "remove", "-alpha", "off",
+                        "-define", "png:color-type=2", str(out)], check=True)
+
+
+def mac_icon(fh, rail):
+    """macOS app icon on Apple's grid: 824 px rounded body centred on 1024, soft drop shadow."""
+    body = (
+        '<defs><filter id="s" x="-10%" y="-10%" width="120%" height="125%">'
+        '<feGaussianBlur in="SourceAlpha" stdDeviation="10"/><feOffset dy="10"/>'
+        '<feComponentTransfer><feFuncA type="linear" slope="0.35"/></feComponentTransfer>'
+        '<feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'
+        '<rect x="100" y="100" width="824" height="824" rx="185" fill="#161D19" filter="url(#s)"/>'
+        + centred(1024, fh, DARK, rail)
+    )
+    return f'<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">{body}</svg>\n'
+
+
+def icons(d, ww, asc, desc):
+    # Browser tab: wall tile, heavier rail so it survives 16 px. Also as .ico for older browsers.
+    s, fh = 64, 46
+    tab = svg(s, s, f'<rect width="{s}" height="{s}" rx="14" fill="{WALL}"/>' + centred(s, fh, DARK, 0.085))
+    (ROOT / "app/icon.svg").write_text(tab)
+    with tempfile.TemporaryDirectory() as tmp:
+        sizes = [pathlib.Path(tmp) / f"{n}.png" for n in (16, 32, 48)]
+        for n, path in zip((16, 32, 48), sizes):
+            png(tab, path, n)
+        subprocess.run(["magick", *map(str, sizes), str(ROOT / "app/favicon.ico")], check=True)
+
+    # iOS home screen: full-bleed square (iOS rounds the corners).
+    s = 180
+    png(svg(s, s, f'<rect width="{s}" height="{s}" fill="{WALL}"/>' + centred(s, 112, DARK, 0.065)), ROOT / "app/apple-icon.png", s, rgb=WALL)
+
+    # Web app manifest. "any" keeps its own rounded tile; "maskable" is full-bleed with the mark inside the
+    # 80 % safe circle (Android/One UI crop it to their own shape); "monochrome" is alpha only, for themed icons.
+    web = ROOT / "public/icons"
+    s = 512
+    tile = svg(s, s, f'<rect width="{s}" height="{s}" rx="{s * 0.22:.0f}" fill="{WALL}"/>' + centred(s, s * 0.6, DARK, 0.065))
+    png(tile, web / "icon-192.png", 192)
+    png(tile, web / "icon-512.png", 512)
+    png(svg(s, s, f'<rect width="{s}" height="{s}" fill="{WALL}"/>' + centred(s, s * 0.54, DARK, 0.065)), web / "icon-maskable-512.png", s, rgb=WALL)
+    white = {"frame": "#FFFFFF", "sun": "#FFFFFF", "word": "#FFFFFF"}
+    png(svg(s, s, centred(s, s * 0.54, white, 0.075)), web / "icon-monochrome-512.png", s)
+
+    # Mac app icon. Small sizes get a bigger frame and heavier rail so they stay legible.
+    mac = ROOT / "mac/Daybook/Assets.xcassets"
+    large, small = mac_icon(520, 0.05), mac_icon(600, 0.11)
+    (ROOT / "brand/macos-icon.svg").write_text(large)
+    for n in (16, 32, 64, 128, 256, 512, 1024):
+        png(small if n <= 32 else mac_icon(540, 0.075) if n == 64 else large, mac / f"AppIcon.appiconset/icon_{n}.png", n)
+
+    # Mac menu bar: a template image (black + alpha; macOS tints it for light/dark menu bars). 12×16 pt.
+    bar = mac / "MenuBarIcon.imageset"
+    bar.mkdir(parents=True, exist_ok=True)
+    black = {"frame": "#000000", "sun": "#000000", "word": "#000000"}
+    (bar / "menubar.svg").write_text(svg(12, 16, mark(0, 0, 16, black, rail=0.1)).replace("<svg ", '<svg width="12" height="16" ', 1))
+    (bar / "Contents.json").write_text(json.dumps({
+        "images": [{"filename": "menubar.svg", "idiom": "universal"}],
+        "info": {"author": "xcode", "version": 1},
+        "properties": {"preserves-vector-representation": True, "template-rendering-intent": "template"},
+    }, indent=2) + "\n")
+
+    # Samsung TV (Tizen). Seller Office: 1920×1080 logo (32-bit PNG, transparent) over a 1920×1080 background
+    # (24-bit), plus a 512×423 icon (24-bit, no transparency). config.xml takes a square icon.png.
+    tv = ROOT / "brand/icons/samsung-tv"
+    lock = stacked(d, ww, asc, desc, DARK)
+    png(svg(1920, 1080, fit(*lock, 1920, 1080, 500)), tv / "logo-1920x1080.png", 1920, 1080)
+    png(svg(1920, 1080, f'<rect width="1920" height="1080" fill="{WALL}"/>'), tv / "background-1920x1080.png", 1920, 1080, rgb=WALL)
+    png(svg(512, 423, f'<rect width="512" height="423" fill="{WALL}"/>' + fit(*lock, 512, 423, 270)), tv / "icon-512x423.png", 512, 423, rgb=WALL)
+    png(svg(512, 512, f'<rect width="512" height="512" fill="{WALL}"/>' + centred(512, 300, DARK, 0.065)), tv / "icon.png", 512, rgb=WALL)
+
+
 def main(font_path):
     d, ww, asc, desc = wordmark(font_path)
     out = ROOT / "public/brand"
@@ -119,25 +223,9 @@ def main(font_path):
         )
 
         # Stacked lockup: frame centred over the word.
-        fh, gap = asc * 3, asc * 0.42
-        fw = fh * FRAME_W
-        word = f'<path fill="{c["word"]}" transform="translate(0 {f(fh + gap + asc)})" d="{d}"/>'
-        (out / f"daybook-lockup-stacked{suffix}.svg").write_text(
-            svg(ww, fh + gap + asc + desc, mark((ww - fw) / 2, 0, fh, c) + word)
-        )
+        (out / f"daybook-lockup-stacked{suffix}.svg").write_text(svg(*stacked(d, ww, asc, desc, c)))
 
-    # Favicon: wall tile, heavier rail so it survives 16px.
-    s, fh = 64, 46
-    tile = f'<rect width="{s}" height="{s}" rx="14" fill="{WALL}"/>'
-    (ROOT / "app/icon.svg").write_text(svg(s, s, tile + mark((s - fh * FRAME_W) / 2, (s - fh) / 2, fh, DARK, rail=0.085)))
-
-    # Apple touch icon: full-bleed square (iOS rounds the corners), rendered to PNG.
-    s, fh = 180, 112
-    apple = svg(s, s, f'<rect width="{s}" height="{s}" fill="{WALL}"/>' + mark((s - fh * FRAME_W) / 2, (s - fh) / 2, fh, DARK, rail=0.065))
-    subprocess.run(
-        ["rsvg-convert", "-w", "180", "-h", "180", "-o", str(ROOT / "app/apple-icon.png")],
-        input=apple.encode(), check=True,
-    )
+    icons(d, ww, asc, desc)
     print("wordmark", f(ww), "x", f(asc + desc), "units; files written")
 
 

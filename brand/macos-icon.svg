@@ -1,18 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <defs>
-    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1F2722"/>
-      <stop offset="1" stop-color="#0E1210"/>
-    </linearGradient>
-    <linearGradient id="gilt" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#DDBC74"/>
-      <stop offset="0.5" stop-color="#B58E43"/>
-      <stop offset="1" stop-color="#D4B26A"/>
-    </linearGradient>
-  </defs>
-  <rect x="100" y="100" width="824" height="824" rx="186" fill="#161D19"/>
-  <g transform="translate(317 252) scale(5.2)">
-    <path fill="#C8A45C" fill-rule="evenodd" d="M0 0h75v100h-75zM5 5v90h65v-90z"/>
-    <path fill="#ECE6D8" d="M12.5 95a25 25 0 0 1 50 0z"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><defs><filter id="s" x="-10%" y="-10%" width="120%" height="125%"><feGaussianBlur in="SourceAlpha" stdDeviation="10"/><feOffset dy="10"/><feComponentTransfer><feFuncA type="linear" slope="0.35"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect x="100" y="100" width="824" height="824" rx="185" fill="#161D19" filter="url(#s)"/><path fill="#C8A45C" fill-rule="evenodd" d="M317 252h390v520h-390zM343 278v468h338v-468z"/><path fill="#ECE6D8" d="M382 746a130 130 0 0 1 260 0z"/></svg>
