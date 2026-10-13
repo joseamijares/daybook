@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { type KeyboardEvent, useState } from 'react';
 import type { Task } from '@/lib/daybook';
-import { dow } from '@/lib/i18n';
+import { dow, fill, weekdayName } from '@/lib/i18n';
 import { minutesLabel } from '@/lib/time';
-import { useSession } from './client';
+import { useLook, useSession } from './client';
 
 export function Check({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
   return (
@@ -18,12 +18,34 @@ export function Check({ on, onClick, label }: { on: boolean; onClick: () => void
   );
 }
 
+export const PlusIcon = ({ size = 14 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 14 14" fill="none" aria-hidden>
+    <path d="M7 1.5v11M1.5 7h11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
+
+export const Handle = () => (
+  <svg width="8" height="12" viewBox="0 0 8 12" aria-hidden>
+    {[2, 6, 10].map((y) => (
+      <g key={y} fill="currentColor">
+        <circle cx="2" cy={y} r="1.2" />
+        <circle cx="6" cy={y} r="1.2" />
+      </g>
+    ))}
+  </svg>
+);
+
+export type Move = 'today' | 'tomorrow' | 'backlog';
+type Patch = { title?: string; date?: string | null; tag?: string | null; estimate?: number | null };
+
 interface Props {
   task: Task;
   onToggle: () => void;
-  onPatch: (patch: { title?: string; date?: string | null; tag?: string | null; estimate?: number | null }) => void;
+  onPatch: (patch: Patch) => void;
   onDelete: () => void;
-  moves?: ('today' | 'tomorrow' | 'backlog')[];
+  moves?: Move[];
+  /** Tags used elsewhere, offered when tagging. */
+  tags?: string[];
   draggable?: boolean;
   dropBefore?: boolean;
   onDragStart?: () => void;
@@ -31,8 +53,8 @@ interface Props {
   onDragOver?: () => void;
 }
 
-// "45m", "1h30", "1.5h", "90" → minutes; "" → no estimate.
-function readMinutes(s: string): number | null | undefined {
+// "45m", "1h30", "1.5h", "90" → minutes; "" → no estimate; anything else → undefined.
+export function readMinutes(s: string): number | null | undefined {
   const v = s.trim().toLowerCase().replace(',', '.');
   if (!v) return null;
   const h = v.match(/^(\d+(?:\.\d+)?)\s*h(?:\s*(\d{1,2})\s*m?)?$/);
@@ -41,150 +63,188 @@ function readMinutes(s: string): number | null | undefined {
   return m ? Number(m[1]) : undefined;
 }
 
-export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow', 'backlog'], ...drag }: Props) {
+// What a task carries besides its title, in words: its tag, where it came
+// from, and whether it has been waiting since an earlier day.
+export function useTaskNotes(task: Task, short = false) {
   const { t, session } = useSession();
-  const [editing, setEditing] = useState<null | 'title' | 'tag' | 'estimate'>(null);
-  const [title, setTitle] = useState(task.title);
-  const [draft, setDraft] = useState('');
+  const { style } = useLook();
+  const rolled = task.rolledFrom && !task.done && task.rolledFrom !== task.date ? task.rolledFrom : null;
+  let carried: string | null = null;
+  if (rolled) {
+    carried = style === 'timetable' || short ? fill(t.since, { day: dow(rolled, session.locale) }) : fill(t.carriedFrom, { day: weekdayName(rolled, session.locale) });
+    if (style === 'notebook') carried = carried.charAt(0).toLowerCase() + carried.slice(1);
+  }
+  const linearState = task.source?.state ? fill(t.inLinear, { state: task.source.state }) : null;
+  return { carried, linearState };
+}
+
+export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow', 'backlog'], tags = [], ...drag }: Props) {
+  const [open, setOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const { carried, linearState } = useTaskNotes(task);
 
-  // A first click on × asks; the question goes away by itself.
-  useEffect(() => {
-    if (!confirming) return;
-    const timer = setTimeout(() => setConfirming(false), 3000);
-    return () => clearTimeout(timer);
-  }, [confirming]);
+  const meta: React.ReactNode[] = [];
+  if (task.tag) meta.push(<span key="tag" className="tag">{task.tag}</span>);
+  if (task.source) {
+    meta.push(
+      <a key="key" className="key" href={task.source.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+        {task.source.key}
+      </a>,
+    );
+    if (linearState && !task.done) meta.push(<span key="state">{linearState}</span>);
+  }
+  if (carried) meta.push(<span key="carried" className="carried">{carried}</span>);
 
-  const rolled = task.rolledFrom && !task.done && task.rolledFrom !== task.date;
-
-  const edit = (what: 'tag' | 'estimate') => {
-    setDraft(what === 'tag' ? task.tag || '' : task.estimate ? minutesLabel(task.estimate).replace(' ', '') : '');
-    setEditing(what);
-  };
-
-  const commitSmall = () => {
-    if (editing === 'tag') {
-      const tag = draft.trim().replace(/^#/, '').replace(/\s+/g, '-').slice(0, 40) || null;
-      if (tag !== (task.tag || null)) onPatch({ tag });
+  const toggleOpen = () => setOpen((o) => !o);
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleOpen();
     }
-    if (editing === 'estimate') {
-      const minutes = readMinutes(draft);
-      if (minutes !== undefined && minutes !== (task.estimate || null)) onPatch({ estimate: minutes });
-    }
-    setEditing(null);
-  };
-
-  const small = (cls: string, placeholder: string) => (
-    <input
-      className={cls}
-      autoFocus
-      value={draft}
-      placeholder={placeholder}
-      onChange={(e) => setDraft(e.target.value)}
-      onFocus={(e) => e.currentTarget.select()}
-      onBlur={commitSmall}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') commitSmall();
-        if (e.key === 'Escape') setEditing(null);
-      }}
-      aria-label={placeholder}
-    />
-  );
-
-  const tag = task.source ? (
-    <a className="tag linear" href={task.source.url} target="_blank" rel="noreferrer" title={task.source.state}>
-      {task.source.key}
-    </a>
-  ) : editing === 'tag' ? (
-    small('tag-input', t.tagPlaceholder)
-  ) : (
-    <button type="button" className={`tag tag-btn${task.tag ? '' : ' empty'}`} onClick={() => edit('tag')} title={t.editTag}>
-      {task.tag || t.addTag}
-    </button>
-  );
-
-  const save = () => {
-    setEditing(null);
-    if (title.trim() && title.trim() !== task.title) onPatch({ title: title.trim() });
-    else setTitle(task.title);
   };
 
   return (
-    <div
-      className={`row${dragging ? ' dragging' : ''}${drag.dropBefore ? ' drop-before' : ''}`}
-      draggable={drag.draggable && !editing}
-      data-confirming={confirming || undefined}
-      onDragStart={(e) => {
-        e.dataTransfer.setData('text/plain', task.id);
-        e.dataTransfer.effectAllowed = 'move';
-        setDragging(true);
-        drag.onDragStart?.();
-      }}
-      onDragEnd={() => {
-        setDragging(false);
-        drag.onDragEnd?.();
-      }}
-      onDragOver={(e) => {
-        e.preventDefault();
-        drag.onDragOver?.();
-      }}
-    >
-      <Check on={task.done} onClick={onToggle} label={task.title} />
-      {editing === 'title' ? (
-        <input
-          className="title"
-          autoFocus
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onBlur={save}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') save();
-            if (e.key === 'Escape') {
-              setTitle(task.title);
-              setEditing(null);
-            }
-          }}
-        />
-      ) : (
-        <button type="button" className={`title${task.done ? ' is-done' : ''}`} onDoubleClick={() => setEditing('title')} title={task.notes || t.editTitle}>
-          <span className="strike">{task.title}</span>
-          {rolled && (
-            <span className="rolled-note" title={task.rolledFrom!}>
-              {' '}
-              · {session.locale === 'es' ? 'desde' : 'from'} {dow(task.rolledFrom!, session.locale)}
+    <>
+      <div
+        className={['row', 'hoverable', task.done && 'is-done', dragging && 'dragging', drag.dropBefore && 'drop-before'].filter(Boolean).join(' ')}
+        draggable={drag.draggable && !open}
+        onDragStart={(e) => {
+          e.dataTransfer.setData('text/plain', task.id);
+          e.dataTransfer.effectAllowed = 'move';
+          setDragging(true);
+          drag.onDragStart?.();
+        }}
+        onDragEnd={() => {
+          setDragging(false);
+          drag.onDragEnd?.();
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          drag.onDragOver?.();
+        }}
+      >
+        <Check on={task.done} onClick={onToggle} label={task.title} />
+        <div className="body" role="button" tabIndex={0} aria-expanded={open} onClick={toggleOpen} onKeyDown={onKey}>
+          <span className="line">
+            <span className={`name strike${task.done ? ' is-done' : ''}`}>{task.title}</span>
+            {task.tag && <span className="hashtag">#{task.tag}</span>}
+          </span>
+          {meta.length > 0 && (
+            <span className="meta-line">
+              {meta.flatMap((m, i) => (i ? [<span key={`s${i}`} className="sep">·</span>, m] : [m]))}
             </span>
           )}
-        </button>
-      )}
-      {tag}
-      {editing === 'estimate' ? (
-        small('est-input', '45m')
-      ) : (
-        <button type="button" className={`est est-btn${task.estimate ? '' : ' empty'}`} onClick={() => edit('estimate')} title={t.editEstimate}>
-          {task.estimate ? minutesLabel(task.estimate) : '–'}
-        </button>
-      )}
-      {!editing && (
-        <span className="actions">
-          {moves.map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => onPatch({ date: m === 'backlog' ? null : m })}
-            >
-              {m === 'today' ? t.moveToday : m === 'tomorrow' ? t.moveTomorrow : t.moveBacklog}
+        </div>
+        <span className="est">{task.estimate ? minutesLabel(task.estimate) : ''}</span>
+      </div>
+      {open && <Editor task={task} tags={tags} moves={moves} onPatch={onPatch} onDelete={onDelete} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+// An open task, in place: rename it, tag it, time it, move it or delete it.
+// Enter saves, Escape closes without saving.
+function Editor({
+  task,
+  tags,
+  moves,
+  onPatch,
+  onDelete,
+  onClose,
+}: {
+  task: Task;
+  tags: string[];
+  moves: Move[];
+  onPatch: (patch: Patch) => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useSession();
+  const [title, setTitle] = useState(task.title);
+  const [tag, setTag] = useState(task.tag || '');
+  const [time, setTime] = useState(task.estimate ? minutesLabel(task.estimate).replace(' ', '') : '');
+  const [asking, setAsking] = useState(false);
+  const recent = [...new Set(tags)].filter((x) => x && x !== tag).slice(0, 5);
+
+  const save = () => {
+    const patch: Patch = {};
+    if (title.trim() && title.trim() !== task.title) patch.title = title.trim();
+    const nextTag = tag.trim().replace(/^#/, '').replace(/\s+/g, '-').slice(0, 40) || null;
+    if (nextTag !== (task.tag || null)) patch.tag = nextTag;
+    const minutes = readMinutes(time);
+    if (minutes !== undefined && minutes !== (task.estimate || null)) patch.estimate = minutes;
+    if (Object.keys(patch).length) onPatch(patch);
+    onClose();
+  };
+  const keys = (e: KeyboardEvent) => {
+    if (e.key === 'Enter') save();
+    if (e.key === 'Escape') onClose();
+  };
+  const label = (m: Move) => (m === 'today' ? t.moveToday : m === 'tomorrow' ? t.moveTomorrow : t.moveBacklog);
+
+  return (
+    <div className="editor" role="group" aria-label={task.title}>
+      <input className="title-input" autoFocus value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={keys} aria-label={t.editTitle} />
+      <div className="fields">
+        <label className="field">
+          <span>{t.tagField}</span>
+          <input className="box" value={tag} placeholder={t.tagPlaceholder} onChange={(e) => setTag(e.target.value)} onKeyDown={keys} />
+          {recent.length > 0 && (
+            <span className="recent">
+              {t.usedBefore}
+              {recent.map((x) => (
+                <button key={x} type="button" onClick={() => setTag(x)}>
+                  {x}
+                </button>
+              ))}
+            </span>
+          )}
+        </label>
+        <label className="field time">
+          <span>{t.timeField}</span>
+          <input className="box" value={time} placeholder="45m, 1h30" onChange={(e) => setTime(e.target.value)} onKeyDown={keys} />
+        </label>
+      </div>
+      {asking ? (
+        <div className="bar">
+          <span className="meta">
+            <strong>{t.deleteQ}</strong>
+          </span>
+          <span className="moves">
+            <button type="button" className="btn quiet" onClick={() => setAsking(false)}>
+              {t.keepIt}
             </button>
-          ))}
-          <button
-            type="button"
-            className={`keep-mobile delete${confirming ? ' asking' : ''}`}
-            aria-label={confirming ? t.deleteAsk : t.remove}
-            onClick={() => (confirming ? onDelete() : setConfirming(true))}
-          >
-            {confirming ? t.deleteAsk : '×'}
-          </button>
-        </span>
+            <button type="button" className="btn danger" onClick={onDelete}>
+              {t.deleteBtn}
+            </button>
+          </span>
+        </div>
+      ) : (
+        <div className="bar">
+          <span className="moves">
+            {moves.map((m) => (
+              <button
+                key={m}
+                type="button"
+                className="btn"
+                onClick={() => {
+                  onPatch({ date: m === 'backlog' ? null : m });
+                  onClose();
+                }}
+              >
+                {label(m)}
+              </button>
+            ))}
+          </span>
+          <span className="moves">
+            <button type="button" className="btn quiet" onClick={() => setAsking(true)}>
+              {t.deleteBtn}
+            </button>
+            <button type="button" className="btn solid" onClick={save}>
+              {t.save}
+            </button>
+          </span>
+        </div>
       )}
     </div>
   );
@@ -194,7 +254,7 @@ export function AddRow({ placeholder, onAdd }: { placeholder: string; onAdd: (te
   const [text, setText] = useState('');
   return (
     <form
-      className="row add"
+      className="add-row"
       onSubmit={async (e) => {
         e.preventDefault();
         const value = text.trim();
@@ -203,8 +263,8 @@ export function AddRow({ placeholder, onAdd }: { placeholder: string; onAdd: (te
         await onAdd(value);
       }}
     >
-      <span className="plus" aria-hidden>
-        +
+      <span className="plus-icon">
+        <PlusIcon />
       </span>
       <input value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} aria-label={placeholder} />
     </form>

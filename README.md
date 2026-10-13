@@ -14,8 +14,10 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
 - **Today.** One focus line, a short list of tasks with time estimates, and
   how much you've planned against your capacity (6 hours by default).
   Unfinished tasks roll over to the next day and remember where they started.
-- **Plan the day.** Pull tasks in from the backlog and Linear, reorder them by
-  dragging, and set the focus.
+  Click a task to rename it, tag it, time it or move it.
+- **Plan the day.** Planning takes the whole window: your meetings in a narrow
+  column, the day you're building in the middle, and only tasks on the right,
+  from the backlog or from Linear. Write new ones, reorder by dragging.
 - **Week.** One card with a column per day, Sunsama style. Drag backlog items
   onto a day, and each day turns amber when it's over capacity.
 - **Shut down.** The same painting at dusk. You see what got done, choose
@@ -31,6 +33,11 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
   added or removed there come back to Daybook, Daybook's week goes to the TV,
   and the TV's meetings show up on Today. Pick the TV's design (painting by
   day, salon, or painting always) from the Week screen, the Mac app or an agent.
+
+- **Three designs, three palettes.** A museum wall label, a timetable with wide
+  numerals and blocks of time, or a written notebook; in Salon (bone and
+  cobalt), Modern (white and one red dot) or Nocturne (blue-black and gilt).
+  Settings → Appearance, with an option to turn to Nocturne after shutdown.
 
 - **Mac app.** The full Daybook in a window, a glance at today in the menu
   bar, a shutdown reminder, and Frame sync every two minutes. See
@@ -149,8 +156,9 @@ pnpm verify     # lint, typecheck, tests, production build
 | `cli/daybook.mjs` | The CLI and stdio relay (no dependencies) |
 | `mac/` | Daybook for Mac (SwiftUI): window + menu bar |
 
-The design lives in Paper: tokens, Today, Week, Shut down and Mobile, all on
-the "v2 · Salon" page. The colours in `app/globals.css` come from it.
+The design lives in Paper (file "DayBook"): the placard and task states, the
+rituals, full-width planning and the palettes, on the "v3" pages. The colours
+and type in `app/globals.css` come from it.
 
 ## Art and fonts
 
@@ -158,9 +166,11 @@ The 44 paintings are in the public domain. They are scans from
 [Wikimedia Commons](https://commons.wikimedia.org/), shared with Frame
 Dashboard and resized to WebP in `public/art/`. Each painting's source page is
 in `lib/art.json`, and the credit on screen links to it.
-[Instrument Serif](https://fonts.google.com/specimen/Instrument+Serif) and
-[Geist](https://fonts.google.com/specimen/Geist) are under the SIL Open Font
-License.
+[Schibsted Grotesk](https://fonts.google.com/specimen/Schibsted+Grotesk),
+[Archivo](https://fonts.google.com/specimen/Archivo) and
+[Brygada 1918](https://fonts.google.com/specimen/Brygada+1918) are under the
+SIL Open Font License. The Mac app's menu bar still uses
+[Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans), also OFL.
 
 ## Contributing
 

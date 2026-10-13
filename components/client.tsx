@@ -4,6 +4,7 @@
 // so changes an agent makes over MCP show up without a reload.
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import type { Appearance, Palette, Style } from '@/lib/appearance';
 import type { Artwork } from '@/lib/art';
 import { type Locale, type Strings, strings } from '@/lib/i18n';
 
@@ -23,6 +24,8 @@ export interface Session {
   storage?: 'upstash' | 'file';
   linearSyncedAt?: string | null;
   frameSentAt?: string | null;
+  appearance?: Appearance;
+  closedToday?: boolean;
 }
 
 export class ApiError extends Error {
@@ -54,7 +57,19 @@ interface Ctx {
   refreshSession: () => Promise<void>;
   /** Run a mutation, surface its error or warnings as a toast, then reload. */
   run: <T>(fn: () => Promise<T>, after?: () => unknown) => Promise<T | undefined>;
+  /** Change the design or palette now, and save it. */
+  setAppearance: (patch: Partial<Appearance>) => Promise<void>;
 }
+
+// The design and palette the room is wearing right now (Settings → Appearance,
+// with Nocturne after shutdown when that is switched on). Provided even on the
+// sign-in screen, so it never needs a session.
+export interface Look {
+  style: Style;
+  palette: Palette;
+}
+export const LookContext = createContext<Look>({ style: 'wall', palette: 'salon' });
+export const useLook = () => useContext(LookContext);
 
 export const SessionContext = createContext<Ctx | null>(null);
 

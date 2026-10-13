@@ -28,6 +28,8 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
 - `lib/secrets.ts` stores integration keys set in Settings, encrypted, and env vars win. `lib/tokens.ts` holds
   agent tokens (hashed). `lib/auth.ts`: `authorized()` accepts the master key, tokens or the session cookie;
   `isOwner()` (cookie or master key only) guards token and integration management.
+- `lib/appearance.ts` (pure) and `lib/appearanceStore.ts` hold the design and palette; `components/Masthead.tsx` and
+  `components/day.tsx` draw the parts that differ by design (heading, schedule, workload).
 - `lib/clients.ts` is the catalog behind Settings → AI agents (steps + snippets per client). Keep it in sync with
   docs/agents.md.
 - `lib/frame.ts` is a three-way merge with Frame Dashboard (see docs/agents.md); change its rules only with a
@@ -40,8 +42,10 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
 - Every route checks auth through `route()` in `lib/http.ts` (or `authorized()` directly). `/api/health`
   is the only public data route, and it must never return user data.
 - UI strings live in `lib/i18n.ts`, in English and Spanish. No literal copy in components.
-- Colours, type and spacing come from the Paper file (page "v2 · Salon") through `app/globals.css`.
-  Design new screens in Paper first.
+- Colours, type and spacing come from the Paper file "DayBook" (pages "v3 · Placard", "v3 · Rituals",
+  "v3 · Planning", "v3 · Palettes") through `app/globals.css`. Three designs (`data-style`: wall, timetable,
+  notebook) and three palettes (`data-palette`: salon, modern, nocturne) are set on `<html>`; every colour is a
+  palette variable, never a literal. Design new screens in Paper first, in all three designs.
 - When you change a tool, a route or an env var, update `docs/agents.md`, `public/llms.txt` and
   `.env.example` in the same change.
 - Run `pnpm verify` (lint, typecheck, tests, build) before opening a PR.

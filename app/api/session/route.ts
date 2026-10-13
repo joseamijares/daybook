@@ -1,11 +1,12 @@
-// GET    /api/session   { authorized, needsKey, locale, linear, frame, today }
+// GET    /api/session   { authorized, needsKey, locale, linear, frame, today, appearance, closedToday }
 // POST   /api/session   { key }  sign the browser in (httpOnly cookie)
 // DELETE /api/session   sign out
 import { connection } from 'next/server';
+import { getAppearance } from '@/lib/appearanceStore';
 import { artFor } from '@/lib/art';
 import { authorized, COOKIE, isOwner, sameKey, sessionValue, TOKEN_COOKIE } from '@/lib/auth';
 import { looksLikeToken, verifyToken } from '@/lib/tokens';
-import { capacity } from '@/lib/daybook';
+import { capacity, getDayMeta } from '@/lib/daybook';
 import { frameArt, frameEnabled } from '@/lib/frame';
 import { body, json } from '@/lib/http';
 import { linearEnabled, linearSyncedAt } from '@/lib/linear';
@@ -16,13 +17,14 @@ export async function GET(req: Request) {
   await connection();
   const day = today();
   const sunday = addDays(mondayOf(day), 6);
-  const [ok, owner, linear, frame, tvArt, tvWeekArt] = await Promise.all([
+  const [ok, owner, linear, frame, tvArt, tvWeekArt, appearance] = await Promise.all([
     authorized(req),
     isOwner(req),
     linearEnabled(),
     frameEnabled(),
     frameArt(day),
     frameArt(sunday),
+    getAppearance(),
   ]);
   return json({
     authorized: ok,
@@ -41,7 +43,10 @@ export async function GET(req: Request) {
     art: tvArt ?? artFor(day),
     // The Week screen hangs a different one (the week's Sunday on the Frame).
     weekArt: tvWeekArt ?? artFor(addDays(mondayOf(day), -1)),
+    // The design and palette (no user data, so the sign-in screen wears them too).
+    appearance,
     ...(ok && {
+      closedToday: Boolean((await getDayMeta(day)).shutdownAt),
       linearSyncedAt: await linearSyncedAt(),
       frameSentAt: await store().get<string>('meta', 'frameSentAt'),
     }),

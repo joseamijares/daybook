@@ -10,14 +10,18 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { type Appearance, DEFAULT_APPEARANCE } from '@/lib/appearance';
 import { type Artwork, artFor, credit } from '@/lib/art';
 import { addDays, mondayOf } from '@/lib/time';
-import { api, type Session, SessionContext, stringsFor } from './client';
+import { api, type Look, LookContext, type Session, SessionContext, stringsFor } from './client';
+import { Masthead } from './Masthead';
 
-export type View = 'today' | 'week' | 'backlog' | 'shutdown' | 'settings';
+export type View = 'today' | 'plan' | 'week' | 'backlog' | 'shutdown' | 'settings';
 
 const viewFor = (path: string): View =>
-  path.startsWith('/week')
+  path.startsWith('/plan')
+    ? 'plan'
+    : path.startsWith('/week')
     ? 'week'
     : path.startsWith('/backlog')
       ? 'backlog'
@@ -54,6 +58,41 @@ export function Salon({ children }: { children: ReactNode }) {
 
   const toast = useCallback((m: string) => setMessage(m), []);
 
+  // The room the Daybook hangs in: the chosen design and palette, and Nocturne
+  // once the day is closed if that is switched on.
+  const appearance: Appearance = session?.appearance || DEFAULT_APPEARANCE;
+  const look = useMemo<Look>(
+    () => ({ style: appearance.style, palette: appearance.eveningNocturne && session?.closedToday ? 'nocturne' : appearance.palette }),
+    [appearance.style, appearance.palette, appearance.eveningNocturne, session?.closedToday],
+  );
+  useEffect(() => {
+    if (!session) return;
+    const html = document.documentElement;
+    html.dataset.style = look.style;
+    html.dataset.palette = look.palette;
+    try {
+      localStorage.setItem('daybook.look', JSON.stringify(look));
+    } catch {
+      // Private windows may refuse storage; the session still sets the look.
+    }
+  }, [session, look]);
+
+  const setAppearance = useCallback(
+    async (patch: Partial<Appearance>) => {
+      // Show it at once, then save; a failure puts the old one back.
+      const before = session?.appearance;
+      setSession((s) => (s ? { ...s, appearance: { ...(s.appearance || DEFAULT_APPEARANCE), ...patch } } : s));
+      try {
+        const saved = await api<Appearance>('/api/appearance', { method: 'PUT', body: patch });
+        setSession((s) => (s ? { ...s, appearance: saved } : s));
+      } catch (err) {
+        setSession((s) => (s ? { ...s, appearance: before } : s));
+        setMessage((err as Error).message);
+      }
+    },
+    [session?.appearance],
+  );
+
   const ctx = useMemo(() => {
     if (!session) return null;
     return {
@@ -61,6 +100,7 @@ export function Salon({ children }: { children: ReactNode }) {
       t: stringsFor(session.locale),
       toast,
       refreshSession,
+      setAppearance,
       async run<T>(fn: () => Promise<T>, after?: () => unknown) {
         try {
           const result = await fn();
@@ -75,15 +115,16 @@ export function Salon({ children }: { children: ReactNode }) {
         }
       },
     };
-  }, [session, toast, refreshSession]);
+  }, [session, toast, refreshSession, setAppearance]);
 
   // Week shows the painting of the Sunday before, so it differs from every weekday's.
   // The server picks the painting (the Frame's, when connected, so the TV and Daybook match).
   const art = session ? ((view === 'week' ? session.weekArt : session.art) ?? artFor(view === 'week' ? addDays(mondayOf(session.today), -1) : session.today)) : null;
   const t = stringsFor(session?.locale || 'en');
-  const pageClass = ['room', view === 'shutdown' && 'dusk-page', (view === 'week' || view === 'settings') && 'wide-page', 'scroll-page'].filter(Boolean).join(' ');
+  const pageClass = ['room', view === 'shutdown' && 'dusk-page', view === 'plan' && 'plan-page', (view === 'week' || view === 'settings') && 'wide-page', 'scroll-page'].filter(Boolean).join(' ');
 
   return (
+    <LookContext.Provider value={look}>
     <div className={pageClass}>
       <Wall art={art} dusk={view === 'shutdown'} />
       {art && (
@@ -138,6 +179,7 @@ export function Salon({ children }: { children: ReactNode }) {
         </div>
       )}
     </div>
+    </LookContext.Provider>
   );
 }
 
@@ -185,17 +227,14 @@ function KeyGate({ session, onDone }: { session: Session; onDone: () => Promise<
   if (session.misconfigured) {
     return (
       <section className="placard">
-        <p className="eyebrow">Daybook</p>
-        <h1 className="big">{t.keyTitle}</h1>
+        <Masthead title={t.keyTitle} sub="Daybook" />
         <p className="meta">{t.misconfigured}</p>
       </section>
     );
   }
   return (
     <section className="placard">
-      <p className="eyebrow">Daybook</p>
-      <h1 className="big">{t.keyTitle}</h1>
-      <p className="meta">{t.keyHelp}</p>
+      <Masthead title={t.keyTitle} sub={t.keyHelp} />
       <form
         className="keyform"
         onSubmit={async (e) => {

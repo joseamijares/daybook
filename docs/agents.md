@@ -158,6 +158,7 @@ in clients that support prompts.
 | `POST /api/linear` | Sync Linear |
 | `GET /api/frame?date=` / `POST /api/frame` | Preview the Frame Dashboard plan, or run a two-way sync |
 | `GET /api/frame/settings` / `PUT /api/frame/settings` | The Frame's design and the designs it offers / `{ layout }` to switch |
+| `GET /api/appearance` / `PUT /api/appearance` | How Daybook looks / `{ style?: "wall" \| "timetable" \| "notebook", palette?: "salon" \| "modern" \| "nocturne", eveningNocturne?: boolean }`. `GET /api/session` also returns `appearance` and `closedToday` |
 | `GET /api/cron/sync` | Vercel Cron: sync Linear and Frame (bearer `CRON_SECRET` or `DAYBOOK_KEY`) |
 | `GET/POST /api/tokens`, `DELETE /api/tokens/:id` | Agent tokens: list, create (the token is shown once), revoke. Owner only |
 | `GET/PUT/DELETE /api/integrations/linear` | Linear status / `{ apiKey }` to connect (checked, stored encrypted) / disconnect. Owner only |

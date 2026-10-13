@@ -78,6 +78,15 @@ public struct DBSession: Codable, Sendable {
     public var art: DBArt?
     public var linearSyncedAt: Date?
     public var frameSentAt: Date?
+    public var appearance: DBAppearance?
+    public var closedToday: Bool?
+}
+
+/// The design and palette chosen in Settings → Appearance.
+public struct DBAppearance: Codable, Sendable, Equatable {
+    public var style: String // wall, timetable, notebook
+    public var palette: String // salon, modern, nocturne
+    public var eveningNocturne: Bool
 }
 
 public struct FrameSyncResult: Codable, Sendable {

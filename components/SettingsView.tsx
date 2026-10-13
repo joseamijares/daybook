@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { CLIENTS, type Client, type Snippet } from '@/lib/clients';
 import type { AgentToken } from '@/lib/tokens';
 import { minutesLabel } from '@/lib/time';
+import { AppearanceSettings } from './AppearanceSettings';
 import { api, timeIn, useResource, useSession } from './client';
 import { FrameDesign } from './FrameDesign';
+import { Masthead } from './Masthead';
 
 interface LinearStatus {
   connected: boolean;
@@ -25,11 +27,9 @@ export function SettingsView() {
   const { t, session } = useSession();
   return (
     <section className="placard wide settings" aria-label={t.settings}>
-      <div>
-        <p className="eyebrow">{t.settings}</p>
-        <h1 className="big">{t.connections}</h1>
-        <p className="lead">{t.settingsLead}</p>
-      </div>
+      <Masthead title={t.settings} sub={t.settingsSub} />
+
+      <AppearanceSettings />
 
       {!session.owner ? (
         <p className="meta">Sign in with your DAYBOOK_KEY in this browser to manage connections.</p>
@@ -38,6 +38,7 @@ export function SettingsView() {
           <div className="settings-block">
             <div className="section-head">
               <span className="label">{t.integrations}</span>
+              <span className="meta">{t.settingsLead}</span>
             </div>
             <div className="integration-grid">
               <LinearCard />

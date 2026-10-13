@@ -1,23 +1,33 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import type { Task, WeekView } from '@/lib/daybook';
+import type { WeekView } from '@/lib/daybook';
 import type { FrameEvent } from '@/lib/frame';
-import { dayNum, dow, longDate } from '@/lib/i18n';
+import { dayNum, dow, fmtDate, longDate, monthDay, weekdayName } from '@/lib/i18n';
 import { minutesLabel } from '@/lib/time';
-import { timeIn, useResource, useSession } from './client';
+import { timeIn, useLook, useResource, useSession } from './client';
+import { capitalize, Schedule, Workload } from './day';
 import { DraftText } from './DraftText';
+import { Masthead } from './Masthead';
 import { useOps } from './ops';
 import { AddRow, TaskRow } from './TaskRow';
 
+export const FrameIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+    <rect x="1" y="2.5" width="12" height="8" rx="1" stroke="currentColor" strokeWidth="1.3" />
+    <path d="M4.5 12.5h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+  </svg>
+);
+
 export function TodayView() {
   const { session, t } = useSession();
+  const { style } = useLook();
   // /?date=YYYY-MM-DD opens another day (the week view links here).
   const [date, setDate] = useState(() => {
     const d = new URLSearchParams(window.location.search).get('date');
     return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : session.today;
   });
-  const [planning, setPlanning] = useState(false);
   const [dropAt, setDropAt] = useState<number | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
 
@@ -25,12 +35,10 @@ export function TodayView() {
   const ops = useOps(reload);
   const day = week?.days.find((d) => d.date === date);
   const isToday = date === session.today;
-
-  const inbox = useMemo(() => {
-    const list = week?.backlog || [];
-    return [...list.filter((x) => x.source), ...list.filter((x) => !x.source)];
-  }, [week?.backlog]);
-  const linearCount = inbox.filter((x) => x.source).length;
+  const tags = useMemo(
+    () => [...(week?.days.flatMap((d) => d.tasks) || []), ...(week?.backlog || [])].map((x) => x.tag).filter((x): x is string => Boolean(x)),
+    [week],
+  );
 
   if (!week || !day) {
     return (
@@ -41,9 +49,6 @@ export function TodayView() {
   }
 
   const tasks = day.tasks;
-  const pct = (m: number) => `${Math.min(100, (m / day.capacity) * 100)}%`;
-  const doneMin = tasks.filter((x) => x.done).reduce((s, x) => s + (x.estimate || 0), 0);
-
   const dropInto = (index: number) => {
     const id = dragId;
     setDropAt(null);
@@ -54,46 +59,39 @@ export function TodayView() {
     ops.arrange(date, ids);
   };
 
-  // A short day leaves room to suggest what to pull in; planning shows everything.
-  const shown = planning ? inbox : tasks.length < 5 ? inbox.slice(0, 3) : [];
-  const heading = isToday ? t.today : dow(date, session.locale);
+  const weekday = capitalize(weekdayName(date, session.locale));
+  const planHref = isToday ? '/plan' : `/plan?date=${date}`;
   const linearAt = timeIn(session.linearSyncedAt, session.tz, session.locale);
   const frameAt = timeIn(session.frameSentAt, session.tz, session.locale);
 
   return (
-    <section className="placard" aria-label={heading}>
-      <div>
-        <p className="eyebrow">{longDate(date, session.locale)}</p>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 }}>
-          <h1 className="big">{heading}</h1>
-          <button type="button" className={`pill${planning ? ' solid' : ''}`} onClick={() => setPlanning((p) => !p)}>
-            {planning ? t.donePlanning : t.planTheDay}
-          </button>
-        </div>
-      </div>
-
-      <DraftText
-        key={`${date}:${planning}:${day.focus || ''}`}
-        value={day.focus || ''}
-        placeholder={t.focusPlaceholder}
-        autoFocus={planning}
-        label={t.dayFocusPlaceholder}
-        onCommit={(next) => ops.setFocus(date, next)}
+    <section className="placard" aria-label={weekday}>
+      <Masthead
+        numeral={dayNum(date)}
+        title={style === 'notebook' ? capitalize(longDate(date, session.locale)) : weekday}
+        sub={style === 'notebook' ? undefined : style === 'timetable' ? capitalize(fmtDate(date, session.locale, { month: 'long', year: 'numeric' })) : capitalize(monthDay(date, session.locale))}
+        actions={
+          <Link className={`pill${style === 'notebook' ? '' : ' solid'}`} href={planHref}>
+            {t.planTheDay}
+          </Link>
+        }
       />
+
+      <div className="focus-block">
+        <span className="prompt">{style === 'notebook' ? t.todayIsFor : t.focusLabel}</span>
+        <DraftText
+          key={`${date}:${day.focus || ''}`}
+          value={day.focus || ''}
+          placeholder={t.focusPlaceholder}
+          label={t.dayFocusPlaceholder}
+          onCommit={(next) => ops.setFocus(date, next)}
+        />
+      </div>
 
       <Schedule events={week.events?.[date] || []} />
 
-      <div>
-        <div className="section-head">
-          <span className="label">{t.toDo}</span>
-          <span className="meta" style={day.over ? { color: 'var(--color-amber)' } : undefined}>
-            {minutesLabel(day.planned)} {t.of} {minutesLabel(day.capacity)} · {day.doneCount} {t.of} {tasks.length} {t.done}
-          </span>
-        </div>
-        <div className={`load${day.over ? ' over' : ''}`} style={{ marginTop: 0 }}>
-          <div className="done" style={{ width: pct(doneMin) }} />
-          <div className="todo" style={{ width: pct(day.planned - doneMin) }} />
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {tasks.length > 0 && <Workload day={day} />}
         <div
           className="rows"
           onDragOver={(e) => e.preventDefault()}
@@ -102,13 +100,24 @@ export function TodayView() {
             e.preventDefault();
             dropInto(dropAt ?? tasks.length);
           }}
-          style={{ paddingTop: 4 }}
         >
-          {!tasks.length && <p className="empty">{t.emptyDay}</p>}
+          {!tasks.length && (
+            <div className="empty-plan">
+              <h2>{t.nothingPlanned}</h2>
+              <p>{week.backlog.length ? t.nothingPlannedLead : t.emptyDay}</p>
+              <Link className="pill solid" href={planHref}>
+                {t.startPlanning}
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                  <path d="M2.5 7h9M8 3.5 11.5 7 8 10.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </Link>
+            </div>
+          )}
           {tasks.map((task, i) => (
             <TaskRow
               key={task.id}
               task={task}
+              tags={tags}
               onToggle={() => ops.toggle(task)}
               onPatch={(p) => ops.patch(task.id, p)}
               onDelete={() => ops.remove(task.id)}
@@ -123,56 +132,30 @@ export function TodayView() {
               onDragOver={() => setDropAt(i)}
             />
           ))}
-          <AddRow placeholder={`${t.addTask}  ·  ${t.addHint}`} onAdd={(text) => ops.add({ text, date })} />
+          <AddRow placeholder={`${t.addTask} · ${t.addHint}`} onAdd={(text) => ops.add({ text, date })} />
         </div>
       </div>
 
-      {(shown.length > 0 || planning) && (
-        <div className="inbox">
-          <div className="section-head">
-            <span className="label">{linearCount && !planning ? t.fromLinear : t.fromBacklog}</span>
-            <span className="meta" style={{ display: 'flex', gap: 12 }}>
-              {planning && session.linear && (
-                <button type="button" className="link-btn" onClick={() => ops.syncLinear()}>
-                  {t.syncLinear}
-                </button>
-              )}
-              <a className="link-btn" href="/backlog">
-                {inbox.length} · {t.seeAll}
-              </a>
-            </span>
-          </div>
-          <div className="rows">
-            {!inbox.length && <p className="empty">{t.emptyBacklog}</p>}
-            {shown.map((task) => (
-              <InboxRow key={task.id} task={task} onPull={() => ops.patch(task.id, { date })} onDragStart={() => setDragId(task.id)} />
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="strip">
         <div className="days">
-          {week.days.map((d) => {
-            const weekend = [5, 6].includes(week.days.indexOf(d));
-            return (
-              <button
-                key={d.date}
-                type="button"
-                className={['day', d.isToday && 'is-today', d.date === date && 'is-selected', weekend && 'is-weekend'].filter(Boolean).join(' ')}
-                onClick={() => setDate(d.date)}
-                aria-label={longDate(d.date, session.locale)}
-              >
-                <span className="dow">{dow(d.date, session.locale)}</span>
-                <span className="num">{dayNum(d.date)}</span>
-                <span className={`hrs${d.over ? ' over' : ''}`}>{d.planned ? minutesLabel(d.planned).replace(' ', '') : '–'}</span>
-              </button>
-            );
-          })}
+          {week.days.map((d, i) => (
+            <button
+              key={d.date}
+              type="button"
+              className={['day', d.isToday && 'is-today', d.date === date && 'is-selected', i > 4 && 'is-weekend'].filter(Boolean).join(' ')}
+              onClick={() => setDate(d.date)}
+              aria-label={longDate(d.date, session.locale)}
+            >
+              <span className="dow">{capitalize(dow(d.date, session.locale))}</span>
+              <span className="num">{dayNum(d.date)}</span>
+              <span className={`hrs${d.over ? ' over' : ''}`}>{d.planned ? minutesLabel(d.planned) : '–'}</span>
+            </button>
+          ))}
         </div>
         <div className="foot">
-          <span>
-            {[linearAt && `${t.linearSynced} ${linearAt}`, frameAt && `${t.frameUpdated} ${frameAt}`].filter(Boolean).join(' · ') || t.agentsHint}
+          <span className="with-icon">
+            {session.frame && <FrameIcon />}
+            {[frameAt && `${t.frameUpdated} ${frameAt}`, linearAt && `${t.linearSynced} ${linearAt}`].filter(Boolean).join(' · ') || t.agentsHint}
           </span>
           <span style={{ display: 'flex', gap: 14 }}>
             {!isToday && (
@@ -182,72 +165,12 @@ export function TodayView() {
             )}
             {session.frame && (
               <button type="button" className="link-btn" onClick={() => ops.sendToFrame(date)}>
-                {t.sendToFrame}
+                {t.syncNow}
               </button>
             )}
           </span>
         </div>
       </div>
     </section>
-  );
-}
-
-function InboxRow({ task, onPull, onDragStart }: { task: Task; onPull: () => void; onDragStart: () => void }) {
-  return (
-    <div
-      className="row"
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData('text/plain', task.id);
-        onDragStart();
-      }}
-    >
-      <button type="button" className="plus" onClick={onPull} aria-label={`+ ${task.title}`}>
-        +
-      </button>
-      <span className="title">{task.title}</span>
-      {task.source ? (
-        <a className="tag linear" href={task.source.url} target="_blank" rel="noreferrer">
-          {task.source.key}
-        </a>
-      ) : (
-        <span className="tag">{task.tag || ''}</span>
-      )}
-      <span className="est" style={{ color: 'var(--color-card-ink-2)' }}>
-        {task.estimate ? minutesLabel(task.estimate) : ''}
-      </span>
-    </div>
-  );
-}
-
-function Schedule({ events }: { events: FrameEvent[] }) {
-  const { session, t } = useSession();
-  if (!events.length) return null;
-  const fmt = new Intl.DateTimeFormat(session.locale === 'es' ? 'es-MX' : 'en-US', { timeZone: session.tz, hour: 'numeric', minute: '2-digit' });
-  // eslint-disable-next-line react-hooks/purity -- a clock read; the screen refreshes every minute anyway
-  const now = Date.now();
-  return (
-    <div>
-      <div className="section-head">
-        <span className="label">{t.schedule}</span>
-        <span className="meta">
-          {events.length} {t.meetings}
-        </span>
-      </div>
-      <div className="rows">
-        {events.map((e) => {
-          const live = e.start && e.end && Date.parse(e.start) <= now && Date.parse(e.end) > now;
-          return (
-            <div key={`${e.title}${e.start}`} className="row" style={{ fontSize: 16, padding: '8px 0' }}>
-              <span style={{ width: 64, flexShrink: 0, fontSize: 14, color: live ? 'var(--accent)' : 'var(--color-card-ink-2)', fontVariantNumeric: 'tabular-nums' }}>
-                {e.allDay || !e.start ? t.allDay : fmt.format(new Date(e.start)).replace(/\s?[AP]M$/i, '')}
-              </span>
-              <span className="title">{e.title}</span>
-              {live && <span className="tag linear">{t.nowLabel}</span>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
   );
 }
