@@ -17,7 +17,7 @@ import {
   shutdown,
   type Task,
 } from './daybook';
-import { frameEnabled, pushToFrame } from './frame';
+import { frameEnabled, frameEvents, syncFrame } from './frame';
 import { linearEnabled, syncLinear } from './linear';
 import { minutesLabel, resolveDate, today } from './time';
 
@@ -54,6 +54,7 @@ const brief = (t: Task) => ({
 
 async function dayBrief(date?: string) {
   const d = await getDay(date ? resolveDate(date) || today() : undefined);
+  const meetings = (await frameEvents(d.date))[d.date] || [];
   return {
     date: d.date,
     is_today: d.isToday,
@@ -63,6 +64,7 @@ async function dayBrief(date?: string) {
     over_capacity: d.over ? minutesLabel(d.over) : null,
     done: `${d.doneCount} of ${d.tasks.length}`,
     tasks: d.tasks.map(brief),
+    meetings: meetings.map((e) => ({ title: e.title, all_day: e.allDay, start: e.start, end: e.end, location: e.location })),
     journal: d.note,
     shut_down: Boolean(d.shutdownAt),
   };
@@ -80,7 +82,7 @@ export const tools: Tool[] = [
   {
     name: 'get_today',
     title: 'Get a day',
-    description: "Today's (or any day's) focus, tasks with estimates, workload against capacity, and whether it was shut down.",
+    description: "Today's (or any day's) focus, tasks with estimates, workload against capacity, meetings (when Frame Dashboard is connected), and whether it was shut down.",
     inputSchema: { type: 'object', properties: { date: dateArg } },
     annotations: READ,
     run: ({ date }) => dayBrief(date as string | undefined),
@@ -252,13 +254,13 @@ export const tools: Tool[] = [
   },
   {
     name: 'send_to_frame',
-    title: 'Send the week to Frame',
-    description: "Replace the week's plan on the user's Frame Dashboard TV with Daybook's focus lines and tasks.",
+    title: 'Sync with Frame',
+    description: "Two-way sync with the user's Frame Dashboard TV: first pulls what changed there (to-dos ticked, added or removed in Frame Desk, focus edits) into Daybook, then pushes the week's focus lines and tasks.",
     inputSchema: { type: 'object', properties: { date: str('Any date in the week. Defaults to this week.') } },
     annotations: { ...WRITE, openWorldHint: true },
     run: async ({ date }) => {
       if (!frameEnabled()) throw new Error('Frame Dashboard is not connected: set FRAME_DASHBOARD_URL and FRAME_DASHBOARD_WRITE_KEY.');
-      return pushToFrame(date as string | undefined);
+      return syncFrame(date as string | undefined);
     },
   },
 ];

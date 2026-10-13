@@ -98,7 +98,7 @@ If the client only speaks stdio, run `node cli/daybook.mjs mcp` with
 
 | Tool | What it does |
 | --- | --- |
-| `get_today` | A day (default today): focus, tasks, planned vs capacity, journal, shut down or not |
+| `get_today` | A day (default today): focus, tasks, planned vs capacity, meetings (from Frame), journal, shut down or not |
 | `get_week` | The week: its focus, every day, and the backlog |
 | `list_backlog` | Unscheduled tasks, including Linear issues |
 | `add_task` | Add to a day or the backlog. The title can use quick-add: `"Draft deck 45m #client"` |
@@ -109,7 +109,7 @@ If the client only speaks stdio, run `node cli/daybook.mjs mcp` with
 | `plan_day` | Put these task ids on the day in this order and set the focus. Warns when the day is over capacity |
 | `shutdown_day` | Unfinished tasks go to tomorrow, the backlog, or stay; saves the journal line; returns a one-line recap |
 | `sync_linear` | Pull open assigned Linear issues into the backlog. Listed only when `LINEAR_API_KEY` is set |
-| `send_to_frame` | Replace the week on Frame Dashboard. Listed only when the Frame settings are set |
+| `send_to_frame` | Two-way sync with Frame Dashboard: pull what changed there, merge, push. Listed only when the Frame settings are set |
 
 Dates accept `today`, `tomorrow`, a weekday name, `YYYY-MM-DD` or `backlog`.
 The configured `DAYBOOK_TZ` decides what "today" means, not the agent's clock.
@@ -132,7 +132,7 @@ in clients that support prompts.
 | --- | --- |
 | `GET /api/day?date=` | The day. Unfinished tasks from past days roll into today |
 | `PUT /api/day` | `{ date, focus?, note? }` |
-| `GET /api/week?date=` | The week containing `date`, with the backlog |
+| `GET /api/week?date=` | The week containing `date`, with the backlog and, when Frame is connected, `events` by day |
 | `PUT /api/week` | `{ date, focus }` |
 | `GET /api/tasks` | The backlog |
 | `POST /api/tasks` | `{ text }` (quick-add) or `{ title, date?, estimate?, tag?, notes? }` |
@@ -140,19 +140,35 @@ in clients that support prompts.
 | `DELETE /api/tasks/:id` | Deletes the task |
 | `POST /api/shutdown` | `{ date?, note?, carry?: { [id]: "tomorrow" \| "backlog" \| "keep" } }` |
 | `POST /api/linear` | Sync Linear |
-| `GET /api/frame?date=` / `POST /api/frame` | Preview the Frame Dashboard plan, or send it |
+| `GET /api/frame?date=` / `POST /api/frame` | Preview the Frame Dashboard plan, or run a two-way sync |
 | `GET /api/health` | Public: commit, storage and which integrations are on |
 
 ## Frame Dashboard
 
-`POST /api/frame` (and the `send_to_frame` tool) builds the exact document
-that Frame Dashboard's `PUT /api/plan` accepts:
+Daybook syncs the week with Frame Dashboard in both directions, so the TV and
+its Mac app, Frame Desk, stay in step with Daybook. A sync (`POST /api/frame`,
+the `send_to_frame` tool, the web app's "Sync with Frame" button, or the
+Daybook Mac app every two minutes) has three steps:
 
-- a Monday `weekOf`;
-- for each day with a focus or tasks, that day's focus and up to 20 tasks
-  (unfinished first), each `{ text, done, tag }`;
-- texts of 200 characters at most.
+1. **Pull** Frame's plan for the week (`GET /api/plan`).
+2. **Merge** it with Daybook. The base is the plan Daybook pushed last time.
+   Tasks match by text within their day.
+   - A to-do ticked or unticked on Frame applies to Daybook, unless Daybook
+     changed it too; then Daybook wins.
+   - A to-do added on Frame is added to Daybook.
+   - A to-do removed on Frame moves to Daybook's backlog. It is never deleted.
+   - A focus edited on Frame applies, unless Daybook edited it too.
+   - On the first sync there's no base yet: Frame's to-dos that Daybook lacks
+     are imported, and done only goes from false to true.
+3. **Push** the merged week (`PUT /api/plan`):
+   - a Monday `weekOf`;
+   - for each day with a focus or tasks, that day's focus and up to 20 tasks
+     (unfinished first), each `{ text, done, tag }`;
+   - texts of 200 characters at most.
 
-The tag is the Linear key when there is one. Set `FRAME_AUTO_SYNC=true` to
-resend the week after every change. Meetings stay in Frame Dashboard's
-calendar feeds and are never copied into the plan.
+   The tag is the Linear key when there is one. Frame's own per-day notes are
+   kept.
+
+Set `FRAME_AUTO_SYNC=true` to sync after every change, once the response has
+been sent. Meetings stay in Frame's calendar feeds and are never copied into
+the plan. Daybook reads them from Frame's `/api/week` and shows them on Today.

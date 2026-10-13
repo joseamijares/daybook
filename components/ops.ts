@@ -28,10 +28,11 @@ export function useOps(reload: () => Promise<void>) {
         }, reload),
       sendToFrame: (date?: string) =>
         run(async () => {
-          await api('/api/frame', { method: 'POST', body: { date } });
-          toast(t.sentToFrame);
+          const r = await api<{ pulled: { done: number; undone: number; added: number; removed: number; focus: number } }>('/api/frame', { method: 'POST', body: { date } });
+          const changes = Object.values(r.pulled).reduce((a, b) => a + b, 0);
+          toast(changes ? `${t.sentToFrame} · ${changes} ↓` : t.sentToFrame);
           await refreshSession();
-        }),
+        }, reload),
     }),
     [run, reload, toast, t, refreshSession],
   );

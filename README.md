@@ -27,8 +27,9 @@ on the same day.
   API and a small CLI.
 - **Linear.** Your open assigned issues land in the backlog. Finishing one in
   Daybook completes it in Linear.
-- **Frame Dashboard.** Send the week to your TV with one click, or keep it
-  synced automatically.
+- **Frame Dashboard.** Two-way sync with your TV and Frame Desk. To-dos ticked,
+  added or removed there come back to Daybook, Daybook's week goes to the TV,
+  and the TV's meetings show up on Today.
 
 | Week | Shut down |
 | --- | --- |

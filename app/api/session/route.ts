@@ -2,6 +2,7 @@
 // POST   /api/session   { key }  sign the browser in (httpOnly cookie)
 // DELETE /api/session   sign out
 import { connection } from 'next/server';
+import { artFor } from '@/lib/art';
 import { authorized, COOKIE, sameKey, sessionValue } from '@/lib/auth';
 import { capacity } from '@/lib/daybook';
 import { frameEnabled } from '@/lib/frame';
@@ -23,6 +24,8 @@ export async function GET(req: Request) {
     capacity: capacity(),
     linear: linearEnabled(),
     frame: frameEnabled(),
+    frameAutoSync: frameEnabled() && process.env.FRAME_AUTO_SYNC === 'true',
+    art: artFor(today()),
     ...(ok && {
       linearSyncedAt: await linearSyncedAt(),
       frameSentAt: await store().get<string>('meta', 'frameSentAt'),

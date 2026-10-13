@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { Task, WeekView } from '@/lib/daybook';
+import type { FrameEvent } from '@/lib/frame';
 import { dayNum, dow, longDate } from '@/lib/i18n';
 import { minutesLabel } from '@/lib/time';
 import { timeIn, useResource, useSession } from './client';
@@ -20,7 +21,7 @@ export function TodayView() {
   const [dropAt, setDropAt] = useState<number | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
 
-  const { data: week, reload } = useResource<WeekView>(`/api/week?date=${date}`);
+  const { data: week, reload } = useResource<WeekView & { events?: Record<string, FrameEvent[]> }>(`/api/week?date=${date}`);
   const ops = useOps(reload);
   const day = week?.days.find((d) => d.date === date);
   const isToday = date === session.today;
@@ -79,6 +80,8 @@ export function TodayView() {
         label={t.dayFocusPlaceholder}
         onCommit={(next) => ops.setFocus(date, next)}
       />
+
+      <Schedule events={week.events?.[date] || []} />
 
       <div>
         <div className="section-head">
@@ -213,6 +216,38 @@ function InboxRow({ task, onPull, onDragStart }: { task: Task; onPull: () => voi
       <span className="est" style={{ color: 'var(--color-card-ink-2)' }}>
         {task.estimate ? minutesLabel(task.estimate) : ''}
       </span>
+    </div>
+  );
+}
+
+function Schedule({ events }: { events: FrameEvent[] }) {
+  const { session, t } = useSession();
+  if (!events.length) return null;
+  const fmt = new Intl.DateTimeFormat(session.locale === 'es' ? 'es-MX' : 'en-US', { timeZone: session.tz, hour: 'numeric', minute: '2-digit' });
+  // eslint-disable-next-line react-hooks/purity -- a clock read; the screen refreshes every minute anyway
+  const now = Date.now();
+  return (
+    <div>
+      <div className="section-head">
+        <span className="label">{t.schedule}</span>
+        <span className="meta">
+          {events.length} {t.meetings}
+        </span>
+      </div>
+      <div className="rows">
+        {events.map((e) => {
+          const live = e.start && e.end && Date.parse(e.start) <= now && Date.parse(e.end) > now;
+          return (
+            <div key={`${e.title}${e.start}`} className="row" style={{ fontSize: 16, padding: '8px 0' }}>
+              <span style={{ width: 64, flexShrink: 0, fontSize: 14, color: live ? 'var(--accent)' : 'var(--color-card-ink-2)', fontVariantNumeric: 'tabular-nums' }}>
+                {e.allDay || !e.start ? t.allDay : fmt.format(new Date(e.start)).replace(/\s?[AP]M$/i, '')}
+              </span>
+              <span className="title">{e.title}</span>
+              {live && <span className="tag linear">{t.nowLabel}</span>}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -3,7 +3,8 @@
 
 import { getTask, type Task, type TaskPatch, updateTask } from './daybook';
 import { completeIssue, isLinear, linearEnabled } from './linear';
-import { frameEnabled, pushToFrame } from './frame';
+import { after } from 'next/server';
+import { frameEnabled, syncFrame } from './frame';
 
 export interface ActionResult<T> {
   result: T;
@@ -25,13 +26,15 @@ export async function patchTask(id: string, patch: TaskPatch): Promise<ActionRes
   return { result: task, warnings };
 }
 
-// Keep the TV current after a change, when the user opted in.
+// Keep the TV current after a change, when the user opted in. The sync runs
+// after the response is sent, so Frame never slows down an edit.
 export async function maybeSyncFrame(date?: string): Promise<string[]> {
   if (!frameEnabled() || process.env.FRAME_AUTO_SYNC !== 'true') return [];
+  const run = () => syncFrame(date).catch((err) => console.error('Frame sync failed:', (err as Error).message));
   try {
-    await pushToFrame(date);
-    return [];
-  } catch (err) {
-    return [(err as Error).message];
+    after(run);
+  } catch {
+    await run(); // outside a request (scripts, tests)
   }
+  return [];
 }
