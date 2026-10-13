@@ -59,7 +59,30 @@ that decides "today" is `DAYBOOK_TZ`.
 2. Set `DAYBOOK_KEY` (`openssl rand -hex 24`), `DAYBOOK_TZ`, and optionally
    `LINEAR_API_KEY`, `FRAME_DASHBOARD_URL` and `FRAME_DASHBOARD_WRITE_KEY`.
    [.env.example](.env.example) explains each one.
-3. Deploy, open the site, and enter your key once in each browser you use.
+3. Set `CRON_SECRET` too. Vercel Cron then calls `/api/cron/sync` once a
+   day (see `vercel.json`) to sync Linear and the Frame. On a Pro plan you
+   can make it every 10 minutes (`*/10 * * * *`).
+4. Deploy, open the site, and enter your key once in each browser you use.
+5. In the Mac app, set the URL to your deployment and paste the same key.
+
+### How it fits together
+
+```
+ Web app ─┐                                  ┌─ Frame Dashboard (its own Vercel project)
+ Mac app ─┼─▶ Daybook on Vercel ─▶ Upstash   │    TV + Frame Desk edit its plan
+ Agents  ─┘   (/api, /api/mcp)   ◀─ sync ───▶┘    (two-way, three-way merge)
+  (MCP)                          ◀─ sync ─── Linear
+```
+
+Daybook on Vercel is the one source of truth. The web app, the Mac app and
+your agents all read and write it with the same key. Frame sync is
+server-side, using `FRAME_DASHBOARD_URL` and `FRAME_DASHBOARD_WRITE_KEY`, and
+it runs:
+
+- after every change, when `FRAME_AUTO_SYNC=true`;
+- every 2 minutes while the Mac app is open;
+- on the Vercel Cron schedule;
+- when you press **Sync with Frame**.
 
 Daybook refuses to run without `DAYBOOK_KEY` on Vercel. Anyone with the key
 can read and change your plan, so treat it like a password.

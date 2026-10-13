@@ -58,6 +58,8 @@ public struct PopoverView: View {
         .frame(width: 380)
         .background(Salon.paper)
         .preferredColorScheme(.light)
+        .environment(\.colorScheme, .light)
+        .background(LightAppearance())
         .task { await model.refresh() }
     }
 

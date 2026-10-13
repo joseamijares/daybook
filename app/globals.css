@@ -716,40 +716,172 @@ textarea {
   font-size: 17px;
 }
 
-/* Frame design picker (Week placard). */
+/* Frame design picker (Week placard): three tiny drawings of the TV. */
 .frame-design {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  flex-direction: column;
+  gap: 12px;
   padding-top: 14px;
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid var(--color-card-ink);
 }
-.segmented {
-  display: inline-flex;
-  padding: 3px;
-  gap: 2px;
-  border-radius: 999px;
-  border: 1px solid var(--color-card-ink);
+.design-cards {
+  display: flex;
+  gap: 14px;
 }
-.segmented button {
+.design-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 168px;
   border: 0;
-  background: transparent;
-  border-radius: 999px;
-  padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-card-ink-2);
-  transition:
-    background-color 0.35s var(--ease-gallery),
-    color 0.35s var(--ease-gallery);
+  background: none;
+  padding: 0;
+  text-align: left;
 }
-.segmented button.on {
+.design-card .name {
+  font-size: 13px;
+  color: var(--color-card-ink-2);
+  transition: color 0.3s var(--ease-gallery);
+}
+.design-card.on .name {
+  color: var(--color-card-ink);
+  font-weight: 600;
+}
+.preview {
+  position: relative;
+  display: block;
+  height: 94px;
+  border-radius: 7px;
+  overflow: hidden;
+  outline: 1px solid var(--rule);
+  outline-offset: 0;
+  transition:
+    outline-color 0.3s var(--ease-gallery),
+    transform 0.4s var(--ease-gallery),
+    box-shadow 0.4s var(--ease-gallery);
+}
+.design-card:hover .preview {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(30, 26, 20, 0.16);
+}
+.design-card.on .preview {
+  outline: 1.5px solid var(--color-card-ink);
+  outline-offset: 2px;
+}
+.design-card.on .preview::after {
+  content: '✓';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
   background: var(--color-card-ink);
   color: var(--sheet);
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  animation: pop 0.45s var(--ease-pop);
 }
-.segmented button:not(.on):hover {
-  color: var(--color-card-ink);
+.mini {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.mini.painting {
+  background-size: cover;
+  background-position: 30% 50%;
+}
+.mini-placard {
+  position: absolute;
+  right: 7%;
+  top: 13%;
+  bottom: 13%;
+  width: 30%;
+  background: var(--color-paper);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  padding: 7px 6px;
+}
+.mini.salon {
+  background: radial-gradient(ellipse 70% 80% at 30% 40%, #26302a 0%, #111613 100%);
+}
+.mini-frame {
+  position: absolute;
+  left: 11%;
+  top: 22%;
+  width: 40%;
+  height: 52%;
+  background-size: cover;
+  background-position: center;
+  border: 3px solid var(--color-gilt);
+  box-shadow: 0 0 0 1px #1e1a14, 0 6px 14px rgba(0, 0, 0, 0.5);
+}
+.mini.salon .mini-lines {
+  position: absolute;
+  left: 60%;
+  top: 30%;
+  width: 30%;
+}
+.mini-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mini-lines i {
+  display: block;
+  height: 2px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--color-card-ink-2) 45%, transparent);
+}
+.mini-lines i:first-child {
+  height: 5px;
+  width: 70%;
+  background: var(--color-card-ink);
+  opacity: 0.75;
+}
+.mini-lines i:last-child {
+  width: 60%;
+}
+.mini-lines.light i {
+  background: rgba(236, 230, 216, 0.4);
+}
+.mini-lines.light i:first-child {
+  background: var(--color-bone);
+  opacity: 0.85;
+}
+.preview.split .half {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  overflow: hidden;
+}
+.preview.split .half.day {
+  left: 0;
+}
+.preview.split .half.night {
+  right: 0;
+  border-left: 1px solid rgba(239, 233, 220, 0.7);
+}
+.preview.split .half .mini {
+  width: 200%;
+}
+.preview.split .half.night .mini {
+  left: auto;
+  right: 0;
+}
+/* In the night half, hang the frame and its text inside that half. */
+.preview.split .half.night .mini-frame {
+  left: 57%;
+  top: 27%;
+  width: 19%;
+  height: 44%;
+  border-width: 2px;
+}
+.preview.split .half.night .mini-lines {
+  left: 81%;
+  top: 34%;
+  width: 13%;
 }
 
 /* ---- Phones and narrow windows ----------------------------------------- */

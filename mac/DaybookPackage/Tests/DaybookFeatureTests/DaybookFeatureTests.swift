@@ -78,3 +78,23 @@ import Testing
     let rep = try #require(image.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:)))
     try #require(rep.representation(using: .png, properties: [:])).write(to: URL(fileURLWithPath: dir).appending(path: "popover.png"))
 }
+
+/// Renders Settings with the Frame design cards to $SNAPSHOT_DIR/settings.png.
+@MainActor
+@Test func rendersTheSettingsSnapshot() throws {
+    guard let dir = ProcessInfo.processInfo.environment["SNAPSHOT_DIR"] else { return }
+    let session = DBSession(authorized: true, needsKey: false, locale: "en", today: "2026-10-12", tz: "America/Monterrey", capacity: 360,
+                            linear: false, frame: true, frameAutoSync: false, art: nil)
+    let week = DBWeek(weekOf: "2026-10-12", focus: nil, today: "2026-10-12", days: [], backlog: [], events: nil)
+    let model = DaybookModel(preview: week, session: session, now: Date())
+    model.frameSettings = FrameSettings(layout: "painting", layouts: [
+        FrameDesign(id: "bleed", name: "Day and night", description: "The painting fills the screen by day; the salon wall after 7 pm."),
+        FrameDesign(id: "salon", name: "Salon", description: "The painting in its frame on the gallery wall, all day."),
+        FrameDesign(id: "painting", name: "Painting", description: "The painting fills the screen, day and night."),
+    ], supported: true)
+    let renderer = ImageRenderer(content: SettingsView(model: model, done: {}))
+    renderer.scale = 2
+    let image = try #require(renderer.nsImage)
+    let rep = try #require(image.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:)))
+    try #require(rep.representation(using: .png, properties: [:])).write(to: URL(fileURLWithPath: dir).appending(path: "settings.png"))
+}

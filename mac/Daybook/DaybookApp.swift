@@ -42,7 +42,7 @@ struct MenuLabel: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: "sun.horizon")
+            Image("MenuBarIcon")
             if !model.menuTitle.isEmpty { Text(model.menuTitle) }
         }
         .task {
