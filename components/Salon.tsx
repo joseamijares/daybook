@@ -71,11 +71,14 @@ export function Salon({ children }: { children: ReactNode }) {
     html.dataset.style = look.style;
     html.dataset.palette = look.palette;
     try {
-      localStorage.setItem('daybook.look', JSON.stringify(look));
+      // The chosen palette, plus the evening it turned to Nocturne, so the next
+      // morning doesn't open dark before the session arrives.
+      const night = look.palette !== appearance.palette ? session.today : undefined;
+      localStorage.setItem('daybook.look', JSON.stringify({ style: look.style, palette: appearance.palette, night }));
     } catch {
       // Private windows may refuse storage; the session still sets the look.
     }
-  }, [session, look]);
+  }, [session, look, appearance.palette]);
 
   const setAppearance = useCallback(
     async (patch: Partial<Appearance>) => {

@@ -18,7 +18,7 @@ export const viewport: Viewport = { themeColor: '#111613', width: 'device-width'
 
 // Wear the last design and palette before the first paint, so the room does
 // not flash Salon on the way to Nocturne. The session corrects it if it changed.
-const remembered = `try{var a=JSON.parse(localStorage.getItem('daybook.look')||'null');if(a&&a.style&&a.palette){var h=document.documentElement;h.dataset.style=a.style;h.dataset.palette=a.palette}}catch(e){}`;
+const remembered = `try{var a=JSON.parse(localStorage.getItem('daybook.look')||'null');if(a&&a.style&&a.palette){var h=document.documentElement,d=new Date(),t=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);h.dataset.style=a.style;h.dataset.palette=a.night===t?'nocturne':a.palette}}catch(e){}`;
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
