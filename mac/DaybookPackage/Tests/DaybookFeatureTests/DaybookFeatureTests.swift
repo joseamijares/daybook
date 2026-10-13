@@ -98,3 +98,17 @@ import Testing
     let rep = try #require(image.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:)))
     try #require(rep.representation(using: .png, properties: [:])).write(to: URL(fileURLWithPath: dir).appending(path: "settings.png"))
 }
+
+/// Renders the welcome screen to $SNAPSHOT_DIR/onboarding.png.
+@MainActor
+@Test func rendersTheOnboardingSnapshot() throws {
+    guard let dir = ProcessInfo.processInfo.environment["SNAPSHOT_DIR"] else { return }
+    let week = DBWeek(weekOf: "2026-10-12", focus: nil, today: "2026-10-12", days: [], backlog: [], events: nil)
+    let session = DBSession(authorized: false, needsKey: true, locale: "en", today: "2026-10-12", tz: "UTC", capacity: 360, linear: false, frame: false, art: nil)
+    let model = DaybookModel(preview: week, session: session, now: Date())
+    let renderer = ImageRenderer(content: OnboardingView(model: model).frame(width: 1280, height: 820))
+    renderer.scale = 1
+    let image = try #require(renderer.nsImage)
+    let rep = try #require(image.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:)))
+    try #require(rep.representation(using: .png, properties: [:])).write(to: URL(fileURLWithPath: dir).appending(path: "onboarding.png"))
+}

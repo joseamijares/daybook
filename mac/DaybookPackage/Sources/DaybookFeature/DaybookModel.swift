@@ -20,6 +20,11 @@ public final class DaybookModel {
     var lastFrameSync: Date?
     var frameSettings: FrameSettings?
 
+    // Onboarding: what a typed-in address answers before we have a key.
+    var probe: DBSession?
+    var probeURL: String?
+    var probeError: String?
+
     // Settings
     var baseURL: String { didSet { UserDefaults.standard.set(baseURL, forKey: "baseURL") } }
     var frameSyncOn: Bool { didSet { UserDefaults.standard.set(frameSyncOn, forKey: "frameSync") } }
@@ -245,6 +250,33 @@ public final class DaybookModel {
             frameStatus = error.localizedDescription
             await loadFrameSettings()
         }
+    }
+
+    /// Ask a Daybook at `url` who it is, without a key (/api/session is public).
+    func probe(_ url: String) async {
+        let trimmed = url.trimmingCharacters(in: .whitespaces)
+        guard let base = URL(string: trimmed), base.scheme?.hasPrefix("http") == true, base.host != nil else {
+            probe = nil
+            probeError = nil
+            return
+        }
+        do {
+            let s = try await DaybookAPI(baseURL: base, key: "").session()
+            guard trimmed == url.trimmingCharacters(in: .whitespaces) else { return }
+            probe = s
+            probeURL = trimmed
+            probeError = nil
+        } catch {
+            probe = nil
+            probeError = "Couldn’t reach a Daybook there."
+        }
+    }
+
+    /// Today's painting from the Daybook being set up, if it answered.
+    func probeArtURL() -> URL? {
+        guard let art = probe?.art, var base = probeURL else { return nil }
+        if !base.hasSuffix("/") { base += "/" }
+        return URL(string: art.image, relativeTo: URL(string: base))?.absoluteURL
     }
 
     // MARK: Shutdown reminder

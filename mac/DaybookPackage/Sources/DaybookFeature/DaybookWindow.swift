@@ -15,18 +15,17 @@ public struct DaybookWindow: View {
             if model.isConfigured, let url = model.webURL(model.windowPath) {
                 WebView(url: url, key: model.key)
                     .ignoresSafeArea() // the painting runs under the title bar
-                    .overlay(alignment: .top) {
-                        // The page fills the window, so give the window a handle:
-                        // drag here to move it, double-click to zoom.
-                        WindowDragArea().frame(height: 40).ignoresSafeArea()
-                    }
                     .transition(.opacity)
             } else {
-                // Not connected yet: the settings card, hung on the gallery wall.
-                PopoverView(model: model)
-                    .shadow(color: .black.opacity(0.45), radius: 40, y: 24)
-                    .transition(.opacity.combined(with: .offset(y: 16)))
+                // Not connected yet: the welcome screen.
+                OnboardingView(model: model)
+                    .transition(.opacity)
             }
+        }
+        .overlay(alignment: .top) {
+            // Content fills the window, so give it a handle: drag here to move it,
+            // double-click to zoom.
+            WindowDragArea().frame(height: 40).ignoresSafeArea()
         }
         .animation(.smooth(duration: 0.8), value: model.isConfigured)
         .frame(minWidth: 900, minHeight: 640)
