@@ -38,6 +38,9 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
   `components/day.tsx` draw the parts that differ by design (heading, schedule, workload).
 - `lib/clients.ts` is the catalog behind Settings → AI agents (steps + snippets per client). Keep it in sync with
   docs/agents.md.
+- `site/` is the public landing page, a separate Next.js app (pnpm workspace) with its own Vercel project and
+  Root Directory `site`. It imports `lib/art.ts` for the painting of the day; its copy lives in `site/lib/copy.ts`
+  (English and Spanish), not in `lib/i18n.ts`. `pnpm verify` builds it too.
 - `lib/frame.ts` is a three-way merge with Frame Dashboard (see docs/agents.md); change its rules only with a
   test in `test/frame.test.ts`.
 

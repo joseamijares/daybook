@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "daybook", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev", "--port", "3217"], "port": 3217 }
+    { "name": "daybook", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev", "--port", "3217"], "port": 3217 },
+    { "name": "site", "runtimeExecutable": "pnpm", "runtimeArgs": ["--filter", "daybook-site", "dev"], "port": 3218 }
   ]
 }

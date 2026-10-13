@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- The landing page (`site/`): the painting of the day in a salon hang among the
+  collection, today as the app hangs it, the next 44 paintings, morning and
+  evening, the Frame at home, the Mac app and agents. English and Spanish.
+
 ## 0.1.0 (first public release)
 
 - Today, Plan the day (full window), Week, Backlog and Shut down, in English

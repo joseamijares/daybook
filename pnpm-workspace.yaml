@@ -1,3 +1,6 @@
+packages:
+  - .
+  - site
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver

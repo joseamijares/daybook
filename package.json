@@ -9,8 +9,10 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
-    "mcp": "node cli/daybook.mjs mcp"
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm site:verify",
+    "mcp": "node cli/daybook.mjs mcp",
+    "site:dev": "pnpm --filter daybook-site dev",
+    "site:verify": "pnpm --filter daybook-site typecheck && pnpm --filter daybook-site build"
   },
   "dependencies": {
     "@upstash/redis": "^1.39.0",

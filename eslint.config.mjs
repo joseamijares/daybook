@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The landing page builds on its own (site/).
+    "site/.next/**",
+    "site/next-env.d.ts",
+    "site/public/art/**",
+    // Claude Code agent worktrees (local only).
+    ".claude/**",
   ]),
 ]);
 

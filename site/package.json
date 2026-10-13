@@ -1,0 +1,29 @@
+{
+  "name": "daybook-site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The public landing page for Daybook: the salon hang.",
+  "scripts": {
+    "predev": "node scripts/sync-art.mjs",
+    "dev": "next dev --port 3218",
+    "prebuild": "node scripts/sync-art.mjs",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "next typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@next/third-parties": "16.4.0",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
