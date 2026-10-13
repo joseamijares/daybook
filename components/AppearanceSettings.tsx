@@ -23,10 +23,10 @@ const ROOMS: Record<Palette, { wall: string; paper: string; ink: string; quiet: 
   nocturne: { wall: '#0c0e12', paper: '#1b1f26', ink: '#ece6d8', quiet: '#a49e92', accent: '#c9a55e' },
 };
 
-const FACES: Record<Style, { font: string; sample: string; weight: number; stretch?: string; italic?: boolean }> = {
-  wall: { font: 'var(--font-schibsted)', sample: 'Tuesday', weight: 700 },
-  timetable: { font: 'var(--font-archivo)', sample: '13', weight: 800, stretch: '125%' },
-  notebook: { font: 'var(--font-brygada)', sample: 'Tuesday, 13 October', weight: 600 },
+const FACES: Record<Style, { font: string; weight: number; stretch?: string }> = {
+  wall: { font: 'var(--font-schibsted)', weight: 700 },
+  timetable: { font: 'var(--font-archivo)', weight: 800, stretch: '125%' },
+  notebook: { font: 'var(--font-brygada)', weight: 600 },
 };
 
 export function AppearanceSettings() {
@@ -60,9 +60,9 @@ export function AppearanceSettings() {
                 <span className="preview">
                   <span className="specimen" style={{ fontFamily: face.font }}>
                     <b style={{ fontWeight: face.weight, fontStretch: face.stretch, fontVariationSettings: face.stretch ? `'wdth' ${parseInt(face.stretch)}` : undefined, fontSize: s.id === 'notebook' ? 22 : undefined, lineHeight: s.id === 'notebook' ? '26px' : undefined }}>
-                      {face.sample}
+                      {s.id === 'wall' ? t.specimenDay : s.id === 'timetable' ? '13' : t.specimenDate}
                     </b>
-                    <small style={{ fontStyle: s.id === 'wall' ? 'italic' : undefined }}>{s.id === 'notebook' ? 'Today is for deep work.' : 'Deep work: analytics'}</small>
+                    <small style={{ fontStyle: s.id === 'wall' ? 'italic' : undefined }}>{s.id === 'notebook' ? t.specimenFocus : t.specimenTask}</small>
                   </span>
                 </span>
                 <span className="pick-row">

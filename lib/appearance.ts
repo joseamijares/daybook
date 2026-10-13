@@ -17,19 +17,21 @@ export interface Appearance {
 export const DEFAULT_APPEARANCE: Appearance = { style: 'wall', palette: 'salon', eveningNocturne: false };
 
 // Merge a patch onto the current appearance; unknown values are an error, not ignored.
-export function mergeAppearance(base: Appearance, patch: Record<string, unknown>): Appearance {
+export function mergeAppearance(base: Appearance, patch: unknown): Appearance {
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('appearance must be an object');
+  const p = patch as Record<string, unknown>;
   const next = { ...base };
-  if (patch.style !== undefined) {
-    if (!STYLES.includes(patch.style as Style)) throw new Error(`style must be one of ${STYLES.join(', ')}`);
-    next.style = patch.style as Style;
+  if (p.style !== undefined) {
+    if (!STYLES.includes(p.style as Style)) throw new Error(`style must be one of ${STYLES.join(', ')}`);
+    next.style = p.style as Style;
   }
-  if (patch.palette !== undefined) {
-    if (!PALETTES.includes(patch.palette as Palette)) throw new Error(`palette must be one of ${PALETTES.join(', ')}`);
-    next.palette = patch.palette as Palette;
+  if (p.palette !== undefined) {
+    if (!PALETTES.includes(p.palette as Palette)) throw new Error(`palette must be one of ${PALETTES.join(', ')}`);
+    next.palette = p.palette as Palette;
   }
-  if (patch.eveningNocturne !== undefined) {
-    if (typeof patch.eveningNocturne !== 'boolean') throw new Error('eveningNocturne must be true or false');
-    next.eveningNocturne = patch.eveningNocturne;
+  if (p.eveningNocturne !== undefined) {
+    if (typeof p.eveningNocturne !== 'boolean') throw new Error('eveningNocturne must be true or false');
+    next.eveningNocturne = p.eveningNocturne;
   }
   return next;
 }

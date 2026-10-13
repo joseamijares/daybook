@@ -155,6 +155,7 @@ in clients that support prompts.
 | `PATCH /api/tasks/:id` | `{ title?, date?, estimate?, tag?, notes?, done?, order? }` |
 | `DELETE /api/tasks/:id` | Deletes the task |
 | `POST /api/shutdown` | `{ date?, note?, carry?: { [id]: "tomorrow" \| "backlog" \| "keep" } }` |
+| `DELETE /api/shutdown?date=` | Reopen a closed day (tasks already moved stay where they went) |
 | `POST /api/linear` | Sync Linear |
 | `GET /api/frame?date=` / `POST /api/frame` | Preview the Frame Dashboard plan, or run a two-way sync |
 | `GET /api/frame/settings` / `PUT /api/frame/settings` | The Frame's design and the designs it offers / `{ layout }` to switch |

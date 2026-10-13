@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import type { WeekView } from '@/lib/daybook';
 import type { FrameEvent } from '@/lib/frame';
 import { dayNum, dow, fmtDate, longDate, monthDay, weekdayName } from '@/lib/i18n';
+import { placeAt } from '@/lib/order';
 import { minutesLabel } from '@/lib/time';
 import { timeIn, useLook, useResource, useSession } from './client';
 import { capitalize, Schedule, Workload } from './day';
@@ -20,14 +22,22 @@ export const FrameIcon = () => (
   </svg>
 );
 
+const validDate = (d: string | null) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null);
+
 export function TodayView() {
   const { session, t } = useSession();
   const { style } = useLook();
-  // /?date=YYYY-MM-DD opens another day (the week view links here).
-  const [date, setDate] = useState(() => {
-    const d = new URLSearchParams(window.location.search).get('date');
-    return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : session.today;
-  });
+  // /?date=YYYY-MM-DD opens another day (the week view links here). No date
+  // means today, and today moves on by itself when the day changes.
+  const urlDate = useSearchParams().get('date');
+  const [fromUrl, setFromUrl] = useState(urlDate);
+  const [picked, setPicked] = useState(validDate(urlDate));
+  if (urlDate !== fromUrl) {
+    setFromUrl(urlDate);
+    setPicked(validDate(urlDate));
+  }
+  const date = picked && picked !== session.today ? picked : session.today;
+  const setDate = (d: string) => setPicked(d === session.today ? null : d);
   const [dropAt, setDropAt] = useState<number | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
 
@@ -54,9 +64,7 @@ export function TodayView() {
     setDropAt(null);
     setDragId(null);
     if (!id) return;
-    const ids = tasks.map((x) => x.id).filter((x) => x !== id);
-    ids.splice(Math.min(index, ids.length), 0, id);
-    ops.arrange(date, ids);
+    ops.arrange(date, placeAt(tasks.map((x) => x.id), id, index));
   };
 
   const weekday = capitalize(weekdayName(date, session.locale));

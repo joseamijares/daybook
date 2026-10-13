@@ -43,7 +43,7 @@ export function BacklogView() {
     <section className="placard" aria-label={t.backlog}>
       <Masthead
         title={t.backlog}
-        sub={fill(t.backlogSub, { n: list.length, linear: linear.length })}
+        sub={session.linear ? fill(t.backlogSub, { n: list.length, linear: linear.length }) : (list.length === 1 ? t.oneTask : fill(t.tasksN, { n: list.length }))}
         actions={
           session.linear && (
             <button type="button" className="pill" onClick={() => ops.syncLinear()}>

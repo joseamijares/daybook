@@ -23,7 +23,7 @@ const remembered = `try{var a=JSON.parse(localStorage.getItem('daybook.look')||'
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html
-      lang="en"
+      lang={process.env.DAYBOOK_LOCALE === 'es' ? 'es' : 'en'}
       data-style="wall"
       data-palette="salon"
       className={`${schibsted.variable} ${archivo.variable} ${brygada.variable}`}

@@ -26,8 +26,12 @@ describe('appearance', () => {
     expect(() => mergeAppearance(DEFAULT_APPEARANCE, { eveningNocturne: 'yes' })).toThrow(/must be true or false/);
   });
 
-  it('falls back to the defaults when the stored value is from another version', async () => {
+  it('falls back field by field when the stored value is from another version', async () => {
     await store().put('meta', 'appearance', { style: 'gone', palette: 'modern' });
-    expect(await getAppearance()).toEqual(DEFAULT_APPEARANCE);
+    expect(await getAppearance()).toEqual({ ...DEFAULT_APPEARANCE, palette: 'modern' });
+  });
+
+  it('rejects a body that is not an object', () => {
+    expect(() => mergeAppearance(DEFAULT_APPEARANCE, null)).toThrow(/must be an object/);
   });
 });

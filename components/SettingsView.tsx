@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { CLIENTS, type Client, type Snippet } from '@/lib/clients';
 import type { AgentToken } from '@/lib/tokens';
+import { fill } from '@/lib/i18n';
 import { minutesLabel } from '@/lib/time';
 import { AppearanceSettings } from './AppearanceSettings';
 import { api, timeIn, useResource, useSession } from './client';
@@ -32,7 +33,7 @@ export function SettingsView() {
       <AppearanceSettings />
 
       {!session.owner ? (
-        <p className="meta">Sign in with your DAYBOOK_KEY in this browser to manage connections.</p>
+        <p className="meta">{t.signInToManage}</p>
       ) : (
         <>
           <div className="settings-block">
@@ -96,7 +97,7 @@ function LinearCard() {
               onClick={() =>
                 run(async () => {
                   const r = await api<{ added: number; closed: number; open: number }>('/api/linear', { method: 'POST' });
-                  toast(`Linear: ${r.open} open, ${r.added} new, ${r.closed} closed`);
+                  toast(fill(t.linearCounts, r));
                 }, reload)
               }
             >
@@ -330,7 +331,7 @@ function ConnectPanel({ client, mcpUrl, local, token, busy, onCreate }: { client
     <div className="connect-panel">
       <div className="connect-head">
         <span className="integration-name">{client.name}</span>
-        <span className={`where ${client.where}`}>{client.where === 'cloud' ? 'Cloud app' : 'Local app'}</span>
+        <span className={`where ${client.where}`}>{client.where === 'cloud' ? t.cloudApp : t.localApp}</span>
       </div>
       {client.where === 'cloud' && local && <p className="warn-note">{t.cloudNeedsPublic}</p>}
       <ol className="steps">
@@ -412,7 +413,7 @@ function ServerInfo() {
         </div>
         <div>
           <dt>{t.storageLabel}</dt>
-          <dd>{session.storage === 'upstash' ? 'Upstash Redis' : 'Local file (.data/)'}</dd>
+          <dd>{session.storage === 'upstash' ? 'Upstash Redis' : t.storageFile}</dd>
         </div>
       </dl>
     </div>

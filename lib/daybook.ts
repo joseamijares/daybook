@@ -275,6 +275,9 @@ export type Carry = 'tomorrow' | 'backlog' | 'keep';
 export async function shutdown(date: string | undefined, opts: { note?: string | null; carry?: Record<string, Carry> } = {}) {
   const d = resolveDate(date ?? 'today') || today();
   const before = await getDay(d);
+  for (const to of Object.values(opts.carry || {})) {
+    if (!['tomorrow', 'backlog', 'keep'].includes(to)) throw new Error('carry must be tomorrow, backlog or keep');
+  }
   let moved = 0;
   for (const t of before.tasks.filter((x) => !x.done)) {
     const to = opts.carry?.[t.id] || 'tomorrow';
@@ -292,6 +295,14 @@ export async function shutdown(date: string | undefined, opts: { note?: string |
   const next: Day = { ...meta, shutdownAt: now(), ...(opts.note !== undefined && { note: clean(opts.note, 'note', 1000) }) };
   await store().put('days', d, next);
   return { date: d, summary: wrapLine(before.tasks, moved), moved, day: await getDay(d) };
+}
+
+// Undo a shutdown: the day is open again (tasks already moved stay where they went).
+export async function reopenDay(date: string | undefined): Promise<Day> {
+  const d = resolveDate(date ?? 'today') || today();
+  const next: Day = { ...(await getDayMeta(d)), shutdownAt: null };
+  await store().put('days', d, next);
+  return next;
 }
 
 export class NotFound extends Error {}

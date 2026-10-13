@@ -9,7 +9,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type Appearance, DEFAULT_APPEARANCE } from '@/lib/appearance';
 import { type Artwork, artFor, credit } from '@/lib/art';
 import { addDays, mondayOf } from '@/lib/time';
@@ -40,13 +40,33 @@ export function Salon({ children }: { children: ReactNode }) {
     setSession(await api<Session>('/api/session'));
   }, []);
 
+  // Load the session, then keep it current: a tab or the Mac window left open
+  // overnight moves on to the new day, and a failed first load tries again.
+  const loaded = useRef(false);
   useEffect(() => {
     let alive = true;
-    api<Session>('/api/session')
-      .then((s) => alive && setSession(s))
-      .catch(() => alive && setMessage('Daybook is not reachable.'));
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    const load = () =>
+      api<Session>('/api/session')
+        .then((s) => {
+          if (!alive) return;
+          loaded.current = true;
+          setSession(s);
+        })
+        .catch(() => {
+          if (!alive || loaded.current) return;
+          setMessage(stringsFor(navigator.language.toLowerCase().startsWith('es') ? 'es' : 'en').unreachable);
+          clearTimeout(retry);
+          retry = setTimeout(load, 10000);
+        });
+    load();
+    const timer = setInterval(() => document.visibilityState === 'visible' && load(), 60000);
+    window.addEventListener('focus', load);
     return () => {
       alive = false;
+      clearTimeout(retry);
+      clearInterval(timer);
+      window.removeEventListener('focus', load);
     };
   }, []);
 
@@ -73,7 +93,10 @@ export function Salon({ children }: { children: ReactNode }) {
     try {
       // The chosen palette, plus the evening it turned to Nocturne, so the next
       // morning doesn't open dark before the session arrives.
-      const night = look.palette !== appearance.palette ? session.today : undefined;
+      // Dated in the browser's own calendar, the same one the head script reads.
+      const d = new Date();
+      const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const night = look.palette !== appearance.palette ? local : undefined;
       localStorage.setItem('daybook.look', JSON.stringify({ style: look.style, palette: appearance.palette, night }));
     } catch {
       // Private windows may refuse storage; the session still sets the look.

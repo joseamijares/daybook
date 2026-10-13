@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import type { Task } from '@/lib/daybook';
+import { fill } from '@/lib/i18n';
 import { api, useSession } from './client';
 
 // Every screen edits tasks the same way; each call reloads that screen's data.
@@ -23,7 +24,7 @@ export function useOps(reload: () => Promise<void>) {
       syncLinear: () =>
         run(async () => {
           const r = await api<{ added: number; closed: number; open: number }>('/api/linear', { method: 'POST' });
-          toast(`Linear: ${r.open} open, ${r.added} new, ${r.closed} closed`);
+          toast(fill(t.linearCounts, r));
           await refreshSession();
         }, reload),
       sendToFrame: (date?: string) =>

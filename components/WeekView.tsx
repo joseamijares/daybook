@@ -41,11 +41,14 @@ export function WeekView() {
   const range = `${capitalize(monthDay(week.weekOf, session.locale))} – ${dayNum(addDays(week.weekOf, 6))}`;
   const plannedLabel = fill(t.plannedTotal, { h: minutesLabel(planned) });
 
+  // Only tasks we know about move (not text dragged in from a field), and only
+  // onto today or later: a past day would roll them straight back to today.
+  const known = new Set([...week.days.flatMap((d) => d.tasks), ...week.backlog].map((x) => x.id));
   const drop = (date: string, e: React.DragEvent) => {
     e.preventDefault();
     setOver(null);
     const id = e.dataTransfer.getData('text/plain');
-    if (id) ops.patch(id, { date });
+    if (known.has(id) && date >= session.today) ops.patch(id, { date });
   };
 
   const title = style === 'notebook' ? fill(t.weekOf, { date: monthDay(week.weekOf, session.locale) }) : current ? t.thisWeek : range;
@@ -169,6 +172,7 @@ function Column({
     <div
       className={['col', day.isToday && 'is-today', past && 'is-past', highlighted && 'drop'].filter(Boolean).join(' ')}
       onDragOver={(e) => {
+        if (past) return; // not a drop target
         e.preventDefault();
         onDragOver();
       }}
@@ -219,7 +223,7 @@ function Column({
           );
         })}
         {highlighted && <div className="drop-note">{fill(t.dropOn, { day: weekdayName(day.date, session.locale) })}</div>}
-        <form
+        {!past && <form
           className="add"
           onSubmit={(e) => {
             e.preventDefault();
@@ -228,7 +232,7 @@ function Column({
           }}
         >
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder={`+ ${t.add}`} aria-label={`${t.addTask} ${day.date}`} />
-        </form>
+        </form>}
       </div>
       {day.over > 0 && (
         <span className="warn">

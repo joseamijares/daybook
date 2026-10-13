@@ -369,6 +369,7 @@ textarea {
   letter-spacing: -0.035em;
   color: var(--color-card-ink);
   overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 .sub {
   margin: 0;
@@ -953,6 +954,10 @@ textarea {
 .editor .box:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.editor .box[aria-invalid='true'] {
+  border-color: var(--color-amber);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-amber) 16%, transparent);
 }
 .editor .recent {
   display: flex;
@@ -1724,7 +1729,7 @@ textarea {
   height: 52%;
   background-size: cover;
   background-position: center;
-  border: 3px solid var(--color-gilt);
+  border: 3px solid var(--color-gilt-ink);
   box-shadow: 0 0 0 1px #1e1a14, 0 6px 14px rgba(0, 0, 0, 0.5);
 }
 .mini.salon .mini-lines {
@@ -1824,7 +1829,7 @@ textarea {
   padding: 18px;
   border: 1px solid var(--rule);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--sheet) 60%, white);
+  background: var(--color-paper-raised);
   transition:
     border-color 0.3s var(--ease-gallery),
     box-shadow 0.3s var(--ease-gallery);
@@ -1944,7 +1949,7 @@ textarea {
 }
 .client.on {
   border-color: var(--color-card-ink);
-  background: color-mix(in srgb, var(--sheet) 50%, white);
+  background: var(--color-paper-raised);
 }
 .client-mark {
   flex-shrink: 0;
@@ -2043,7 +2048,7 @@ textarea {
   font-size: 11px;
 }
 .snippet-head .link-btn {
-  color: var(--color-gilt);
+  color: var(--color-gilt-ink);
   font-size: 12px;
 }
 .snippet pre {
@@ -2838,6 +2843,17 @@ textarea {
   }
 }
 
+/* Between phone and desktop the placard would cover the end of the nav: hang
+   it below the nav, and keep the credit clear of it. */
+@media (max-width: 1120px) {
+  .placard:not(.wide):not(.full) {
+    top: 112px;
+  }
+  .credit {
+    max-width: calc(100vw - 680px);
+  }
+}
+
 @media (max-width: 860px) {
   .wall .art {
     max-width: none;
@@ -2937,6 +2953,25 @@ textarea {
     white-space: normal;
     overflow-wrap: anywhere;
   }
+  .masthead .lead {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .masthead .titles {
+    flex: 1 1 150px;
+  }
+  [data-style="timetable"] .row .body {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  [data-style="timetable"] .row .line {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  [data-style="timetable"] .row .name {
+    white-space: normal;
+  }
   .plan-cols {
     display: flex;
     flex-direction: column;
@@ -2951,6 +2986,9 @@ textarea {
   }
   .look-grid {
     grid-template-columns: 1fr;
+  }
+  .toast {
+    bottom: 96px; /* above the navigation pill */
   }
   .masthead {
     flex-wrap: wrap;

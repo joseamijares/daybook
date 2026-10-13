@@ -4,12 +4,13 @@
 // you are building in the middle, and only tasks to add on the right, from the
 // backlog or from Linear. Write new ones at the top of the day.
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import type { Task, WeekView } from '@/lib/daybook';
 import type { FrameEvent } from '@/lib/frame';
 import { fill, hoursSaid, monthDay, weekdayName } from '@/lib/i18n';
 import { parseQuickAdd } from '@/lib/quickadd';
+import { placeAt } from '@/lib/order';
 import { minutesLabel } from '@/lib/time';
 import { useLook, useResource, useSession } from './client';
 import { capitalize, useMeetings } from './day';
@@ -27,10 +28,9 @@ const X = () => (
 export function PlanView() {
   const { session, t } = useSession();
   const router = useRouter();
-  const [date] = useState(() => {
-    const d = new URLSearchParams(window.location.search).get('date');
-    return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : session.today;
-  });
+  // /plan?date=YYYY-MM-DD plans another day; no date plans today.
+  const urlDate = useSearchParams().get('date');
+  const date = urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate) ? urlDate : session.today;
   const { data: week, reload } = useResource<WeekView & { events?: Record<string, FrameEvent[]> }>(`/api/week?date=${date}`);
   const ops = useOps(reload);
   const [source, setSource] = useState<Source>('backlog');
@@ -62,15 +62,18 @@ export function PlanView() {
   }
 
   const leave = () => router.push(date === session.today ? '/' : `/?date=${date}`);
-  const weekday = capitalize(weekdayName(date, session.locale));
+  // Not capitalised: Spanish writes weekdays in lower case mid-sentence ("Planear el martes").
+  const weekday = weekdayName(date, session.locale);
   const scale = Math.max(day.capacity, day.planned) || 1;
   const within = Math.min(day.planned, day.capacity);
   const parsed = text.trim() ? parseQuickAdd(text) : null;
 
-  const addTask = async (task: Task) => {
+  // From the right column onto the day: at the end, or on the drop line.
+  const addTask = async (task: Task, at?: number) => {
     setFresh((f) => [...f, task.id]);
     setAdded((a) => [task, ...a.filter((x) => x.id !== task.id)]);
-    await ops.patch(task.id, { date });
+    if (at === undefined) await ops.patch(task.id, { date });
+    else await ops.arrange(date, placeAt(day.tasks.map((x) => x.id), task.id, at));
   };
   const undo = async (task: Task) => {
     setFresh((f) => f.filter((x) => x !== task.id));
@@ -82,16 +85,15 @@ export function PlanView() {
     if (!value) return;
     setText('');
     const created = await ops.add({ text: value, date });
-    if (created && typeof created === 'object' && 'id' in created) setFresh((f) => [...f, (created as Task).id]);
+    const task = (created as { task?: Task } | undefined)?.task;
+    if (task) setFresh((f) => [...f, task.id]);
   };
   const dropInto = (index: number) => {
     const id = dragId;
     setDropAt(null);
     setDragId(null);
     if (!id) return;
-    const ids = day.tasks.map((x) => x.id).filter((x) => x !== id);
-    ids.splice(Math.min(index, ids.length), 0, id);
-    ops.arrange(date, ids);
+    ops.arrange(date, placeAt(day.tasks.map((x) => x.id), id, index));
   };
 
   return (
@@ -157,7 +159,7 @@ export function PlanView() {
           <div className="col-top">
             <h2>{t.today}</h2>
             <span className="meta">
-              {fill(t.tasksN, { n: day.tasks.length })} · {t.dragReorder}
+              {(day.tasks.length === 1 ? t.oneTask : fill(t.tasksN, { n: day.tasks.length }))} · {t.dragReorder}
             </span>
           </div>
           <form
@@ -172,7 +174,7 @@ export function PlanView() {
             {parsed && (parsed.estimate || parsed.tag) ? (
               <span className="hint">{[parsed.estimate && hoursSaid(parsed.estimate, session.locale), parsed.tag && `#${parsed.tag}`].filter(Boolean).join(' · ')}</span>
             ) : (
-              <span className="kbd">Enter</span>
+              <span className="kbd">{t.enterKey}</span>
             )}
           </form>
           <div
@@ -185,7 +187,7 @@ export function PlanView() {
               const fromPool = pool.find((x) => x.id === id);
               if (fromPool) {
                 setDropAt(null);
-                addTask(fromPool);
+                addTask(fromPool, dropAt ?? undefined);
               } else dropInto(dropAt ?? day.tasks.length);
             }}
           >

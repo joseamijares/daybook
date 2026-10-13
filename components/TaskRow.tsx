@@ -57,9 +57,9 @@ interface Props {
 export function readMinutes(s: string): number | null | undefined {
   const v = s.trim().toLowerCase().replace(',', '.');
   if (!v) return null;
-  const h = v.match(/^(\d+(?:\.\d+)?)\s*h(?:\s*(\d{1,2})\s*m?)?$/);
+  const h = v.match(/^(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hours?)(?:\s*(\d{1,2})\s*(?:m|min|mins|minutes?)?)?$/);
   if (h) return Math.round(parseFloat(h[1]) * 60) + (h[2] ? Number(h[2]) : 0);
-  const m = v.match(/^(\d{1,4})\s*m?(?:in)?$/);
+  const m = v.match(/^(\d{1,4})\s*(?:m|min|mins|minutes?)?$/);
   return m ? Number(m[1]) : undefined;
 }
 
@@ -97,6 +97,7 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
 
   const toggleOpen = () => setOpen((o) => !o);
   const onKey = (e: KeyboardEvent) => {
+    if (e.target !== e.currentTarget) return; // a link inside (Linear) keeps its own keys
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       toggleOpen();
@@ -164,6 +165,7 @@ function Editor({
   const [tag, setTag] = useState(task.tag || '');
   const [time, setTime] = useState(task.estimate ? minutesLabel(task.estimate).replace(' ', '') : '');
   const [asking, setAsking] = useState(false);
+  const [badTime, setBadTime] = useState(false);
   const recent = [...new Set(tags)].filter((x) => x && x !== tag).slice(0, 5);
 
   const save = () => {
@@ -172,7 +174,9 @@ function Editor({
     const nextTag = tag.trim().replace(/^#/, '').replace(/\s+/g, '-').slice(0, 40) || null;
     if (nextTag !== (task.tag || null)) patch.tag = nextTag;
     const minutes = readMinutes(time);
-    if (minutes !== undefined && minutes !== (task.estimate || null)) patch.estimate = minutes;
+    // An estimate we can't read keeps the editor open instead of dropping it.
+    if (minutes === undefined) return setBadTime(true);
+    if (minutes !== (task.estimate || null)) patch.estimate = minutes;
     if (Object.keys(patch).length) onPatch(patch);
     onClose();
   };
@@ -184,7 +188,7 @@ function Editor({
 
   return (
     <div className="editor" role="group" aria-label={task.title}>
-      <input className="title-input" autoFocus value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={keys} aria-label={t.editTitle} />
+      <input className="title-input" autoFocus value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={keys} aria-label={t.titleField} />
       <div className="fields">
         <label className="field">
           <span>{t.tagField}</span>
@@ -202,7 +206,20 @@ function Editor({
         </label>
         <label className="field time">
           <span>{t.timeField}</span>
-          <input className="box" value={time} placeholder="45m, 1h30" onChange={(e) => setTime(e.target.value)} onKeyDown={keys} />
+          <input
+            className="box"
+            value={time}
+            placeholder="45m, 1h30"
+            aria-invalid={badTime || undefined}
+            onChange={(e) => {
+              setTime(e.target.value);
+              setBadTime(false);
+            }}
+            // Clicking in picks the whole estimate, so typing replaces it.
+            onFocus={(e) => e.currentTarget.select()}
+            onMouseUp={(e) => e.preventDefault()}
+            onKeyDown={keys}
+          />
         </label>
       </div>
       {asking ? (

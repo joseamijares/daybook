@@ -62,7 +62,7 @@ export function Schedule({ events }: { events: FrameEvent[] }) {
   const { list } = useMeetings(events);
   if (!list.length) return null;
   const next = list.find((m) => m.state === 'next' || m.state === 'live');
-  const count = `${list.length} ${t.meetings}`;
+  const count = list.length === 1 ? t.oneMeeting : `${list.length} ${t.meetings}`;
 
   return (
     <div className="schedule" style={{ display: 'flex', flexDirection: 'column', gap: style === 'timetable' ? 10 : 0 }}>
@@ -151,7 +151,7 @@ export function Workload({ day }: { day: DayView }) {
   if (style === 'notebook') {
     const said = (m: number) => hoursSaid(m, session.locale);
     // "a 6-hour day" in English; "un día de 6 horas" in Spanish.
-    const capSaid = session.locale === 'es' || day.capacity % 60 ? said(day.capacity) : `${day.capacity / 60}-hour`;
+    const capSaid = day.capacity % 60 ? said(day.capacity) : fill(t.hourDay, { n: day.capacity / 60 });
     return (
       <p className="sentence">
         {fill(t.plannedFor, { planned: capitalize(said(day.planned)), cap: capSaid })}{' '}
@@ -190,7 +190,7 @@ export function Workload({ day }: { day: DayView }) {
         </div>
         <div className="blocks-scale" aria-hidden>
           <span style={{ left: `${(day.capacity / scale) * 100}%` }}>
-            {minutesLabel(day.capacity)} {session.locale === 'es' ? 'de día' : 'day'}
+            {minutesLabel(day.capacity)} {t.dayCap}
           </span>
         </div>
       </div>

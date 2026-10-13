@@ -23,6 +23,8 @@ export function ShutdownView() {
   const { session, t } = useSession();
   const { data: day, reload } = useResource<DayView>(`/api/day?date=${session.today}`);
   const { data: tomorrow, reload: reloadTomorrow } = useResource<DayView>(`/api/day?date=${addDays(session.today, 1)}`);
+  // Kept here, outside the keyed form, so the tally survives the reload after closing.
+  const [moved, setMoved] = useState<Moved | null>(null);
   if (!day) {
     return (
       <section className="placard night">
@@ -36,6 +38,8 @@ export function ShutdownView() {
       key={`${day.shutdownAt}:${day.note}`}
       day={day}
       tomorrow={tomorrow}
+      moved={moved}
+      setMoved={setMoved}
       reload={async () => {
         await Promise.all([reload(), reloadTomorrow()]);
       }}
@@ -43,23 +47,40 @@ export function ShutdownView() {
   );
 }
 
-function useClock(locale: string, tz: string) {
-  const fmt = () => new Intl.DateTimeFormat(locale === 'es' ? 'es-MX' : 'en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' }).format(new Date());
-  const [now, setNow] = useState(fmt);
-  useEffect(() => {
-    const timer = setInterval(() => setNow(fmt()), 30000);
-    return () => clearInterval(timer);
-  });
-  return now;
+interface Moved {
+  tomorrow: number;
+  backlog: number;
 }
 
-function Wrap({ day, tomorrow, reload }: { day: DayView; tomorrow: DayView | null; reload: () => Promise<void> }) {
+function useClock(locale: string, tz: string) {
+  const [now, setNow] = useState(() => clockNow(locale, tz));
+  useEffect(() => {
+    const timer = setInterval(() => setNow(clockNow(locale, tz)), 30000);
+    return () => clearInterval(timer);
+  }, [locale, tz]);
+  return now;
+}
+const clockNow = (locale: string, tz: string) =>
+  new Intl.DateTimeFormat(locale === 'es' ? 'es-MX' : 'en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' }).format(new Date());
+
+function Wrap({
+  day,
+  tomorrow,
+  moved,
+  setMoved,
+  reload,
+}: {
+  day: DayView;
+  tomorrow: DayView | null;
+  moved: Moved | null;
+  setMoved: (m: Moved | null) => void;
+  reload: () => Promise<void>;
+}) {
   const { session, t, run, toast, refreshSession } = useSession();
   const { style } = useLook();
   const [carry, setCarry] = useState<Record<string, Carry>>({});
   const [note, setNote] = useState(day.note || '');
   const [closed, setClosed] = useState(Boolean(day.shutdownAt));
-  const [moved, setMoved] = useState<{ tomorrow: number; backlog: number } | null>(null);
   const now = useClock(session.locale, session.tz);
 
   const done = day.tasks.filter((x) => x.done);
@@ -76,13 +97,20 @@ function Wrap({ day, tomorrow, reload }: { day: DayView; tomorrow: DayView | nul
 
   const close = () =>
     run(async () => {
-      const r = await api<{ summary: string }>('/api/shutdown', { method: 'POST', body: { date: day.date, note, carry } });
+      await api('/api/shutdown', { method: 'POST', body: { date: day.date, note, carry } });
       setMoved({ tomorrow: open.filter((x) => where(x.id) === 'tomorrow').length, backlog: open.filter((x) => where(x.id) === 'backlog').length });
-      toast(r.summary);
+      toast(wrapLine(day.tasks, moving, session.locale));
       setClosed(true);
       await refreshSession(); // the room may turn to Nocturne
     }, reload);
-  const reopen = () => setClosed(false);
+  // Reopening clears the shutdown, so the room comes back from Nocturne too.
+  const reopen = () =>
+    run(async () => {
+      await api(`/api/shutdown?date=${day.date}`, { method: 'DELETE' });
+      setMoved(null);
+      setClosed(false);
+      await refreshSession();
+    }, reload);
 
   const frameNote = session.frame ? (
     <span className="meta with-icon" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -93,7 +121,7 @@ function Wrap({ day, tomorrow, reload }: { day: DayView; tomorrow: DayView | nul
     <span />
   );
 
-  if (closed && !open.length) {
+  if (closed) {
     const closedAt = timeIn(day.shutdownAt, session.tz, session.locale) || now;
     const waiting = tomorrow?.tasks.filter((x) => !x.done) || [];
     return (
@@ -124,6 +152,12 @@ function Wrap({ day, tomorrow, reload }: { day: DayView; tomorrow: DayView | nul
               <div>
                 <span>{t.toBacklog}</span>
                 <strong>{moved.backlog}</strong>
+              </div>
+            )}
+            {open.length > 0 && (
+              <div>
+                <span>{t.keptToday}</span>
+                <strong>{open.length}</strong>
               </div>
             )}
           </div>
@@ -203,14 +237,13 @@ function Wrap({ day, tomorrow, reload }: { day: DayView; tomorrow: DayView | nul
         </div>
       )}
 
-      <div>
+      {done.length > 0 && <div>
         {style !== 'notebook' && (
           <div className="section-head">
             <span className="label">{t.doneHead}</span>
             <span className="meta">{fill(t.ofWork, { h: minutesLabel(worked) })}</span>
           </div>
         )}
-        {!done.length && <p className="empty">–</p>}
         {done.slice(0, 4).map((x) => (
           <div key={x.id} className="done-row">
             <Tick />
@@ -226,7 +259,7 @@ function Wrap({ day, tomorrow, reload }: { day: DayView; tomorrow: DayView | nul
             {fill(t.andMore, { n: done.length - 4 })}
           </p>
         )}
-      </div>
+      </div>}
 
       {open.length > 0 && (
         <div>
