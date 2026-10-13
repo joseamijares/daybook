@@ -9,6 +9,7 @@ interface Countable {
 
 // "4 of 6 done, about 4h 15m of work. 2 move on."
 export function wrapLine(tasks: Countable[], moved: number, locale: 'en' | 'es' = 'en') {
+  if (!tasks.length) return locale === 'es' ? 'Un día sin tareas.' : 'A day with nothing on it.';
   const done = tasks.filter((t) => t.done);
   const worked = done.reduce((s, t) => s + (t.estimate || 0), 0);
   if (locale === 'es') {

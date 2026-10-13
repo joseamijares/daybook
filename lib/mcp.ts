@@ -4,6 +4,7 @@
 // Spec: https://modelcontextprotocol.io/specification
 
 import { maybeSyncFrame, patchTask } from './actions';
+import './store'; // registers the server's store for the domain
 import {
   addTask,
   backlog,

@@ -12,8 +12,14 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
 - `lib/daybook.ts` is the domain and the only place that changes data: tasks, days, weeks, rollover,
   planning, shutdown. The REST routes (`app/api/*`), the MCP tools (`lib/mcp.ts`) and the UI all go
   through it, or through `lib/actions.ts` for operations that touch integrations.
-- `lib/store.ts` holds Redis hashes per kind (`tasks`, `days`, `weeks`, `meta`), one field per record.
-  Without Upstash env vars it falls back to `.data/daybook.json`.
+- `lib/storage.ts` is the store interface the domain imports (no Node or browser imports, so the domain
+  runs in both). `lib/store.ts` registers the server's store: Redis hashes per kind (`tasks`, `days`,
+  `weeks`, `meta`), one field per record, or `.data/daybook.json` without Upstash env vars. Server entry
+  points import `lib/store` (via `lib/http.ts` and `lib/mcp.ts`).
+- "On this device": `lib/localStore.ts` (the store in localStorage) and `lib/localApi.ts` (the same routes
+  and JSON as `app/api`, answered in the browser). `components/client.tsx` `api()` sends requests there
+  when `daybook.mode` is `local`. A route the browser should answer on this device needs an entry in
+  `localApi.ts` too. `components/Welcome.tsx` asks which mode; `lib/backup.ts` is the export/import file.
 - `lib/mcp.ts` is a hand-rolled, stateless MCP server (JSON-RPC over POST). Adding a tool means one entry
   in `tools`, using the same function the REST route uses.
 - `components/` are client components. `Salon.tsx` is the shared shell (painting, nav, placard slot,
@@ -40,12 +46,13 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
 - Never commit to `main`. Branch, open a PR, squash-merge.
 - Never read, print or commit secrets (`.env*`, provider dashboards). Env names live in `.env.example`.
 - Every route checks auth through `route()` in `lib/http.ts` (or `authorized()` directly). `/api/health`
-  is the only public data route, and it must never return user data.
+  and `GET /api/session` are the only public routes, and they must never return user data (tasks, notes, keys).
 - UI strings live in `lib/i18n.ts`, in English and Spanish. No literal copy in components.
-- Colours, type and spacing come from the Paper file "DayBook" (pages "v3 · Placard", "v3 · Rituals",
-  "v3 · Planning", "v3 · Palettes") through `app/globals.css`. Three designs (`data-style`: wall, timetable,
+- Colours, type and spacing come from the maintainer's Paper file "DayBook" (pages "v3 · Placard",
+  "v3 · Rituals", "v3 · Planning", "v3 · Palettes"; not public) through `app/globals.css`. Three designs (`data-style`: wall, timetable,
   notebook) and three palettes (`data-palette`: salon, modern, nocturne) are set on `<html>`; every colour is a
-  palette variable, never a literal. Design new screens in Paper first, in all three designs.
+  palette variable, never a literal. Design new screens in Paper first, in all three designs (contributors
+  without the file: match the existing screens, in all three designs, and say so in the PR).
 - When you change a tool, a route or an env var, update `docs/agents.md`, `public/llms.txt` and
   `.env.example` in the same change.
 - Run `pnpm verify` (lint, typecheck, tests, build) before opening a PR.

@@ -6,6 +6,8 @@ likely to land than one that adds a mode.
 
 ## Getting started
 
+You need Node 20+ and pnpm 10.
+
 ```bash
 pnpm install
 pnpm dev            # http://localhost:3000, no key and no services needed
@@ -32,6 +34,12 @@ tools and the REST API.
 - Changes to the Frame merge (`lib/frame.ts`) need a test in
   `test/frame.test.ts`.
 - UI copy goes in `lib/i18n.ts`, in English and Spanish.
+- Screens come in three designs and three palettes: test a UI change in each
+  design (Settings → Appearance), and use palette variables, never colour
+  literals. The maintainer draws new screens in a private Paper file first;
+  you don't need it, just match the existing screens.
+- Anything the browser does must also work "on this device": a new route the
+  UI calls needs an answer in `lib/localApi.ts` too.
 - Motion respects `prefers-reduced-motion`.
 - If you change a tool, a route or an environment variable, update
   `docs/agents.md`, `public/llms.txt` and `.env.example` in the same PR.

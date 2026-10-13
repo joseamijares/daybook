@@ -39,5 +39,17 @@
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "homepage": "https://github.com/joseamijares/daybook#readme",
+  "bugs": "https://github.com/joseamijares/daybook/issues",
+  "keywords": [
+    "planner",
+    "daily-planner",
+    "sunsama",
+    "mcp",
+    "model-context-protocol",
+    "nextjs",
+    "linear",
+    "productivity"
+  ]
 }

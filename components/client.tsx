@@ -9,9 +9,12 @@ import type { Artwork } from '@/lib/art';
 import { type Locale, type Strings, strings } from '@/lib/i18n';
 
 export interface Session {
+  /** This server can keep a cloud Daybook (storage and a key are set). */
+  cloud?: boolean;
+  /** Running on this device: the browser keeps everything, no server data. */
+  local?: boolean;
   authorized: boolean;
   needsKey: boolean;
-  misconfigured: boolean;
   locale: Locale;
   today: string;
   tz: string;
@@ -21,7 +24,7 @@ export interface Session {
   owner?: boolean;
   art?: Artwork;
   weekArt?: Artwork;
-  storage?: 'upstash' | 'file';
+  storage?: 'upstash' | 'file' | 'browser';
   linearSyncedAt?: string | null;
   frameSentAt?: string | null;
   appearance?: Appearance;
@@ -37,7 +40,44 @@ export class ApiError extends Error {
   }
 }
 
+// Where this browser keeps its Daybook: "local" (on this device, in
+// localStorage) or "cloud" (a Daybook server). Unset until the welcome screen
+// asks, except for a browser a server already lets in.
+export type Mode = 'local' | 'cloud';
+const MODE_KEY = 'daybook.mode';
+
+export function getMode(): Mode | null {
+  try {
+    const m = localStorage.getItem(MODE_KEY);
+    return m === 'local' || m === 'cloud' ? m : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setMode(mode: Mode | null) {
+  try {
+    if (mode) localStorage.setItem(MODE_KEY, mode);
+    else localStorage.removeItem(MODE_KEY);
+  } catch {
+    // Storage refused (a locked-down private window): on this device can't work there.
+  }
+}
+
+// The on-device API, loaded only when it's used.
+let device: Promise<typeof import('@/lib/localApi')> | null = null;
+const onDevice = () =>
+  (device ??= import('@/lib/localApi').then(async (m) => {
+    await m.startLocal(window.localStorage, { locale: navigator.language });
+    return m;
+  }));
+
 export async function api<T = unknown>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+  if (getMode() === 'local') {
+    const r = await (await onDevice()).handle(init.method || 'GET', path, init.body);
+    if (r.status >= 400) throw new ApiError((r.data as { error?: string }).error || 'error', r.status);
+    return r.data as T;
+  }
   const res = await fetch(path, {
     method: init.method || 'GET',
     headers: init.body !== undefined ? { 'Content-Type': 'application/json' } : undefined,

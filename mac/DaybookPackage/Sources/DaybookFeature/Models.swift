@@ -66,6 +66,9 @@ public struct DBArt: Codable, Hashable, Sendable {
 }
 
 public struct DBSession: Codable, Sendable {
+    /// False when that server has no cloud Daybook (no storage or no key): it can
+    /// only be used in a browser, on that device. Missing from older servers.
+    public var cloud: Bool?
     public var authorized: Bool
     public var needsKey: Bool
     public var locale: String

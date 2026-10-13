@@ -2,10 +2,9 @@
 // and per week, rollover of unfinished work, and the shutdown ritual.
 // The web app, the REST API and the MCP server all call these functions.
 
-import { randomUUID } from 'node:crypto';
 import { parseQuickAdd } from './quickadd';
 import { wrapLine } from './recap';
-import { store } from './store';
+import { store } from './storage';
 import { addDays, isYmd, minutesLabel, mondayOf, resolveDate, today, weekDays } from './time';
 
 export interface LinearSource {
@@ -45,7 +44,12 @@ export interface Week {
 }
 
 const MAX_TITLE = 200;
-export const capacity = () => Number(process.env.DAYBOOK_CAPACITY_MINUTES) || 360;
+let capacityOverride: number | null = null;
+/** Minutes of planned work that fit in a day (DAYBOOK_CAPACITY_MINUTES, or set on this device). */
+export const capacity = () => capacityOverride || Number(process.env.DAYBOOK_CAPACITY_MINUTES) || 360;
+export const setCapacity = (minutes: number | null) => {
+  capacityOverride = minutes;
+};
 
 function clean(s: unknown, field: string, max = MAX_TITLE): string | null {
   if (s == null || s === '') return null;
@@ -65,7 +69,7 @@ function minutes(v: unknown): number | null {
 export { parseQuickAdd };
 
 const now = () => new Date().toISOString();
-const newId = () => randomUUID().replace(/-/g, '').slice(0, 10);
+const newId = () => globalThis.crypto.randomUUID().replace(/-/g, '').slice(0, 10);
 const byOrder = (a: Task, b: Task) => a.order - b.order || a.createdAt.localeCompare(b.createdAt);
 
 export async function allTasks(): Promise<Task[]> {

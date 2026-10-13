@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { CLIENTS, type Client, type Snippet } from '@/lib/clients';
 import type { AgentToken } from '@/lib/tokens';
 import { fill } from '@/lib/i18n';
 import { minutesLabel } from '@/lib/time';
 import { AppearanceSettings } from './AppearanceSettings';
-import { api, timeIn, useResource, useSession } from './client';
+import { api, ApiError, setMode, timeIn, useResource, useSession } from './client';
 import { FrameDesign } from './FrameDesign';
 import { Masthead } from './Masthead';
 
@@ -32,7 +32,9 @@ export function SettingsView() {
 
       <AppearanceSettings />
 
-      {!session.owner ? (
+      {session.local ? (
+        <DataSettings />
+      ) : !session.owner ? (
         <p className="meta">{t.signInToManage}</p>
       ) : (
         <>
@@ -47,10 +49,123 @@ export function SettingsView() {
             </div>
           </div>
           <Agents />
+          <DataSettings />
           <ServerInfo />
         </>
       )}
     </section>
+  );
+}
+
+// ---- Your data ---------------------------------------------------------------
+// On this device: the only copy lives in this browser, so export, import,
+// erase, the day's length, and the way to a cloud Daybook. In the cloud: a
+// backup file both ways, and leaving this browser.
+
+function DataSettings() {
+  const { t, session, run, toast, refreshSession } = useSession();
+  const local = Boolean(session.local);
+  const file = useRef<HTMLInputElement>(null);
+
+  const exportCopy = () =>
+    run(async () => {
+      const data = await api('/api/export');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+      a.download = `daybook-${session.today}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  const importCopy = (chosen: File) =>
+    run(async () => {
+      if (!confirm(t.importConfirm)) return;
+      let backup: unknown;
+      try {
+        backup = JSON.parse(await chosen.text());
+      } catch {
+        backup = null; // the server or this device explains what's wrong with it
+      }
+      const r = await api<{ tasks: number; days: number }>('/api/import', { method: 'POST', body: { backup } }).catch((err) => {
+        throw err instanceof ApiError && err.status === 400 ? new Error(t.badFile) : err;
+      });
+      toast(fill(t.imported, r));
+      await refreshSession();
+    });
+  const erase = () =>
+    confirm(t.eraseConfirm) &&
+    run(async () => {
+      await api('/api/data', { method: 'DELETE' });
+      await refreshSession();
+    });
+  const leave = async () => {
+    if (!local) await api('/api/session', { method: 'DELETE' }).catch(() => undefined);
+    setMode(null);
+    window.location.replace(window.location.origin); // a fresh start, so the welcome screen asks again
+  };
+  const setLength = (hours: number) =>
+    run(async () => {
+      await api('/api/capacity', { method: 'PUT', body: { minutes: hours * 60 } });
+      await refreshSession();
+    });
+
+  return (
+    <div className="settings-block" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="section-head">
+        <span className="label">{t.dataHead}</span>
+        <span className="meta">{local ? t.dataOnDevice : session.storage === 'upstash' ? 'Upstash Redis' : t.storageFile}</span>
+      </div>
+      <p className="meta" style={{ margin: 0, fontSize: 15, lineHeight: '22px' }}>
+        {local ? t.dataLead : t.dataLeadCloud}
+      </p>
+      <div className="data-actions">
+        <button type="button" className="pill solid" onClick={exportCopy}>
+          {t.exportBtn}
+        </button>
+        <button type="button" className="pill" onClick={() => file.current?.click()}>
+          {t.importBtn}
+        </button>
+        <input
+          ref={file}
+          type="file"
+          accept="application/json,.json"
+          hidden
+          onChange={(e) => {
+            const chosen = e.target.files?.[0];
+            e.target.value = '';
+            if (chosen) importCopy(chosen);
+          }}
+        />
+        {local && (
+          <button type="button" className="link-btn danger" onClick={erase}>
+            {t.eraseBtn}
+          </button>
+        )}
+      </div>
+      {local && (
+        <div className="switch-row">
+          <span>
+            <strong>{t.dayLength}</strong>
+            <span className="meta">{t.dayLengthLead}</span>
+          </span>
+          <span className="day-length" role="group" aria-label={t.dayLength}>
+            {[4, 5, 6, 7, 8, 10].map((h) => (
+              <button key={h} type="button" className="pill round" aria-pressed={session.capacity === h * 60} onClick={() => setLength(h)}>
+                {h}h
+              </button>
+            ))}
+          </span>
+        </div>
+      )}
+      <div className="switch-row">
+        <span>
+          <strong>{local ? t.switchCloud : t.switchDevice}</strong>
+          <span className="meta">{local ? t.switchCloudLead : t.switchDeviceLead}</span>
+        </span>
+        <button type="button" className="link-btn" onClick={leave}>
+          {t.switchBtn}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -413,7 +528,7 @@ function ServerInfo() {
         </div>
         <div>
           <dt>{t.storageLabel}</dt>
-          <dd>{session.storage === 'upstash' ? 'Upstash Redis' : t.storageFile}</dd>
+          <dd>{session.storage === 'upstash' ? 'Upstash Redis' : session.storage === 'browser' ? t.storageBrowser : t.storageFile}</dd>
         </div>
       </dl>
     </div>

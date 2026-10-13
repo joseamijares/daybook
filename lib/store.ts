@@ -1,22 +1,18 @@
-// Storage: Redis hashes, one per kind (tasks, days, weeks). Each record is its
-// own hash field, so the web app and an agent editing different tasks at the
-// same moment never overwrite each other.
+// Storage on the server: Redis hashes, one per kind (tasks, days, weeks). Each
+// record is its own hash field, so the web app and an agent editing different
+// tasks at the same moment never overwrite each other.
 //
 // Upstash Redis when its REST env vars are set (Vercel's integration sets
 // KV_REST_API_*), otherwise a JSON file in .data/ for local development.
+// Importing this module registers that store with lib/storage.ts.
 
 import { Redis } from '@upstash/redis';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { type Kind, registerStore, type Store, setStore, store } from './storage';
 
-export type Kind = 'tasks' | 'days' | 'weeks' | 'meta' | 'tokens';
-
-export interface Store {
-  all<T>(kind: Kind): Promise<Record<string, T>>;
-  get<T>(kind: Kind, id: string): Promise<T | null>;
-  put<T>(kind: Kind, id: string, value: T): Promise<void>;
-  del(kind: Kind, id: string): Promise<void>;
-}
+export type { Kind, Store };
+export { setStore, store };
 
 const PREFIX = process.env.DAYBOOK_PREFIX || 'daybook';
 
@@ -82,21 +78,18 @@ export function fileStore(file: string): Store {
   };
 }
 
-let cached: Store | null = null;
+const url = () => process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const token = () => process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 
-export function store(): Store {
-  if (cached) return cached;
-  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-  if (url && token) cached = redisStore(url, token);
-  else if (process.env.VERCEL) throw new Error('Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN (Vercel has no writable disk).');
-  else cached = fileStore(process.env.DAYBOOK_DATA_FILE || path.join(process.cwd(), '.data', 'daybook.json'));
-  return cached;
-}
+/** Whether this server can keep data: Upstash, or a writable disk (not Vercel). */
+export const storageReady = () => Boolean((url() && token()) || !process.env.VERCEL);
 
-export function setStore(s: Store | null) {
-  cached = s;
-}
+registerStore(() => {
+  const u = url();
+  const t = token();
+  if (u && t) return redisStore(u, t);
+  if (process.env.VERCEL) throw new Error('Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN (Vercel has no writable disk).');
+  return fileStore(process.env.DAYBOOK_DATA_FILE || path.join(process.cwd(), '.data', 'daybook.json'));
+});
 
-export const storageKind = () =>
-  process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL ? 'upstash' : 'file';
+export const storageKind = () => (url() ? 'upstash' : 'file');

@@ -1,4 +1,4 @@
-// GET    /api/session   { authorized, needsKey, locale, linear, frame, today, appearance, closedToday }
+// GET    /api/session   { cloud, authorized, needsKey, locale, today, tz, capacity, art, ... } (public: no user data)
 // POST   /api/session   { key }  sign the browser in (httpOnly cookie)
 // DELETE /api/session   sign out
 import { connection } from 'next/server';
@@ -10,39 +10,43 @@ import { capacity, getDayMeta } from '@/lib/daybook';
 import { frameArt, frameEnabled } from '@/lib/frame';
 import { body, json } from '@/lib/http';
 import { linearEnabled, linearSyncedAt } from '@/lib/linear';
-import { storageKind, store } from '@/lib/store';
+import { storageKind, storageReady, store } from '@/lib/store';
 import { addDays, mondayOf, today, tzName } from '@/lib/time';
 
 export async function GET(req: Request) {
   await connection();
   const day = today();
   const sunday = addDays(mondayOf(day), 6);
-  const [ok, owner, linear, frame, tvArt, tvWeekArt, appearance] = await Promise.all([
-    authorized(req),
-    isOwner(req),
-    linearEnabled(),
-    frameEnabled(),
-    frameArt(day),
-    frameArt(sunday),
-    getAppearance(),
-  ]);
-  return json({
-    authorized: ok,
+  // "Cloud" works when this server can keep data and is locked with a key. A
+  // deploy without either still serves the app, for use on this device only.
+  const cloud = storageReady() && (Boolean(process.env.DAYBOOK_KEY) || !process.env.VERCEL);
+  const base = {
+    cloud,
     needsKey: Boolean(process.env.DAYBOOK_KEY),
-    misconfigured: !process.env.DAYBOOK_KEY && Boolean(process.env.VERCEL),
     locale: process.env.DAYBOOK_LOCALE === 'es' ? 'es' : 'en',
-    today: today(),
+    today: day,
     tz: tzName(),
     capacity: capacity(),
+    art: artFor(day),
+    weekArt: artFor(addDays(mondayOf(day), -1)),
+  };
+  if (!cloud) return json({ ...base, authorized: false, owner: false, linear: false, frame: false });
+
+  const [ok, owner, linear, frame, appearance] = await Promise.all([authorized(req), isOwner(req), linearEnabled(), frameEnabled(), getAppearance()]);
+  // The Frame's paintings (so both walls match) are looked up only for a signed-in browser.
+  const [tvArt, tvWeekArt] = ok ? await Promise.all([frameArt(day), frameArt(sunday)]) : [null, null];
+  return json({
+    ...base,
+    authorized: ok,
     owner,
     storage: storageKind(),
     linear,
     frame,
     frameAutoSync: frame && process.env.FRAME_AUTO_SYNC === 'true',
     // The painting of the day: the Frame's when one is connected, so they match.
-    art: tvArt ?? artFor(day),
+    art: tvArt ?? base.art,
     // The Week screen hangs a different one (the week's Sunday on the Frame).
-    weekArt: tvWeekArt ?? artFor(addDays(mondayOf(day), -1)),
+    weekArt: tvWeekArt ?? base.weekArt,
     // The design and palette (no user data, so the sign-in screen wears them too).
     appearance,
     ...(ok && {

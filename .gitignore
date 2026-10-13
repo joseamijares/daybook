@@ -43,6 +43,6 @@ next-env.d.ts
 .data/
 
 # Logo explorations (AI-generated images, kept out of git)
-brand/logo-proposals/*.png
+brand/logo-proposals/
 brand/logo-system-preview.png
 .env*.local

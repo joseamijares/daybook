@@ -10,6 +10,11 @@ in `lib/daybook.ts`, so they behave the same way.
 - **CLI**: `node cli/daybook.mjs`. It has no dependencies and includes a
   stdio MCP relay.
 
+Agents need a cloud Daybook (a server with storage and `DAYBOOK_KEY`). A
+Daybook kept "on this device" lives only in one browser, so there is nothing
+for an agent to reach; export it from Settings → Your data and import it into a
+cloud Daybook first.
+
 ## Authentication
 
 The easy way is **Settings → AI agents** in Daybook. Pick your client, press
@@ -32,7 +37,7 @@ Send either one in one of these ways:
 - the browser's httpOnly session cookie, which is set after signing in once.
 
 If `DAYBOOK_KEY` is unset, the API is open. That's fine on localhost; on
-Vercel the app refuses to run that way.
+Vercel there is then no cloud Daybook at all, only "on this device".
 
 ## Client setup
 
@@ -123,9 +128,9 @@ If the client only speaks stdio, run `node cli/daybook.mjs mcp` with
 | `set_focus` | The focus line for a day, or for the week with `scope: "week"` |
 | `plan_day` | Put these task ids on the day in this order and set the focus. Warns when the day is over capacity |
 | `shutdown_day` | Unfinished tasks go to tomorrow, the backlog, or stay; saves the journal line; returns a one-line recap |
-| `sync_linear` | Pull open assigned Linear issues into the backlog. Listed only when `LINEAR_API_KEY` is set |
+| `sync_linear` | Pull open assigned Linear issues into the backlog. Listed only when Linear is connected (`LINEAR_API_KEY` or Settings) |
 | `send_to_frame` | Two-way sync with Frame Dashboard: pull what changed there, merge, push. Listed only when the Frame settings are set |
-| `frame_design` | Get the TV's design, or switch it: `bleed` (painting by day, salon at night), `salon` (framed on the wall all day), `painting` (full screen day and night) |
+| `frame_design` | Listed only when the Frame is connected. Get the TV's design, or switch it: `bleed` (painting by day, salon at night), `salon` (framed on the wall all day), `painting` (full screen day and night) |
 
 Dates accept `today`, `tomorrow`, a weekday name, `YYYY-MM-DD` or `backlog`.
 The configured `DAYBOOK_TZ` decides what "today" means, not the agent's clock.
@@ -164,7 +169,12 @@ in clients that support prompts.
 | `GET/POST /api/tokens`, `DELETE /api/tokens/:id` | Agent tokens: list, create (the token is shown once), revoke. Owner only |
 | `GET/PUT/DELETE /api/integrations/linear` | Linear status / `{ apiKey }` to connect (checked, stored encrypted) / disconnect. Owner only |
 | `GET/PUT/DELETE /api/integrations/frame` | Frame status / `{ url, writeKey }` to connect / disconnect. Owner only |
-| `GET /api/health` | Public: commit, storage and which integrations are on |
+| `GET /api/export` | Owner only. Every task, day and week plus the appearance, as one JSON file (`daybook: 1`) |
+| `POST /api/import` | Owner only. `{ backup, replace? }`: merge a Daybook export by id, or with `replace: true` make tasks, days and weeks exactly the file's |
+| `GET /api/session` | Public bootstrap: `cloud` (this server keeps a cloud Daybook), `authorized`, `needsKey`, `locale`, `today`, `tz`, `capacity`, the painting, and the appearance. Signed in, also `closedToday` and sync times. No tasks or notes |
+| `POST /api/session` / `DELETE /api/session` | `{ key }` signs the browser in (an httpOnly cookie) / signs it out |
+| `GET /api/mcp` / `OPTIONS /api/mcp` | Server info / CORS preflight for browser-based MCP clients |
+| `GET /api/health` | Public: commit, storage and which integrations are on. No user data |
 
 ## Frame Dashboard
 

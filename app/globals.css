@@ -3018,6 +3018,97 @@ textarea {
   }
 }
 
+/* ---- Welcome: on this device or in the cloud ------------------------------ */
+
+.placard.welcome {
+  gap: 22px;
+}
+.choice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px 22px 20px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+}
+.choice-card.raised {
+  background: var(--color-paper-raised);
+}
+.choice-card h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-card-ink);
+}
+[data-style='timetable'] .choice-card h2 {
+  font-size: 20px;
+  font-stretch: 112%;
+  font-variation-settings: 'wdth' 112;
+}
+[data-style='notebook'] .choice-card h2 {
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.choice-card .lead {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--color-card-ink-2);
+}
+[data-style='notebook'] .choice-card .lead {
+  font-size: 17px;
+  line-height: 25px;
+}
+.choice-card .note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--color-card-ink-3);
+}
+.choice-card .note a {
+  color: var(--accent);
+  font-weight: 600;
+}
+.choice-card .keyform input {
+  font-size: 15px;
+}
+
+/* Settings → Your data */
+.data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.data-actions .danger {
+  color: var(--color-amber);
+}
+.switch-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+.switch-row strong {
+  display: block;
+  font-size: 15px;
+}
+.day-length {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.day-length .pill[aria-pressed='true'] {
+  background: var(--color-card-ink);
+  border-color: var(--color-card-ink);
+  color: var(--sheet);
+}
+
 /* ---- Motion ------------------------------------------------------------- */
 /* A painting is hung: it fades up over the last one, settling out of a soft
    focus, then drifts imperceptibly while it hangs. */

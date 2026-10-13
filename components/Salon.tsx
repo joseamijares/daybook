@@ -13,8 +13,8 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } fro
 import { type Appearance, DEFAULT_APPEARANCE } from '@/lib/appearance';
 import { type Artwork, artFor, credit } from '@/lib/art';
 import { addDays, mondayOf } from '@/lib/time';
-import { api, type Look, LookContext, type Session, SessionContext, stringsFor } from './client';
-import { Masthead } from './Masthead';
+import { api, getMode, type Look, LookContext, type Session, SessionContext, setMode, stringsFor } from './client';
+import { Welcome } from './Welcome';
 
 export type View = 'today' | 'plan' | 'week' | 'backlog' | 'shutdown' | 'settings';
 
@@ -51,6 +51,9 @@ export function Salon({ children }: { children: ReactNode }) {
         .then((s) => {
           if (!alive) return;
           loaded.current = true;
+          // A browser a server already lets in (its cookie, or a server with no
+          // key on your own machine) is a cloud browser; no need to ask.
+          if (!getMode() && s.authorized && !s.local) setMode('cloud');
           setSession(s);
         })
         .catch(() => {
@@ -190,7 +193,7 @@ export function Salon({ children }: { children: ReactNode }) {
           <p className="meta">{t.loading}</p>
         </section>
       ) : !session.authorized ? (
-        <KeyGate session={session} onDone={refreshSession} />
+        <Welcome session={session} onDone={refreshSession} />
       ) : (
         <SessionContext.Provider value={ctx}>
           {/* Keyed by screen so each placard is hung fresh, with its entrance. */}
@@ -245,48 +248,3 @@ function Wall({ art, dusk }: { art: Artwork | null; dusk: boolean }) {
 
 // Built-in paintings are served by Daybook; the Frame's come with a full URL.
 const src = (image: string) => (/^https?:/.test(image) ? image : `/${image}`);
-
-function KeyGate({ session, onDone }: { session: Session; onDone: () => Promise<void> }) {
-  const t = stringsFor(session.locale);
-  const [key, setKey] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  if (session.misconfigured) {
-    return (
-      <section className="placard">
-        <Masthead title={t.keyTitle} sub="Daybook" />
-        <p className="meta">{t.misconfigured}</p>
-      </section>
-    );
-  }
-  return (
-    <section className="placard">
-      <Masthead title={t.keyTitle} sub={t.keyHelp} />
-      <form
-        className="keyform"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          try {
-            await api('/api/session', { method: 'POST', body: { key } });
-            await onDone();
-          } catch {
-            setError(t.wrongKey);
-          }
-        }}
-      >
-        <input type="password" autoFocus autoComplete="current-password" value={key} onChange={(e) => setKey(e.target.value)} aria-label={t.keyTitle} />
-        <button className="pill solid" type="submit">
-          {t.open}
-        </button>
-      </form>
-      {error && <p className="meta" style={{ color: 'var(--color-amber)' }}>{error}</p>}
-      <details className="key-where">
-        <summary className="label">{t.keyWhere}</summary>
-        <ol className="meta">
-          {t.keyWhereSteps.map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
-      </details>
-    </section>
-  );
-}

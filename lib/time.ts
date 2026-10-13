@@ -1,7 +1,12 @@
 // Dates are plain YYYY-MM-DD strings in the configured zone. "Today" is
 // always decided by DAYBOOK_TZ, never by the server's or the agent's clock.
+// On this device (no server), the browser's own zone is set instead.
 
-export const tzName = () => process.env.DAYBOOK_TZ || 'UTC';
+let tzOverride: string | null = null;
+export const tzName = () => tzOverride || process.env.DAYBOOK_TZ || 'UTC';
+export const setTimeZone = (tz: string | null) => {
+  tzOverride = tz;
+};
 
 export function isYmd(s: unknown): s is string {
   return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(`${s}T00:00:00Z`));

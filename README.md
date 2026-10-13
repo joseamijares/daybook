@@ -3,6 +3,10 @@
 A super simple daily planner with a painting of the day. Plan the morning,
 shut down in the evening, and let your AI agents do the typing.
 
+Use it **on this device** (free, private, nothing to set up: your days stay in
+your browser) or **in the cloud** (your own deployment with a key: every
+device, the Mac app, AI agents, Linear and Frame).
+
 ![Today: the painting of the day beside a museum placard with your day](docs/img/today.jpg)
 
 Daybook is a small, open-source take on [Sunsama](https://www.sunsama.com/)'s
@@ -33,21 +37,29 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
   added or removed there come back to Daybook, Daybook's week goes to the TV,
   and the TV's meetings show up on Today. Pick the TV's design (painting by
   day, salon, or painting always) from the Week screen, the Mac app or an agent.
-
+- **On this device or in the cloud.** The first screen asks. On this device,
+  Daybook runs entirely in the browser with no account and no backend, and
+  Settings → Your data exports a copy, imports one, or erases everything. The
+  same file moves you to a cloud Daybook later.
 - **Three designs, three palettes.** A museum wall label, a timetable with wide
   numerals and blocks of time, or a written notebook; in Salon (bone and
   cobalt), Modern (white and one red dot) or Nocturne (blue-black and gilt).
   Settings → Appearance, with an option to turn to Nocturne after shutdown.
-
 - **Mac app.** The full Daybook in a window, a glance at today in the menu
   bar, a shutdown reminder, and Frame sync every two minutes. See
   [mac/README.md](mac/README.md).
 
-| Week | Shut down |
+| Plan the day (Timetable, Modern) | Week (Notebook) |
 | --- | --- |
-| ![Week: the days as columns on one card](docs/img/week.jpg) | ![Shut down: the day's painting at dusk with a recap](docs/img/shutdown.jpg) |
+| ![Planning in the whole window: meetings, the day, and the backlog](docs/img/plan.jpg) | ![Week: the days on one card, written like a notebook](docs/img/week.jpg) |
+
+| Shut down (Timetable) |
+| --- |
+| ![Shut down: the day's painting at dusk, a recap, and where each open task goes](docs/img/shutdown.jpg) |
 
 ## Run it
+
+You need Node 20 or later and pnpm 10.
 
 ```bash
 pnpm install
@@ -55,10 +67,22 @@ cp .env.example .env.local      # optional locally: works with no key and stores
 pnpm dev                        # http://localhost:3000
 ```
 
+Without `DAYBOOK_KEY`, a local server lets everyone on your machine in and
+keeps its data in `.data/daybook.json`.
+
 The UI is in English or Spanish (`DAYBOOK_LOCALE=en|es`), and the time zone
 that decides "today" is `DAYBOOK_TZ`.
 
-## Deploy (Vercel + Upstash)
+## Deploy your own
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjoseamijares%2Fdaybook)
+
+**Just the app.** Deploy with no settings at all. Everyone who opens it uses
+Daybook on their own device: their days stay in their browser, and the server
+keeps nothing. No database, no key.
+
+**A cloud Daybook (Vercel + Upstash).** For the same days everywhere, the Mac
+app, agents, Linear and Frame:
 
 1. Import the repo in Vercel. Under *Storage → Create Database → Upstash for
    Redis* (the free plan is enough), connect it to the project. That sets
@@ -69,7 +93,8 @@ that decides "today" is `DAYBOOK_TZ`.
 3. Set `CRON_SECRET` too. Vercel Cron then calls `/api/cron/sync` once a
    day (see `vercel.json`) to sync Linear and the Frame. On a Pro plan you
    can make it every 10 minutes (`*/10 * * * *`).
-4. Deploy, open the site, and enter your key once in each browser you use.
+4. Deploy, open the site, choose **In the cloud**, and enter your key once in
+   each browser you use.
 5. In the Mac app, set the URL to your deployment and paste the same key.
 
 ### How it fits together
@@ -91,8 +116,9 @@ it runs:
 - on the Vercel Cron schedule;
 - when you press **Sync with Frame**.
 
-Daybook refuses to run without `DAYBOOK_KEY` on Vercel. Anyone with the key
-can read and change your plan, so treat it like a password.
+On Vercel, a cloud Daybook needs both Upstash and `DAYBOOK_KEY`; without them
+the deploy only offers "on this device". Anyone with the key can read and
+change your plan, so treat it like a password.
 
 ## Connect your agents
 
@@ -147,18 +173,21 @@ pnpm verify     # lint, typecheck, tests, production build
 
 | Path | What |
 | --- | --- |
-| `app/` | The four screens (`/`, `/week`, `/backlog`, `/shutdown`) and the API under `app/api/` |
+| `app/` | The screens (`/`, `/plan`, `/week`, `/backlog`, `/shutdown`, `/settings`) and the API under `app/api/` |
 | `components/` | The salon shell, the placards, and task rows |
 | `lib/daybook.ts` | The domain: tasks, days, weeks, rollover, planning, shutdown |
 | `lib/mcp.ts` | The MCP server: tools, prompts, JSON-RPC |
 | `lib/linear.ts`, `lib/frame.ts` | The integrations |
-| `lib/store.ts` | Upstash Redis, or a JSON file locally |
+| `lib/storage.ts` | The store interface the domain uses (no Node or browser imports) |
+| `lib/store.ts` | The server's store: Upstash Redis, or a JSON file locally |
+| `lib/localStore.ts`, `lib/localApi.ts` | "On this device": the store in localStorage, and the API answered in the browser |
+| `lib/backup.ts` | Export and import a whole Daybook as one JSON file |
 | `cli/daybook.mjs` | The CLI and stdio relay (no dependencies) |
 | `mac/` | Daybook for Mac (SwiftUI): window + menu bar |
 
-The design lives in Paper (file "DayBook"): the placard and task states, the
-rituals, full-width planning and the palettes, on the "v3" pages. The colours
-and type in `app/globals.css` come from it.
+The design was drawn in Paper (the maintainer's file, not public); you don't
+need it to contribute. Colours, type and spacing live in `app/globals.css` as
+palette variables (`data-palette`) and per-design rules (`data-style`).
 
 ## Art and fonts
 
@@ -169,8 +198,10 @@ in `lib/art.json`, and the credit on screen links to it.
 [Schibsted Grotesk](https://fonts.google.com/specimen/Schibsted+Grotesk),
 [Archivo](https://fonts.google.com/specimen/Archivo) and
 [Brygada 1918](https://fonts.google.com/specimen/Brygada+1918) are under the
-SIL Open Font License. The Mac app's menu bar still uses
-[Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans), also OFL.
+SIL Open Font License. The Mac app bundles
+[Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans) and
+[Instrument Serif](https://fonts.google.com/specimen/Instrument+Serif), also
+OFL, with their licence files.
 
 ## Contributing
 

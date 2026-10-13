@@ -2,7 +2,7 @@
 // app's window and every device agree.
 
 import { type Appearance, DEFAULT_APPEARANCE, mergeAppearance } from './appearance';
-import { store } from './store';
+import { store } from './storage';
 
 export async function getAppearance(): Promise<Appearance> {
   const saved = await store().get<Record<string, unknown>>('meta', 'appearance');

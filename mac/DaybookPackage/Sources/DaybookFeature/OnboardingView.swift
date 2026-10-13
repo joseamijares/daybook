@@ -126,6 +126,10 @@ public struct OnboardingView: View {
             Text("Daybook").font(Salon.display(76)).foregroundStyle(Salon.ink).padding(.top, 6)
             Text("A painting a day, and a plan to match.")
                 .font(Salon.italic(25)).foregroundStyle(Salon.ink).padding(.top, 2)
+            // The Mac app opens a cloud Daybook; "on this device" lives in a browser.
+            Text("The Mac app opens your Daybook in the cloud. To keep your days only in a browser, with no server, open Daybook there and choose “On this device”.")
+                .font(Salon.text(13)).foregroundStyle(Salon.ink2).padding(.top, 10)
+                .fixedSize(horizontal: false, vertical: true)
 
             VStack(alignment: .leading, spacing: 26) {
                 step(1, "Where is your Daybook?") {
@@ -133,7 +137,7 @@ public struct OnboardingView: View {
                     status
                     HStack(spacing: 14) {
                         Button("Use a local one") { url = "http://localhost:3000" }
-                        Link("Deploy your own ↗", destination: URL(string: "https://github.com/joseamijares/daybook#deploy-vercel--upstash")!)
+                        Link("Deploy your own ↗", destination: URL(string: "https://github.com/joseamijares/daybook#deploy-your-own")!)
                     }
                     .buttonStyle(.plain)
                     .font(Salon.text(12.5))
@@ -182,13 +186,17 @@ public struct OnboardingView: View {
     }
 
     private var canConnect: Bool {
-        model.probe != nil && (model.probe?.needsKey == false || !key.trimmingCharacters(in: .whitespaces).isEmpty)
+        model.probe != nil && model.probe?.cloud != false
+            && (model.probe?.needsKey == false || !key.trimmingCharacters(in: .whitespaces).isEmpty)
     }
 
     @ViewBuilder
     private var status: some View {
         HStack(spacing: 6) {
-            if let s = model.probe {
+            if let s = model.probe, s.cloud == false {
+                Circle().fill(Salon.amber).frame(width: 6, height: 6)
+                Text("That Daybook has no cloud set up yet (Upstash and a key), so only a browser can use it.")
+            } else if let s = model.probe {
                 Circle().fill(Salon.cobalt).frame(width: 6, height: 6)
                 Text(s.needsKey ? "Found it. Now its key." : "Found it.")
             } else if let e = model.probeError, !url.isEmpty {

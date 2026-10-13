@@ -1,4 +1,5 @@
 import { authorized, isOwner } from './auth';
+import './store'; // registers the server's store for the domain
 import { NotFound } from './daybook';
 
 export const json = (data: unknown, status = 200) =>
