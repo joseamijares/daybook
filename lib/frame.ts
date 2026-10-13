@@ -16,6 +16,7 @@
 // only ever goes from false to true. Then the merged week is pushed and
 // becomes the new base.
 
+import { createHash } from 'node:crypto';
 import { addTask, getWeek, setDay, setWeekFocus, type Task, updateTask, type WeekView } from './daybook';
 import { store } from './store';
 import { weekDays } from './time';
@@ -188,7 +189,9 @@ async function frameFetch<T>(path: string, init: { method?: string; body?: unkno
   return body;
 }
 
-const baseKey = (weekOf: string) => `frameBase:${weekOf}`;
+// The base belongs to one Frame: pointing Daybook at a different Frame starts
+// over with a first sync instead of merging against another TV's plan.
+const baseKey = (weekOf: string) => `frameBase:${createHash('sha1').update(frameConfig().base).digest('hex').slice(0, 10)}:${weekOf}`;
 
 export async function syncFrame(date?: string) {
   const local = await getWeek(date);
