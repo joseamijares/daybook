@@ -18,6 +18,7 @@ public final class DaybookModel {
     var lastSync: Date?
     var frameStatus: String?
     var lastFrameSync: Date?
+    var frameSettings: FrameSettings?
 
     // Settings
     var baseURL: String { didSet { UserDefaults.standard.set(baseURL, forKey: "baseURL") } }
@@ -96,13 +97,13 @@ public final class DaybookModel {
             let target = lead.inProgress ? (lead.event.end ?? start) : start
             let mins = Int((target.timeIntervalSince(now) / 60).rounded(.up))
             if lead.inProgress { return "\(short(lead.event.title)) · \(mins)m" }
-            if mins <= 60 { return "\(short(lead.event.title)) in \(mins)m" }
+            if mins <= 30 { return "\(short(lead.event.title)) · in \(mins)m" }
         }
         let open = week?.day(todayYmd)?.openCount ?? 0
         return open > 0 ? "\(open)" : ""
     }
 
-    private func short(_ s: String) -> String { s.count > 18 ? String(s.prefix(17)) + "…" : s }
+    private func short(_ s: String) -> String { s.count > 12 ? String(s.prefix(11)) + "…" : s }
 
     func artURL() -> URL? {
         guard let art = session?.art else { return nil }
@@ -226,6 +227,23 @@ public final class DaybookModel {
             if r.pulled.total > 0 { await refresh() }
         } catch {
             frameStatus = error.localizedDescription
+        }
+    }
+
+    func loadFrameSettings() async {
+        guard session?.frame == true, let api else { frameSettings = nil; return }
+        frameSettings = try? await api.frameSettings()
+    }
+
+    func setFrameDesign(_ layout: String) async {
+        guard let api else { return }
+        frameSettings?.layout = layout // instant, then confirmed
+        do {
+            frameSettings = try await api.setFrameDesign(layout)
+            frameStatus = nil
+        } catch {
+            frameStatus = error.localizedDescription
+            await loadFrameSettings()
         }
     }
 

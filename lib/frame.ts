@@ -221,3 +221,31 @@ export async function frameEvents(date?: string): Promise<Record<string, FrameEv
     return {};
   }
 }
+
+export interface FrameDesign {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface FrameSettings {
+  layout: string | null;
+  layouts: FrameDesign[];
+  supported: boolean; // false: this Frame predates the design setting
+}
+
+// The Frame's design (Frame Dashboard ≥ the "design setting" change).
+export async function frameSettings(): Promise<FrameSettings> {
+  const s = await frameFetch<{ layout?: string; layouts?: FrameDesign[] }>('/api/settings');
+  return { layout: s.layout ?? null, layouts: s.layouts ?? [], supported: Array.isArray(s.layouts) };
+}
+
+export async function setFrameDesign(layout: string): Promise<FrameSettings> {
+  const current = await frameSettings();
+  if (!current.supported) throw new Error('This Frame Dashboard can’t switch designs yet: update it to the latest version.');
+  if (!current.layouts.some((l) => l.id === layout)) {
+    throw new Error(`layout must be one of ${current.layouts.map((l) => l.id).join(', ')}`);
+  }
+  await frameFetch('/api/settings', { method: 'PUT', body: { layout } });
+  return { ...current, layout };
+}

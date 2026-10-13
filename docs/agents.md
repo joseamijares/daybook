@@ -110,6 +110,7 @@ If the client only speaks stdio, run `node cli/daybook.mjs mcp` with
 | `shutdown_day` | Unfinished tasks go to tomorrow, the backlog, or stay; saves the journal line; returns a one-line recap |
 | `sync_linear` | Pull open assigned Linear issues into the backlog. Listed only when `LINEAR_API_KEY` is set |
 | `send_to_frame` | Two-way sync with Frame Dashboard: pull what changed there, merge, push. Listed only when the Frame settings are set |
+| `frame_design` | Get the TV's design, or switch it: `bleed` (painting by day, salon at night), `salon` (framed on the wall all day), `painting` (full screen day and night) |
 
 Dates accept `today`, `tomorrow`, a weekday name, `YYYY-MM-DD` or `backlog`.
 The configured `DAYBOOK_TZ` decides what "today" means, not the agent's clock.
@@ -141,6 +142,7 @@ in clients that support prompts.
 | `POST /api/shutdown` | `{ date?, note?, carry?: { [id]: "tomorrow" \| "backlog" \| "keep" } }` |
 | `POST /api/linear` | Sync Linear |
 | `GET /api/frame?date=` / `POST /api/frame` | Preview the Frame Dashboard plan, or run a two-way sync |
+| `GET /api/frame/settings` / `PUT /api/frame/settings` | The Frame's design and the designs it offers / `{ layout }` to switch |
 | `GET /api/health` | Public: commit, storage and which integrations are on |
 
 ## Frame Dashboard

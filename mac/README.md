@@ -17,6 +17,8 @@ The full Daybook in a window, plus a glance at today in the menu bar.
 - **Frame sync:** every 2 minutes, and after each edit, the app asks your
   Daybook to sync with Frame Dashboard in both directions. Ticks made on Frame
   Desk or the TV come back, and Daybook's week goes out.
+- **Frame design:** switch the TV between Day and night, Salon and Painting
+  in Settings.
 - **Shutdown reminder:** a daily notification (6 pm by default). It opens the
   Shut down screen.
 - The key is stored in the login Keychain. The app is sandboxed, with network

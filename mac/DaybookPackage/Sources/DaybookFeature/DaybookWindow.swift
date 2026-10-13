@@ -15,6 +15,11 @@ public struct DaybookWindow: View {
             if model.isConfigured, let url = model.webURL(model.windowPath) {
                 WebView(url: url, key: model.key)
                     .ignoresSafeArea() // the painting runs under the title bar
+                    .overlay(alignment: .top) {
+                        // The page fills the window, so give the window a handle:
+                        // drag here to move it, double-click to zoom.
+                        WindowDragArea().frame(height: 40).ignoresSafeArea()
+                    }
                     .transition(.opacity)
             } else {
                 // Not connected yet: the settings card, hung on the gallery wall.
@@ -112,6 +117,24 @@ struct WebView: NSViewRepresentable {
                 return
             }
             decisionHandler(.allow)
+        }
+    }
+}
+
+/// An invisible strip that moves the window, like a title bar.
+struct WindowDragArea: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView { DragView() }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    final class DragView: NSView {
+        override var mouseDownCanMoveWindow: Bool { true }
+
+        override func mouseDown(with event: NSEvent) {
+            if event.clickCount == 2 {
+                window?.performZoom(nil)
+            } else {
+                window?.performDrag(with: event)
+            }
         }
     }
 }

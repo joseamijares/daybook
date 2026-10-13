@@ -29,7 +29,8 @@ on the same day.
   Daybook completes it in Linear.
 - **Frame Dashboard.** Two-way sync with your TV and Frame Desk. To-dos ticked,
   added or removed there come back to Daybook, Daybook's week goes to the TV,
-  and the TV's meetings show up on Today.
+  and the TV's meetings show up on Today. Pick the TV's design (painting by
+  day, salon, or painting always) from the Week screen, the Mac app or an agent.
 
 - **Mac app.** The full Daybook in a window, a glance at today in the menu
   bar, a shutdown reminder, and Frame sync every two minutes. See

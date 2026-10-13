@@ -74,6 +74,14 @@ struct DaybookAPI: Sendable {
         _ = try await request("api/day", method: "PUT", body: ["date": date, "focus": focus])
     }
 
+    func frameSettings() async throws -> FrameSettings {
+        try Self.decoder.decode(FrameSettings.self, from: try await request("api/frame/settings"))
+    }
+
+    func setFrameDesign(_ layout: String) async throws -> FrameSettings {
+        try Self.decoder.decode(FrameSettings.self, from: try await request("api/frame/settings", method: "PUT", body: ["layout": layout]))
+    }
+
     func syncFrame() async throws -> FrameSyncResult {
         try Self.decoder.decode(FrameSyncResult.self, from: try await request("api/frame", method: "POST", body: [:]))
     }

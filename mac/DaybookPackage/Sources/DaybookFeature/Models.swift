@@ -102,3 +102,15 @@ public func minutesLabel(_ minutes: Int) -> String {
     if h == 0 { return "\(m)m" }
     return m == 0 ? "\(h)h" : "\(h)h \(m)m"
 }
+
+public struct FrameDesign: Codable, Hashable, Sendable, Identifiable {
+    public var id: String
+    public var name: String
+    public var description: String
+}
+
+public struct FrameSettings: Codable, Sendable {
+    public var layout: String?
+    public var layouts: [FrameDesign]
+    public var supported: Bool
+}

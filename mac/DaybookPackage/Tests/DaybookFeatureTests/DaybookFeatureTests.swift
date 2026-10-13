@@ -72,7 +72,7 @@ import Testing
                             linear: true, frame: true, frameAutoSync: false,
                             art: DBArt(title: "The Loire", artist: "Alfred Sisley", date: "1896", image: "art/x.webp", collection: nil))
     let model = DaybookModel(preview: week, session: session, now: f.date(from: "2026-10-12T15:35:00Z")!)
-    let renderer = ImageRenderer(content: PopoverView(model: model))
+    let renderer = ImageRenderer(content: PopoverView(model: model, scrolls: false))
     renderer.scale = 2
     let image = try #require(renderer.nsImage)
     let rep = try #require(image.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:)))

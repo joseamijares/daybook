@@ -37,14 +37,14 @@ enum Keychain {
     }
 }
 
-/// Instrument Serif and Geist, bundled (SIL Open Font License, see Fonts/OFL-*.txt).
+/// Instrument Serif and Instrument Sans, bundled (SIL Open Font License, see Fonts/OFL-*.txt).
 enum Fonts {
     nonisolated(unsafe) private static var done = false
 
     static func register() {
         guard !done else { return }
         done = true
-        for name in ["InstrumentSerif-Regular", "InstrumentSerif-Italic", "Geist-Variable"] {
+        for name in ["InstrumentSerif-Regular", "InstrumentSerif-Italic", "InstrumentSans-Variable"] {
             if let url = Bundle.module.url(forResource: name, withExtension: "ttf") {
                 CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
             }
@@ -69,7 +69,7 @@ enum Salon {
 
     static func display(_ size: CGFloat) -> Font { .custom("InstrumentSerif-Regular", size: size) }
     static func italic(_ size: CGFloat) -> Font { .custom("InstrumentSerif-Italic", size: size) }
-    static func text(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font { .custom("Geist", size: size).weight(weight) }
+    static func text(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font { .custom("Instrument Sans", size: size).weight(weight) }
     static func label() -> Font { text(10.5, .semibold) }
 }
 

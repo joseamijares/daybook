@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Instrument_Serif } from 'next/font/google';
+import { Instrument_Sans, Instrument_Serif } from 'next/font/google';
 import { Salon } from '@/components/Salon';
 import './globals.css';
 
-const geist = Geist({ variable: '--font-geist', subsets: ['latin'] });
+const sans = Instrument_Sans({ variable: '--font-ui', subsets: ['latin'] });
 const serif = Instrument_Serif({ variable: '--font-instrument', subsets: ['latin'], weight: '400', style: ['normal', 'italic'] });
 
 export const metadata: Metadata = {
@@ -16,7 +16,7 @@ export const viewport: Viewport = { themeColor: '#111613', width: 'device-width'
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={`${geist.variable} ${serif.variable}`}>
+    <html lang="en" className={`${sans.variable} ${serif.variable}`}>
       <body>
         <Salon>{children}</Salon>
       </body>

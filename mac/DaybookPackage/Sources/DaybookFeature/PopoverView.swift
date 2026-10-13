@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// The menu bar popover: today's painting with the day set over it, then the
@@ -5,8 +6,16 @@ import SwiftUI
 public struct PopoverView: View {
     @Bindable var model: DaybookModel
     @State private var showSettings = false
+    @State private var dayHeight: CGFloat = 0
+    /// Off for offscreen snapshots, which can't draw a scroll view.
+    var scrolls = true
 
     public init(model: DaybookModel) { self.model = model }
+
+    init(model: DaybookModel, scrolls: Bool) {
+        self.model = model
+        self.scrolls = scrolls
+    }
 
     public var body: some View {
         VStack(spacing: 0) {
@@ -16,10 +25,20 @@ public struct PopoverView: View {
                 Hero(model: model)
                 VStack(alignment: .leading, spacing: 18) {
                     // Switching days slides the day's content in, like turning a page.
-                    VStack(alignment: .leading, spacing: 18) {
-                        FocusField(model: model)
-                        if !model.events.isEmpty { Schedule(model: model) }
-                        Tasks(model: model)
+                    // A long day scrolls inside the popover instead of running off the screen.
+                    Group {
+                        if scrolls {
+                            ScrollView {
+                                day.background(GeometryReader { g in
+                                    Color.clear.preference(key: DayHeightKey.self, value: g.size.height)
+                                })
+                            }
+                            .scrollIndicators(.never)
+                            .frame(height: min(max(dayHeight, 1), popoverBodyHeight))
+                            .onPreferenceChange(DayHeightKey.self) { dayHeight = $0 }
+                        } else {
+                            day
+                        }
                     }
                     .id(model.shownDate)
                     .transition(.asymmetric(
@@ -40,6 +59,21 @@ public struct PopoverView: View {
         .background(Salon.paper)
         .preferredColorScheme(.light)
         .task { await model.refresh() }
+    }
+
+    private var day: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            FocusField(model: model)
+            if !model.events.isEmpty { Schedule(model: model) }
+            Tasks(model: model)
+        }
+    }
+
+    /// Room for the day between the painting and the week strip, so the whole
+    /// popover fits on the screen it opens on.
+    private var popoverBodyHeight: CGFloat {
+        let screen = NSScreen.main?.visibleFrame.height ?? 900
+        return max(260, min(560, screen - 190 - 170 - 60))
     }
 
     private var footer: some View {
@@ -366,4 +400,9 @@ struct PillStyle: ButtonStyle {
             .overlay(Capsule().strokeBorder(Salon.ink, lineWidth: solid ? 0 : 1))
             .opacity(configuration.isPressed ? 0.7 : 1)
     }
+}
+
+private struct DayHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }

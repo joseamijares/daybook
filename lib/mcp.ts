@@ -17,7 +17,7 @@ import {
   shutdown,
   type Task,
 } from './daybook';
-import { frameEnabled, frameEvents, syncFrame } from './frame';
+import { frameEnabled, frameEvents, frameSettings, setFrameDesign, syncFrame } from './frame';
 import { linearEnabled, syncLinear } from './linear';
 import { minutesLabel, resolveDate, today } from './time';
 
@@ -263,6 +263,17 @@ export const tools: Tool[] = [
       return syncFrame(date as string | undefined);
     },
   },
+  {
+    name: 'frame_design',
+    title: "Get or change the Frame's design",
+    description: "Without a layout: returns the Frame Dashboard TV's current design and the designs it offers. With a layout (e.g. bleed = painting by day and salon at night, salon = framed on the gallery wall all day, painting = full screen day and night): switches the TV to it.",
+    inputSchema: { type: 'object', properties: { layout: str('A design id from the list, e.g. bleed, salon, painting.') } },
+    annotations: { ...WRITE, openWorldHint: true },
+    run: async ({ layout }) => {
+      if (!frameEnabled()) throw new Error('Frame Dashboard is not connected: set FRAME_DASHBOARD_URL and FRAME_DASHBOARD_WRITE_KEY.');
+      return layout ? setFrameDesign(layout as string) : frameSettings();
+    },
+  },
 ];
 
 const prompts = [
@@ -324,7 +335,7 @@ export async function handle(msg: RpcMessage): Promise<object | null> {
     case 'tools/list':
       return ok(msg.id, {
         tools: tools
-          .filter((t) => (t.name === 'sync_linear' ? linearEnabled() : t.name === 'send_to_frame' ? frameEnabled() : true))
+          .filter((t) => (t.name === 'sync_linear' ? linearEnabled() : t.name === 'send_to_frame' || t.name === 'frame_design' ? frameEnabled() : true))
           .map((t) => ({ name: t.name, title: t.title, description: t.description, inputSchema: t.inputSchema, annotations: t.annotations })),
       });
     case 'tools/call': {

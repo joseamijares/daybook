@@ -21,7 +21,7 @@
   --color-gilt-ink: #8a6a2c;
   --color-amber: #9a5b1e;
   --font-display: var(--font-instrument), "Instrument Serif", Georgia, serif;
-  --font-sans: var(--font-geist), "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-ui), "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
   --tracking-label: 0.14em;
 }
 
@@ -75,7 +75,8 @@ textarea {
   width: calc(100% + 120px);
   height: calc(100% + 120px);
   object-fit: cover;
-  filter: blur(36px) brightness(0.62) saturate(1.1);
+  filter: blur(48px) brightness(0.86) saturate(1.25);
+  transform: scale(1.08);
 }
 
 .wall .art {
@@ -87,7 +88,9 @@ textarea {
   max-width: 78vw;
   object-fit: cover;
   object-position: 30% 50%;
-  mask-image: linear-gradient(90deg, #000 calc(100% - 80px), transparent);
+  /* A long, soft edge into the blurred copy, so the painting goes out of focus
+     instead of stopping. */
+  mask-image: linear-gradient(90deg, #000 62%, rgba(0, 0, 0, 0.6) 82%, transparent);
   transform-origin: 30% 50%;
 }
 
@@ -109,7 +112,7 @@ textarea {
   filter: brightness(0.55) saturate(0.82);
 }
 .wall.dusk .fill {
-  filter: blur(36px) brightness(0.32);
+  filter: blur(48px) brightness(0.4) saturate(1.05);
 }
 .wall::after {
   content: '';
@@ -711,6 +714,42 @@ textarea {
   outline: none;
   padding: 8px 0;
   font-size: 17px;
+}
+
+/* Frame design picker (Week placard). */
+.frame-design {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 999px;
+  border: 1px solid var(--color-card-ink);
+}
+.segmented button {
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-card-ink-2);
+  transition:
+    background-color 0.35s var(--ease-gallery),
+    color 0.35s var(--ease-gallery);
+}
+.segmented button.on {
+  background: var(--color-card-ink);
+  color: var(--sheet);
+}
+.segmented button:not(.on):hover {
+  color: var(--color-card-ink);
 }
 
 /* ---- Phones and narrow windows ----------------------------------------- */

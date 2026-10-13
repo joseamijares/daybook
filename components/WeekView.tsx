@@ -7,6 +7,7 @@ import { dayNum, dow, fmtDate } from '@/lib/i18n';
 import { addDays, minutesLabel, mondayOf } from '@/lib/time';
 import { useResource, useSession } from './client';
 import { DraftText } from './DraftText';
+import { FrameDesign } from './FrameDesign';
 import { useOps } from './ops';
 import { Check } from './TaskRow';
 
@@ -121,6 +122,7 @@ export function WeekView() {
           ))}
         </div>
       </div>
+      {session.frame && <FrameDesign />}
     </section>
   );
 }

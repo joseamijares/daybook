@@ -45,6 +45,25 @@ struct SettingsView: View {
                     }
                 }
                 .toggleStyle(.switch).tint(Salon.cobalt)
+
+                if let fs = model.frameSettings, fs.supported, !fs.layouts.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Frame design").font(Salon.text(13.5)).foregroundStyle(Salon.ink)
+                        Picker("Frame design", selection: Binding(
+                            get: { fs.layout ?? fs.layouts[0].id },
+                            set: { id in Task { await model.setFrameDesign(id) } }
+                        )) {
+                            ForEach(fs.layouts) { Text($0.name).tag($0.id) }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        Text(fs.layouts.first { $0.id == fs.layout }?.description ?? "")
+                            .font(Salon.text(11)).foregroundStyle(Salon.ink2)
+                    }
+                    .padding(.top, 4)
+                } else if model.frameSettings?.supported == false {
+                    Text("Update Frame Dashboard to choose its design.").font(Salon.text(11)).foregroundStyle(Salon.ink2)
+                }
             }
 
             if let error = model.error {
@@ -71,6 +90,7 @@ struct SettingsView: View {
         .padding(24)
         .frame(width: 380)
         .background(Salon.paper)
+        .task { await model.loadFrameSettings() }
         .onAppear {
             url = model.baseURL
             reminder = Calendar.current.date(bySettingHour: model.reminderMinutes / 60, minute: model.reminderMinutes % 60, second: 0, of: Date()) ?? Date()
