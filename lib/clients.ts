@@ -29,6 +29,20 @@ const remote = (mcpUrl: string, token: string) => ({ command: 'npx', args: ['-y'
 
 export const CLIENTS: Client[] = [
   {
+    id: 'mac',
+    name: 'Daybook for Mac',
+    where: 'local',
+    tagline: { en: 'The Mac app', es: 'La app de Mac' },
+    steps: {
+      en: ['Open the Mac app → Settings.', 'Daybook URL: this site’s address. Key: the token below.', 'Save. The window and the menu bar fill in.'],
+      es: ['Abre la app de Mac → Settings.', 'Daybook URL: la dirección de este sitio. Key: el token de abajo.', 'Guarda. La ventana y la barra de menús se llenan.'],
+    },
+    snippets: (u, t) => [
+      { kind: 'url', label: 'Daybook URL', value: u.replace(/\/api\/mcp$/, '') },
+      { kind: 'command', label: 'Key', value: t },
+    ],
+  },
+  {
     id: 'claude',
     name: 'Claude',
     where: 'cloud',

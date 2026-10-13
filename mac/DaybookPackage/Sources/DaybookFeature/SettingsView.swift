@@ -19,8 +19,11 @@ struct SettingsView: View {
                 LineField(title: "Daybook URL", text: $url, prompt: "https://your-daybook.vercel.app",
                           hint: "Your deployment, or http://localhost:3000 while developing.")
                 LineField(title: "Key", text: $key, prompt: model.hasKey ? "Saved in your Keychain" : "DAYBOOK_KEY or a dbk_ token",
-                          hint: model.hasKey ? "Leave empty to keep the saved key." : "Your DAYBOOK_KEY, or a token made for this Mac in Settings.",
-                          secure: true)
+                          hint: needsKey
+                              ? "Required. Paste the DAYBOOK_KEY you set on your server (Vercel → Project → Settings → Environment Variables), or a token from Settings → AI agents → Daybook for Mac."
+                              : model.hasKey ? "Leave empty to keep the saved key." : "Your DAYBOOK_KEY, or a token made for this Mac in Settings.",
+                          secure: true,
+                          highlight: needsKey)
             }
 
             SettingsSection(title: "Linear and AI agents") {
@@ -51,7 +54,7 @@ struct SettingsView: View {
                 DesignPicker(model: model)
             }
 
-            if let error = model.error {
+            if let error = model.error, !needsKey {
                 Text(error).font(Salon.text(12)).foregroundStyle(Salon.amber)
             }
 
@@ -88,11 +91,14 @@ struct SettingsView: View {
             Text("Your Daybook").font(Salon.display(40)).foregroundStyle(Salon.ink)
             HStack(spacing: 6) {
                 Circle().fill(model.isConfigured ? Salon.cobalt : Salon.amber).frame(width: 6, height: 6)
-                Text(model.isConfigured ? "Connected to \(host)" : "Not connected yet")
-                    .font(Salon.text(12)).foregroundStyle(Salon.ink2)
+                Text(model.isConfigured ? "Connected to \(host)" : needsKey ? "Reached \(host) · it needs your key" : "Not connected yet")
+                    .font(Salon.text(12)).foregroundStyle(needsKey ? Salon.amber : Salon.ink2)
             }
         }
     }
+
+    /// The server answered but wants a key we don't have (or have wrong).
+    private var needsKey: Bool { model.session != nil && model.session?.authorized == false }
 
     private var host: String {
         URL(string: model.baseURL).map { [$0.host, $0.port.map(String.init)].compactMap { $0 }.joined(separator: ":") } ?? model.baseURL
@@ -137,6 +143,7 @@ struct LineField: View {
     let prompt: String
     let hint: String
     var secure = false
+    var highlight = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -152,8 +159,8 @@ struct LineField: View {
             .font(Salon.text(14.5))
             .foregroundStyle(Salon.ink)
             .padding(.vertical, 6)
-            .overlay(alignment: .bottom) { Rectangle().fill(Salon.ink.opacity(0.85)).frame(height: 1) }
-            Text(hint).font(Salon.text(11)).foregroundStyle(Salon.ink2)
+            .overlay(alignment: .bottom) { Rectangle().fill(highlight ? Salon.amber : Salon.ink.opacity(0.85)).frame(height: highlight ? 1.5 : 1) }
+            Text(hint).font(Salon.text(11)).foregroundStyle(highlight ? Salon.amber : Salon.ink2).fixedSize(horizontal: false, vertical: true)
         }
     }
 }

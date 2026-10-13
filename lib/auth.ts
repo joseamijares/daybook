@@ -8,6 +8,8 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { looksLikeToken, verifyToken } from './tokens';
 
 export const COOKIE = 'daybook_session';
+/** A browser signed in with an agent token (the Mac app's window): full use, not owner. */
+export const TOKEN_COOKIE = 'daybook_token';
 
 const digest = (s: string) => createHash('sha256').update(s).digest();
 
@@ -24,19 +26,20 @@ function credentials(req: Request) {
   const header = req.headers.get('authorization') || '';
   const bearer = header.startsWith('Bearer ') ? header.slice(7) : null;
   const query = new URL(req.url).searchParams.get('key');
-  const cookie = (req.headers.get('cookie') || '').split(/;\s*/).find((c) => c.startsWith(`${COOKIE}=`));
-  return { bearer, query, cookie: cookie ? cookie.slice(COOKIE.length + 1) : null };
+  const jar = (req.headers.get('cookie') || '').split(/;\s*/);
+  const read = (name: string) => jar.find((c) => c.startsWith(`${name}=`))?.slice(name.length + 1) ?? null;
+  return { bearer, query, cookie: read(COOKIE), tokenCookie: read(TOKEN_COOKIE) };
 }
 
 export async function authorized(req: Request): Promise<boolean> {
   if (!process.env.DAYBOOK_KEY) return !process.env.VERCEL;
-  const { bearer, query, cookie } = credentials(req);
+  const { bearer, query, cookie, tokenCookie } = credentials(req);
   if (sameKey(bearer) || sameKey(query)) return true;
   if (cookie) {
     const expected = sessionValue();
     if (cookie.length === expected.length && timingSafeEqual(Buffer.from(cookie), Buffer.from(expected))) return true;
   }
-  for (const t of [bearer, query]) if (looksLikeToken(t) && (await verifyToken(t))) return true;
+  for (const t of [bearer, query, tokenCookie]) if (looksLikeToken(t) && (await verifyToken(t))) return true;
   return false;
 }
 

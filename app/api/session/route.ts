@@ -3,7 +3,8 @@
 // DELETE /api/session   sign out
 import { connection } from 'next/server';
 import { artFor } from '@/lib/art';
-import { authorized, COOKIE, isOwner, sameKey, sessionValue } from '@/lib/auth';
+import { authorized, COOKIE, isOwner, sameKey, sessionValue, TOKEN_COOKIE } from '@/lib/auth';
+import { looksLikeToken, verifyToken } from '@/lib/tokens';
 import { capacity } from '@/lib/daybook';
 import { frameEnabled } from '@/lib/frame';
 import { body, json } from '@/lib/http';
@@ -37,14 +38,25 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const { key } = await body<{ key?: string }>(req);
-  if (!sameKey(key)) return json({ error: 'That key does not match DAYBOOK_KEY' }, 401);
-  const res = json({ ok: true });
-  res.headers.append('Set-Cookie', `${COOKIE}=${sessionValue()}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${process.env.VERCEL ? '; Secure' : ''}`);
-  return res;
+  const secure = process.env.VERCEL ? '; Secure' : '';
+  // The master key signs the browser in as the owner; an agent token (the Mac
+  // app's window) signs it in for everyday use, without owner rights.
+  if (sameKey(key)) {
+    const res = json({ ok: true, owner: true });
+    res.headers.append('Set-Cookie', `${COOKIE}=${sessionValue()}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${secure}`);
+    return res;
+  }
+  if (looksLikeToken(key) && (await verifyToken(key))) {
+    const res = json({ ok: true, owner: false });
+    res.headers.append('Set-Cookie', `${TOKEN_COOKIE}=${key}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${secure}`);
+    return res;
+  }
+  return json({ error: 'That key does not match DAYBOOK_KEY or an agent token' }, 401);
 }
 
 export function DELETE() {
   const res = json({ ok: true });
   res.headers.append('Set-Cookie', `${COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+  res.headers.append('Set-Cookie', `${TOKEN_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
   return res;
 }

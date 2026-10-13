@@ -59,6 +59,13 @@ describe('agent tokens', () => {
     expect(await isOwner(req({ authorization: 'Bearer master' }))).toBe(true);
   });
 
+  it('a browser signed in with a token can use Daybook but is not the owner', async () => {
+    const { token } = await createToken('Daybook for Mac', 'mac');
+    const browser = req({ cookie: `daybook_token=${token}` });
+    expect(await authorized(browser)).toBe(true);
+    expect(await isOwner(browser)).toBe(false);
+  });
+
   it('rejects made-up tokens', async () => {
     expect(await authorized(req({ authorization: 'Bearer dbk_notarealtokennotarealtoken' }))).toBe(false);
   });
