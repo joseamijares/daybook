@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // No dev badge over the painting (and none in screenshots).
+  devIndicators: false,
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

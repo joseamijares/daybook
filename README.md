@@ -151,6 +151,12 @@ in `lib/art.json`, and the credit on screen links to it.
 [Geist](https://fonts.google.com/specimen/Geist) are under the SIL Open Font
 License.
 
+## Contributing
+
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md),
+and report security issues privately as described in
+[SECURITY.md](SECURITY.md).
+
 ## License
 
 MIT for the code.
