@@ -1,0 +1,18 @@
+# Daybook
+
+> A simple daily planner (a small, open-source take on Sunsama) with a painting of the day. Each day has one focus line and a short list of tasks with time estimates; tasks without a date are the backlog. Unfinished tasks roll over. Morning: plan the day. Evening: shut down.
+
+## For agents
+
+- MCP endpoint: /api/mcp (Streamable HTTP, JSON responses, stateless). Auth: an agent token from Settings (`dbk_…`) or DAYBOOK_KEY, as `Authorization: Bearer …` or `?key=…`.
+- Tools: get_today, get_week, list_backlog, add_task, update_task, complete_task, delete_task, set_focus, plan_day, shutdown_day, sync_linear, send_to_frame (two-way sync with Frame Dashboard), frame_design (get or switch the TV's design).
+- Prompts: plan_my_day, shut_down, plan_my_week.
+- REST: /api/day, /api/week, /api/tasks, /api/tasks/:id, /api/shutdown (POST closes the day, DELETE reopens it), /api/linear, /api/frame, /api/frame/settings, /api/appearance (design and palette), /api/export and /api/import (owner), /api/tokens and /api/integrations/* (owner), /api/session, /api/cron/sync, /api/health.
+- A Daybook kept "on this device" has no server, so agents can only use a cloud Daybook.
+- Quick-add syntax: "Draft deck 45m #client" → 45-minute estimate, tag "client".
+- Dates: today, tomorrow, a weekday name, YYYY-MM-DD, or "backlog". The server's DAYBOOK_TZ decides what today is.
+
+## Docs
+
+- [Agent setup, tools and REST](https://github.com/joseamijares/daybook/blob/main/docs/agents.md)
+- [README](https://github.com/joseamijares/daybook#readme)
