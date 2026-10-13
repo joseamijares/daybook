@@ -21,6 +21,12 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
 - `lib/art.ts` picks the painting of the day with Frame Dashboard's rotation. Keep it in sync with
   frame-dashboard's `lib/art.js` so both show the same painting.
 - `cli/daybook.mjs` must stay dependency-free; it runs straight from a clone.
+- `mac/` is the SwiftUI Mac app (window = the web app in a WKWebView; menu bar popover = native, reading
+  `/api/session` and `/api/week`). Mirror API shape changes in `mac/DaybookPackage/Sources/DaybookFeature/Models.swift`
+  and run `swift test --package-path mac/DaybookPackage`.
+- Motion lives in `app/globals.css` (section "Motion") and must respect `prefers-reduced-motion`.
+- `lib/frame.ts` is a three-way merge with Frame Dashboard (see docs/agents.md); change its rules only with a
+  test in `test/frame.test.ts`.
 
 ## Rules
 

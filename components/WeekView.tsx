@@ -178,7 +178,7 @@ function Column({
               <Check on={task.done} onClick={() => ops.toggle(task)} label={task.title} />
             </span>
             <span className={`title${task.done ? ' is-done' : ''}`} title={task.source?.key || task.tag || undefined}>
-              {task.title}
+              <span className="strike">{task.title}</span>
             </span>
             <span className="est">{task.estimate ? minutesLabel(task.estimate) : ''}</span>
           </div>

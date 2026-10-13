@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Instrument_Serif } from 'next/font/google';
+import { Salon } from '@/components/Salon';
 import './globals.css';
 
 const geist = Geist({ variable: '--font-geist', subsets: ['latin'] });
@@ -16,7 +17,9 @@ export const viewport: Viewport = { themeColor: '#111613', width: 'device-width'
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={`${geist.variable} ${serif.variable}`}>
-      <body>{children}</body>
+      <body>
+        <Salon>{children}</Salon>
+      </body>
     </html>
   );
 }

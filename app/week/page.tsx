@@ -1,10 +1,8 @@
 import { WeekView } from '@/components/WeekView';
-import { Salon } from '@/components/Salon';
+
+// Rendered in the browser once the session loads (see components/Salon.tsx).
+export const instant = false;
 
 export default function Page() {
-  return (
-    <Salon view="week">
-      <WeekView />
-    </Salon>
-  );
+  return <WeekView />;
 }

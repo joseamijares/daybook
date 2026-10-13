@@ -1,18 +1,26 @@
 'use client';
 
-// The shell every screen shares: the painting of the day on the wall, the
-// navigation pill, the credit, and the placard slot. Also the sign-in gate.
+// The room every screen shares, mounted once in the root layout so it stays
+// put while you move between screens: the painting of the day on the wall
+// (a new painting fades in over the old one, the room dims at shutdown), the
+// navigation pill, the credit, and the sign-in gate. Pages render only their
+// placard.
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
-import { artFor, credit } from '@/lib/art';
+import { type Artwork, artFor, credit } from '@/lib/art';
 import { addDays, mondayOf } from '@/lib/time';
 import { api, type Session, SessionContext, stringsFor } from './client';
 
 export type View = 'today' | 'week' | 'backlog' | 'shutdown';
 
-export function Salon({ view, children }: { view: View; children: ReactNode }) {
+const viewFor = (path: string): View =>
+  path.startsWith('/week') ? 'week' : path.startsWith('/backlog') ? 'backlog' : path.startsWith('/shutdown') ? 'shutdown' : 'today';
+
+export function Salon({ children }: { children: ReactNode }) {
+  const view = viewFor(usePathname() || '/');
   const [session, setSession] = useState<Session | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -64,23 +72,13 @@ export function Salon({ view, children }: { view: View; children: ReactNode }) {
   // Week shows the painting of the Sunday before, so it differs from every weekday's.
   const art = session ? artFor(view === 'week' ? addDays(mondayOf(session.today), -1) : session.today) : null;
   const t = stringsFor(session?.locale || 'en');
-  const pageClass = [view === 'shutdown' && 'dusk-page', view === 'week' && 'wide-page', 'scroll-page'].filter(Boolean).join(' ');
+  const pageClass = ['room', view === 'shutdown' && 'dusk-page', view === 'week' && 'wide-page', 'scroll-page'].filter(Boolean).join(' ');
 
   return (
     <div className={pageClass}>
-      <div className={`wall${view === 'shutdown' ? ' dusk' : ''}`} aria-hidden>
-        {art && (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="fill" src={`/${art.image}`} alt="" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="art" src={`/${art.image}`} alt="" />
-            <div className="scrim" />
-          </>
-        )}
-      </div>
+      <Wall art={art} dusk={view === 'shutdown'} />
       {art && (
-        <a className="credit" href={art.source} target="_blank" rel="noreferrer" title={art.title}>
+        <a key={art.slug} className="credit" href={art.source} target="_blank" rel="noreferrer" title={art.title}>
           <span className="t">{art.title}</span>
           <span className="s">{credit(art)}</span>
         </a>
@@ -111,13 +109,52 @@ export function Salon({ view, children }: { view: View; children: ReactNode }) {
       ) : !session.authorized ? (
         <KeyGate session={session} onDone={refreshSession} />
       ) : (
-        <SessionContext.Provider value={ctx}>{children}</SessionContext.Provider>
+        <SessionContext.Provider value={ctx}>
+          {/* Keyed by screen so each placard is hung fresh, with its entrance. */}
+          <div key={view} className="hang">
+            {children}
+          </div>
+        </SessionContext.Provider>
       )}
       {message && (
         <div className="toast" role="status">
           {message}
         </div>
       )}
+    </div>
+  );
+}
+
+// The painting wall. When the painting changes, the new one fades in over the
+// old (slowly, the way a gallery light comes up), then the old one is taken
+// down. Each painting drifts very slightly while it hangs.
+function Wall({ art, dusk }: { art: Artwork | null; dusk: boolean }) {
+  const [layers, setLayers] = useState<{ art: Artwork; id: string }[]>([]);
+  const [shown, setShown] = useState<string | null>(null);
+
+  if (art && art.slug !== shown) {
+    // Derived from props during render, React's pattern for "adjust state when a prop changes".
+    setShown(art.slug);
+    setLayers((l) => [...l.slice(-1), { art, id: `${art.slug}:${l.length}` }]);
+  }
+
+  useEffect(() => {
+    if (layers.length < 2) return;
+    const timer = setTimeout(() => setLayers((l) => l.slice(-1)), 2400);
+    return () => clearTimeout(timer);
+  }, [layers]);
+
+  return (
+    <div className={`wall${dusk ? ' dusk' : ''}`} aria-hidden>
+      {layers.map(({ art: a, id }, i) => (
+        <div key={id} className={`hanging${i === layers.length - 1 ? ' is-new' : ''}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="fill" src={`/${a.image}`} alt="" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="art" src={`/${a.image}`} alt="" />
+        </div>
+      ))}
+      <div className="scrim" />
     </div>
   );
 }

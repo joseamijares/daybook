@@ -31,6 +31,10 @@ on the same day.
   added or removed there come back to Daybook, Daybook's week goes to the TV,
   and the TV's meetings show up on Today.
 
+- **Mac app.** The full Daybook in a window, a glance at today in the menu
+  bar, a shutdown reminder, and Frame sync every two minutes. See
+  [mac/README.md](mac/README.md).
+
 | Week | Shut down |
 | --- | --- |
 | ![Week: the days as columns on one card](docs/img/week.jpg) | ![Shut down: the day's painting at dusk with a recap](docs/img/shutdown.jpg) |
@@ -108,6 +112,7 @@ pnpm verify     # lint, typecheck, tests, production build
 | `lib/linear.ts`, `lib/frame.ts` | The integrations |
 | `lib/store.ts` | Upstash Redis, or a JSON file locally |
 | `cli/daybook.mjs` | The CLI and stdio relay (no dependencies) |
+| `mac/` | Daybook for Mac (SwiftUI): window + menu bar |
 
 The design lives in Paper: tokens, Today, Week, Shut down and Mobile, all on
 the "v2 · Salon" page. The colours in `app/globals.css` come from it.

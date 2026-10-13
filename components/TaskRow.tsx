@@ -92,7 +92,7 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
         />
       ) : (
         <button type="button" className={`title${task.done ? ' is-done' : ''}`} onDoubleClick={() => setEditing(true)} title={task.notes || undefined}>
-          {task.title}
+          <span className="strike">{task.title}</span>
         </button>
       )}
       {tag}
