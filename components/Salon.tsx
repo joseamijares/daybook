@@ -3,6 +3,7 @@
 // The shell every screen shares: the painting of the day on the wall, the
 // navigation pill, the credit, and the placard slot. Also the sign-in gate.
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { artFor, credit } from '@/lib/art';
@@ -86,7 +87,7 @@ export function Salon({ view, children }: { view: View; children: ReactNode }) {
       )}
       <nav className="nav" aria-label="Daybook">
         <Link className="mark" href="/">
-          Daybook
+          <Image src="/brand/daybook-lockup-dark.svg" alt="Daybook" width={91} height={23} priority />
         </Link>
         <div className="links">
           {(

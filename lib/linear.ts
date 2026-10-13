@@ -67,15 +67,27 @@ export async function syncLinear() {
       updated++;
     }
   }
-  // Only issues that were assigned and are now gone from the open list.
-  for (const t of byIssue.values()) {
-    if (!t.done && !open.has(t.source!.id)) {
+  // A linked issue that left the open list may have been closed — or just
+  // reassigned. Ask Linear, and only finish tasks whose issue really ended.
+  const gone = [...byIssue.values()].filter((t) => !t.done && !open.has(t.source!.id));
+  if (gone.length) {
+    const ended = await endedIssues(gone.map((t) => t.source!.id));
+    for (const t of gone) {
+      if (!ended.has(t.source!.id)) continue;
       await updateTask(t.id, { done: true });
       closed++;
     }
   }
   await store().put('meta', 'linearSyncedAt', new Date().toISOString());
   return { added, updated, closed, open: issues.length };
+}
+
+async function endedIssues(ids: string[]): Promise<Set<string>> {
+  const data = await gql<{ issues: { nodes: { id: string; state: { type: string } }[] } }>(
+    `query Ended($ids: [ID!]) { issues(first: 250, filter: { id: { in: $ids } }) { nodes { id state { type } } } }`,
+    { ids },
+  );
+  return new Set(data.issues.nodes.filter((i) => ['completed', 'canceled'].includes(i.state.type)).map((i) => i.id));
 }
 
 export async function completeIssue(issueId: string) {

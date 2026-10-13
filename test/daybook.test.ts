@@ -51,11 +51,18 @@ describe('days', () => {
   it('rolls unfinished work into today, remembering where it started', async () => {
     const t = await addTask({ title: 'Old', date: '2026-10-09' });
     await addTask({ title: 'Done old', date: '2026-10-09' }).then((d) => updateTask(d.id, { done: true }));
-    expect(await rollover()).toBe(1);
+    expect((await rollover()).filter((x) => x.rolledFrom)).toHaveLength(1);
     const day = await getDay();
     expect(day.tasks.map((x) => x.title)).toEqual(['Old']);
     expect(day.tasks[0].rolledFrom).toBe('2026-10-09');
     expect(day.tasks[0].id).toBe(t.id);
+  });
+
+  it('puts null and "backlog" dates in the backlog, undefined on today', async () => {
+    const a = await addTask({ title: 'Null', date: null });
+    const b = await addTask({ title: 'Word', date: 'backlog' });
+    const c = await addTask({ title: 'Default' });
+    expect([a.date, b.date, c.date]).toEqual([null, null, '2026-10-12']);
   });
 
   it('plans a day in order from the backlog', async () => {

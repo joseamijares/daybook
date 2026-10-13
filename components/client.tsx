@@ -67,7 +67,7 @@ export function stringsFor(locale: Locale) {
   return strings[locale] || strings.en;
 }
 
-// Load a JSON resource, refresh it every 20 s and when the tab regains focus.
+// Load a JSON resource, refresh it every minute and when the tab regains focus.
 export function useResource<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +84,7 @@ export function useResource<T>(path: string | null) {
         })
         .catch((err: Error) => alive && setError(err.message));
     load();
-    const timer = setInterval(() => document.visibilityState === 'visible' && load(), 20000);
+    const timer = setInterval(() => document.visibilityState === 'visible' && load(), 60000);
     window.addEventListener('focus', load);
     return () => {
       alive = false;

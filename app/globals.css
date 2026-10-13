@@ -145,11 +145,8 @@ textarea {
   backdrop-filter: blur(10px);
 }
 .nav .mark {
-  font-family: var(--font-display);
-  font-size: 24px;
-  line-height: 24px;
-  color: var(--color-bone);
-  text-decoration: none;
+  display: block;
+  line-height: 0;
 }
 .nav .links {
   display: flex;

@@ -53,3 +53,11 @@ describe('MCP endpoint', () => {
     expect(viaQuery.status).toBe(200);
   });
 });
+
+describe('REST', () => {
+  it('adds to the backlog when date is null', async () => {
+    const { POST: create } = await import('@/app/api/tasks/route');
+    const res = await create(new Request('http://localhost/api/tasks', { method: 'POST', body: JSON.stringify({ text: 'Someday 1h', date: null }) }), undefined);
+    expect((await res.json()).task.date).toBeNull();
+  });
+});

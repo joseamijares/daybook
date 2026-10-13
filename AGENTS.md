@@ -17,7 +17,7 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
 - `lib/mcp.ts` is a hand-rolled, stateless MCP server (JSON-RPC over POST). Adding a tool means one entry
   in `tools`, using the same function the REST route uses.
 - `components/` are client components. `Salon.tsx` is the shared shell (painting, nav, placard slot,
-  sign-in). Each screen polls its resource every 20 s so agent changes show up.
+  sign-in). Each screen polls its resource every minute so agent changes show up.
 - `lib/art.ts` picks the painting of the day with Frame Dashboard's rotation. Keep it in sync with
   frame-dashboard's `lib/art.js` so both show the same painting.
 - `cli/daybook.mjs` must stay dependency-free; it runs straight from a clone.

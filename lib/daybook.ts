@@ -90,12 +90,17 @@ export async function allTasks(): Promise<Task[]> {
 
 // Unfinished tasks from earlier days move to today, remembering where they
 // started (Sunsama's rollover). Runs whenever today's view is read.
-export async function rollover(day = today()): Promise<number> {
-  const stale = (await allTasks()).filter((t) => t.date && t.date < day && !t.done);
-  for (const t of stale) {
-    await store().put('tasks', t.id, { ...t, rolledFrom: t.rolledFrom || t.date, date: day, updatedAt: now() });
-  }
-  return stale.length;
+// Returns every task, after the rollover, so callers need no second read.
+export async function rollover(day = today()): Promise<Task[]> {
+  const tasks = await allTasks();
+  return Promise.all(
+    tasks.map(async (t) => {
+      if (!t.date || t.date >= day || t.done) return t;
+      const moved = { ...t, rolledFrom: t.rolledFrom || t.date, date: day, updatedAt: now() };
+      await store().put('tasks', t.id, moved);
+      return moved;
+    }),
+  );
 }
 
 export interface AddTaskInput {
@@ -112,7 +117,8 @@ export async function addTask(input: AddTaskInput): Promise<Task> {
   const parsed = input.text ? parseQuickAdd(input.text) : { title: '', estimate: null, tag: null };
   const title = clean(input.title ?? parsed.title, 'title');
   if (!title) throw new Error('title is required');
-  const date = resolveDate(input.date ?? 'today');
+  // undefined → today; null or "backlog" → the backlog.
+  const date = input.date === undefined ? today() : resolveDate(input.date);
   const t: Task = {
     id: newId(),
     title,
@@ -237,8 +243,7 @@ function dayView(meta: Day, tasks: Task[], t: string): DayView {
 export async function getDay(date?: string): Promise<DayView> {
   const t = today();
   const d = date && isYmd(date) ? date : t;
-  if (d === t) await rollover(t);
-  const [meta, tasks] = await Promise.all([getDayMeta(d), allTasks()]);
+  const [tasks, meta] = await Promise.all([d === t ? rollover(t) : allTasks(), getDayMeta(d)]);
   return dayView(meta, tasks, t);
 }
 
@@ -254,14 +259,11 @@ export interface WeekView extends Week {
 
 export async function getWeek(date?: string): Promise<WeekView> {
   const t = today();
-  await rollover(t);
   const weekOf = mondayOf(date && isYmd(date) ? date : t);
   const dates = weekDays(weekOf);
-  const [meta, tasks, metas] = await Promise.all([
-    getWeekMeta(weekOf),
-    allTasks(),
-    Promise.all(dates.map(getDayMeta)),
-  ]);
+  // Three reads in total, whatever the week: tasks, all day records, the week record.
+  const [tasks, days, meta] = await Promise.all([rollover(t), store().all<Day>('days'), getWeekMeta(weekOf)]);
+  const metas = dates.map((date) => days[date] || { date, focus: null, note: null, shutdownAt: null });
   return {
     ...meta,
     today: t,
