@@ -319,7 +319,7 @@ function DayLine({
               {task.source.key}
             </a>
           )}
-          {task.tag && <span className={`note${style === 'notebook' ? ' tagged' : ''}`}>{style === 'notebook' ? `#${task.tag}` : task.tag}</span>}
+          {task.tag && <span className={`note${style === 'notebook' ? ' tagged' : ''}`}>{style === 'notebook' ? `#${task.tag}` : capitalize(task.tag)}</span>}
         </>
       )}
       <span className="est">{task.estimate ? minutesLabel(task.estimate) : '–'}</span>
@@ -368,7 +368,7 @@ function PickLine({ task, added, onAdd, onUndo }: { task: Task; added?: boolean;
       ) : task.source?.state ? (
         <span className="note">{task.source.state}</span>
       ) : (
-        task.tag && <span className={`note${style === 'notebook' ? ' tagged' : ''}`}>{style === 'notebook' ? `#${task.tag}` : task.tag}</span>
+        task.tag && <span className={`note${style === 'notebook' ? ' tagged' : ''}`}>{style === 'notebook' ? `#${task.tag}` : capitalize(task.tag)}</span>
       )}
       {!added && (
         <button type="button" className="add-pill" onClick={onAdd}>
