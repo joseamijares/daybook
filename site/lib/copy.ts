@@ -183,7 +183,9 @@ const en = {
     otherHref: '/es',
   },
   consent: {
-    text: 'We use Google Analytics and Microsoft Clarity to see how this page is read.',
+    // {tools}: the ones switched on, e.g. "Google Analytics" or "Google Analytics and Microsoft Clarity".
+    text: 'We use {tools} to see how this page is read.',
+    and: 'and',
     accept: 'Accept',
     reject: 'Decline analytics',
   },
@@ -378,7 +380,8 @@ const es: Copy = {
     otherHref: '/',
   },
   consent: {
-    text: 'Usamos Google Analytics y Microsoft Clarity para ver cómo se lee esta página.',
+    text: 'Usamos {tools} para ver cómo se lee esta página.',
+    and: 'y',
     accept: 'Aceptar',
     reject: 'Rechazar analítica',
   },
