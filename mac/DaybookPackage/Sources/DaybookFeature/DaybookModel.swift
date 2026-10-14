@@ -137,7 +137,8 @@ public final class DaybookModel {
         // at the end of the minute, so the menu bar shows the new day.
         _ = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {
-                Task { @MainActor [weak self] in
+                // Discarded and typed: as assumeIsolated's result, Xcode 26's compiler can't infer it.
+                _ = Task<Void, Never> { @MainActor [weak self] in
                     try? await Task.sleep(for: .seconds(3))
                     self?.now = Date()
                     await self?.refresh()
