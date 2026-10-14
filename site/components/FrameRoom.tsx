@@ -18,7 +18,6 @@ export function FrameRoom({ c }: { c: Copy }) {
           alt=""
           width={2000}
           height={1116}
-          sizes="100vw"
           aria-hidden="true"
         />
         <Image
@@ -27,7 +26,6 @@ export function FrameRoom({ c }: { c: Copy }) {
           alt={c.frame.alt}
           width={2000}
           height={1116}
-          sizes="100vw"
         />
         <div className="frame-room__label" data-reveal="">
           <b>{c.frame.wallTitle}</b>

@@ -35,9 +35,14 @@ export function formatDay(ymd: string, locale: string, options: Intl.DateTimeFor
   return new Intl.DateTimeFormat(locale, { ...options, timeZone: 'UTC' }).format(new Date(`${ymd}T00:00:00Z`));
 }
 
-// The scan as the site serves it (copied from the app's public/art).
+// The scan as the site serves it (copied from the app's public/art), and a
+// small copy (longest side 640px, scripts/make-thumbs.sh) for the wall and ledges.
 export function src(a: Artwork): string {
   return `/${a.image}`;
+}
+
+export function thumb(a: Artwork): string {
+  return `/art-small/${a.slug}.webp`;
 }
 
 // Fit a painting inside a box without cropping it.

@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import type { Copy } from '@site/lib/copy';
-import { addDays, artFor, contain, formatDay, ROTATION_LENGTH, src } from '@site/lib/art';
+import { addDays, artFor, contain, formatDay, ROTATION_LENGTH, thumb } from '@site/lib/art';
 import { useDay } from './Day';
 
 const PER_LEDGE = 11;
@@ -62,7 +62,7 @@ export function Rotation({ c }: { c: Copy }) {
                       onClick={() => setPicked(d)}
                       aria-label={`${formatDay(d, c.locale, { month: 'long', day: 'numeric' })}: ${a.title}, ${a.artist}`}
                     >
-                      <Image src={src(a)} alt="" width={w * 2} height={h * 2} sizes="110px" style={{ width: w, height: h }} />
+                      <Image src={thumb(a)} alt="" width={w * 2} height={h * 2} style={{ width: w, height: h }} />
                       <span className="ledge__tip" aria-hidden="true">
                         <em>{a.title}</em>
                         {a.artist}

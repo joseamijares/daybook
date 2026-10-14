@@ -21,7 +21,6 @@ export function Rituals({ c }: { c: Copy }) {
               alt={`${morning.title}, ${morning.artist}, ${morning.date}`}
               width={1500}
               height={Math.round(1500 / morning.ratio)}
-              sizes="(max-width: 899px) 90vw, 33vw"
             />
           </div>
           <figcaption>
@@ -66,7 +65,6 @@ export function Rituals({ c }: { c: Copy }) {
               alt={`${evening.title}, ${evening.artist}, ${evening.date}`}
               width={1500}
               height={Math.round(1500 / evening.ratio)}
-              sizes="(max-width: 899px) 90vw, 30vw"
             />
           </div>
           <figcaption>
