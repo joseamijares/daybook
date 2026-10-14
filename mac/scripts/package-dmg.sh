@@ -8,8 +8,9 @@
 # the app is signed with it and the hardened runtime; with NOTARY_PROFILE set too
 # (a `xcrun notarytool store-credentials` profile) the image is notarized and
 # stapled, so it opens without a Gatekeeper prompt. Without them the app is
-# ad-hoc signed and macOS asks once (System Settings → Privacy & Security →
-# Open Anyway).
+# ad-hoc signed: macOS 15+ says it "could not verify" Daybook (Done / Move to
+# Trash), and each person has to choose Done, then System Settings → Privacy &
+# Security → Open Anyway (see mac/README.md).
 set -eu
 
 cd "$(dirname "$0")/.."

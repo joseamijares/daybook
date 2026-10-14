@@ -50,7 +50,12 @@ struct WebView: NSViewRepresentable {
         view.alphaValue = 0 // fades up once the first page has painted
         view.load(URLRequest(url: url))
         context.coordinator.loaded = url
+        context.coordinator.watch(view)
         return view
+    }
+
+    static func dismantleNSView(_ view: WKWebView, coordinator: Coordinator) {
+        coordinator.stopWatching()
     }
 
     func updateNSView(_ view: WKWebView, context: Context) {
@@ -76,8 +81,49 @@ struct WebView: NSViewRepresentable {
         var key: String
         var loaded: URL?
         private var triedSignIn = false
+        private weak var webView: WKWebView?
+        private var observers: [(NotificationCenter, NSObjectProtocol)] = []
 
         init(key: String) { self.key = key }
+
+        /// The page's timers stop while the Mac sleeps, and a window that was
+        /// already in front gets no focus event when it wakes, so the page
+        /// would keep showing the day it went to sleep on. Tell it to re-read
+        /// (its own focus listeners do the rest) when the Mac wakes, a moment
+        /// later so the network is back, and whenever the app comes forward.
+        func watch(_ view: WKWebView) {
+            webView = view
+            let wake = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    Task { @MainActor [weak self] in
+                        try? await Task.sleep(for: .seconds(2))
+                        self?.comeBack()
+                    }
+                }
+            }
+            let active = NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.comeBack() }
+            }
+            observers = [(NSWorkspace.shared.notificationCenter, wake), (NotificationCenter.default, active)]
+        }
+
+        func stopWatching() {
+            for (center, observer) in observers { center.removeObserver(observer) }
+            observers = []
+        }
+
+        private func comeBack() {
+            guard let webView, webView.url != nil else { return }
+            webView.evaluateJavaScript("window.dispatchEvent(new Event('focus'))") { _, error in
+                if error != nil { webView.reload() }
+            }
+        }
+
+        // WebKit may end the page's process while the Mac sleeps; load it again
+        // instead of leaving a blank (or frozen) window.
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            webView.reload()
+        }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             if webView.alphaValue < 1 {

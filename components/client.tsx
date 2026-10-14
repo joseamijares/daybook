@@ -127,7 +127,24 @@ export function stringsFor(locale: Locale) {
   return strings[locale] || strings.en;
 }
 
-// Load a JSON resource, refresh it every minute and when the tab regains focus.
+// Call fn whenever the page comes back: the window regains focus, the tab is
+// shown again, the page returns from the back-forward cache, or the Mac app
+// says the computer woke up (it fires a focus event). Timers stop while a
+// computer sleeps, so the minute's poll alone can leave yesterday on screen.
+export function onComeBack(fn: () => void) {
+  const visible = () => document.visibilityState === 'visible' && fn();
+  const restored = (e: PageTransitionEvent) => e.persisted && fn();
+  window.addEventListener('focus', fn);
+  window.addEventListener('pageshow', restored);
+  document.addEventListener('visibilitychange', visible);
+  return () => {
+    window.removeEventListener('focus', fn);
+    window.removeEventListener('pageshow', restored);
+    document.removeEventListener('visibilitychange', visible);
+  };
+}
+
+// Load a JSON resource, refresh it every minute and whenever the page comes back.
 export function useResource<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -145,11 +162,11 @@ export function useResource<T>(path: string | null) {
         .catch((err: Error) => alive && setError(err.message));
     load();
     const timer = setInterval(() => document.visibilityState === 'visible' && load(), 60000);
-    window.addEventListener('focus', load);
+    const stop = onComeBack(load);
     return () => {
       alive = false;
       clearInterval(timer);
-      window.removeEventListener('focus', load);
+      stop();
     };
   }, [path]);
 

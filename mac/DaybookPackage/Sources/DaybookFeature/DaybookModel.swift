@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Observation
 @preconcurrency import UserNotifications
@@ -130,6 +131,17 @@ public final class DaybookModel {
             while let self {
                 await self.refresh()
                 try? await Task.sleep(for: .seconds(60))
+            }
+        }
+        // Back from sleep: re-read now (once the network is back) rather than
+        // at the end of the minute, so the menu bar shows the new day.
+        _ = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                Task { @MainActor [weak self] in
+                    try? await Task.sleep(for: .seconds(3))
+                    self?.now = Date()
+                    await self?.refresh()
+                }
             }
         }
         // Keep Daybook and the Frame in step while this Mac is awake: ticks made

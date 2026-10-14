@@ -124,10 +124,10 @@ const en = {
       steps: [
         'Download Daybook.dmg and open it.',
         'Drag Daybook into Applications.',
-        'Open it. The first time, macOS asks: go to System Settings → Privacy & Security and choose Open Anyway.',
+        'Open it. The first time, macOS says it “could not verify” Daybook: choose Done (not Move to Trash), then go to System Settings → Privacy & Security, scroll to the bottom and choose Open Anyway, then Open.',
         'Paste your Daybook’s address and key. Today appears in the menu bar.',
       ],
-      note: 'Needs a Daybook in the cloud: see Your own cloud. Not yet notarized by Apple, hence the one-time step.',
+      note: 'Needs a Daybook in the cloud: see Your own cloud. Not yet notarized by Apple, hence the one-time step. In Terminal instead: xattr -dr com.apple.quarantine /Applications/Daybook.app',
     },
     web: {
       title: 'In any browser',
@@ -320,10 +320,10 @@ const es: Copy = {
       steps: [
         'Descarga Daybook.dmg y ábrelo.',
         'Arrastra Daybook a Aplicaciones.',
-        'Ábrelo. La primera vez macOS pregunta: ve a Ajustes del Sistema → Privacidad y seguridad y elige Abrir de todos modos.',
+        'Ábrelo. La primera vez macOS dice que “no pudo verificar” Daybook: ciérralo (no lo mandes a la papelera), ve a Ajustes del Sistema → Privacidad y seguridad, baja hasta el final y elige Abrir de todos modos, y luego Abrir.',
         'Pega la dirección y la llave de tu Daybook. El día aparece en la barra de menús.',
       ],
-      note: 'Necesita un Daybook en la nube: ve Tu propia nube. Aún no está notarizada por Apple, de ahí el paso de la primera vez.',
+      note: 'Necesita un Daybook en la nube: ve Tu propia nube. Aún no está notarizada por Apple, de ahí el paso de la primera vez. O en Terminal: xattr -dr com.apple.quarantine /Applications/Daybook.app',
     },
     web: {
       title: 'En cualquier navegador',
