@@ -3101,6 +3101,11 @@ textarea {
   display: block;
   font-size: 15px;
 }
+/* Right under a section head, its rule is enough. */
+.section-head + .switch-row {
+  padding-top: 0;
+  border-top: 0;
+}
 .day-length {
   display: flex;
   gap: 6px;
