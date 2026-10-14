@@ -75,8 +75,9 @@ that decides "today" is `DAYBOOK_TZ`.
 
 ## The landing page
 
-`site/` is Daybook's public page: the painting of the day in a salon hang, the
-rotation, the Frame and the Mac app. It is its own Next.js app and Vercel project
+[daybooksalon.vercel.app](https://daybooksalon.vercel.app) is Daybook's public page
+(`site/`): the painting of the day in a salon hang, the rotation, the Frame, the
+Mac app and how to install it. It is its own Next.js app and Vercel project
 (Root Directory `site`); see [site/README.md](site/README.md).
 
 ## Deploy your own

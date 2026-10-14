@@ -21,39 +21,40 @@ function apply(choice: Choice) {
 }
 
 // GA4 + Clarity per the Jamak playbook: the consent default runs before GA
-// (see consentDefault in the layout), the visitor's choice is remembered, and
-// nothing loads at all unless the IDs are set.
+// (see consentDefault in the layout) and the visitor's choice is remembered.
+// Clarity, which has no regional default, loads only once analytics is
+// accepted. Nothing loads at all unless the IDs are set.
 export function Analytics({ c, gaId, clarityId }: { c: Copy; gaId: string | null; clarityId: string | null }) {
-  const [ask, setAsk] = useState(false);
+  const [choice, setChoice] = useState<Choice | 'unknown' | null>(null);
 
   useEffect(() => {
     let saved: string | null = null;
     try {
       saved = localStorage.getItem(KEY);
     } catch {}
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- only after mount: the choice lives in this browser's storage
+    setChoice(saved === 'granted' || saved === 'denied' ? saved : 'unknown');
     if (saved === 'granted' || saved === 'denied') apply(saved);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- only after mount: the banner depends on this browser's storage
-    else setAsk(true);
   }, []);
 
-  const choose = (choice: Choice) => {
+  const choose = (next: Choice) => {
     try {
-      localStorage.setItem(KEY, choice);
+      localStorage.setItem(KEY, next);
     } catch {}
-    apply(choice);
-    setAsk(false);
+    apply(next);
+    setChoice(next);
   };
 
   return (
     <>
       {gaId && <GoogleAnalytics gaId={gaId} />}
-      {clarityId && (
+      {clarityId && choice === 'granted' && (
         <Script
           id="clarity"
           strategy="afterInteractive"
         >{`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script",${JSON.stringify(clarityId)});`}</Script>
       )}
-      {ask && (
+      {choice === 'unknown' && (
         <div className="consent" role="dialog" aria-label={c.consent.text}>
           <p>{c.consent.text}</p>
           <div>

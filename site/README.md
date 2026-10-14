@@ -1,5 +1,7 @@
 # Daybook site
 
+Live at **https://daybooksalon.vercel.app** (Vercel project `daybook-site`).
+
 The public landing page for Daybook: the salon hang. The painting of the day hangs
 in a gilt frame under a picture lamp among the collection, with Daybook's own wall
 label beside it. It is a separate Next.js app in this repo with its own Vercel

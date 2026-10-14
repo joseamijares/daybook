@@ -20,15 +20,18 @@ DMG="$OUT/Daybook.dmg"
 rm -rf "$STAGE" "$DMG"
 mkdir -p "$OUT"
 
-SIGN_ARGS='CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM='
-if [ -n "${DEVELOPER_ID:-}" ]; then
-  SIGN_ARGS="CODE_SIGN_IDENTITY=$DEVELOPER_ID CODE_SIGN_STYLE=Manual ENABLE_HARDENED_RUNTIME=YES OTHER_CODE_SIGN_FLAGS=--timestamp"
-fi
+build() {
+  xcodebuild -workspace Daybook.xcworkspace -scheme Daybook -configuration Release \
+    -derivedDataPath "$DD" -destination 'generic/platform=macOS' \
+    ARCHS='arm64 x86_64' ONLY_ACTIVE_ARCH=NO "$@" build -quiet
+}
 
-# shellcheck disable=SC2086
-xcodebuild -workspace Daybook.xcworkspace -scheme Daybook -configuration Release \
-  -derivedDataPath "$DD" -destination 'generic/platform=macOS' \
-  ARCHS='arm64 x86_64' ONLY_ACTIVE_ARCH=NO $SIGN_ARGS build -quiet
+if [ -n "${DEVELOPER_ID:-}" ]; then
+  # Each setting is its own argument, so an identity with spaces stays whole.
+  build "CODE_SIGN_IDENTITY=$DEVELOPER_ID" CODE_SIGN_STYLE=Manual ENABLE_HARDENED_RUNTIME=YES OTHER_CODE_SIGN_FLAGS=--timestamp
+else
+  build CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=
+fi
 
 APP="$DD/Build/Products/Release/Daybook.app"
 mkdir -p "$STAGE"
