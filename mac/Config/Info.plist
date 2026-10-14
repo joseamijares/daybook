@@ -14,7 +14,7 @@
 	<key>SUFeedURL</key>
 	<string>https://github.com/joseamijares/daybook/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string></string>
+	<string>Y6lAcdFNrl7qOpFKv7AhrAOR9SFdl2BodZrFPxcQcak=</string>
 	<!-- The app is sandboxed: Sparkle's installer runs outside it, through this XPC service. -->
 	<key>SUEnableInstallerLauncherService</key>
 	<true/>
