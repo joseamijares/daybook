@@ -48,7 +48,7 @@ DEVELOPER_ID="Developer ID Application: … (TEAMID)" NOTARY_PROFILE=daybook mac
 Without a Developer ID, macOS 15 and later says it "could not verify"
 Daybook and offers only Done and Move to Trash. Choose Done, then System
 Settings → Privacy & Security → (bottom of the pane) Open Anyway → Open. Or, in
-Terminal: `xattr -d com.apple.quarantine /Applications/Daybook.app`. A notarized
+Terminal: `xattr -dr com.apple.quarantine /Applications/Daybook.app`. A notarized
 build opens directly, so ship notarized when you can. Notarizing needs an Apple
 Developer Program membership and, on the Mac that builds:
 

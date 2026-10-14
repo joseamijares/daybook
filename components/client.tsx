@@ -133,12 +133,13 @@ export function stringsFor(locale: Locale) {
 // computer sleeps, so the minute's poll alone can leave yesterday on screen.
 export function onComeBack(fn: () => void) {
   const visible = () => document.visibilityState === 'visible' && fn();
+  const restored = (e: PageTransitionEvent) => e.persisted && fn();
   window.addEventListener('focus', fn);
-  window.addEventListener('pageshow', fn);
+  window.addEventListener('pageshow', restored);
   document.addEventListener('visibilitychange', visible);
   return () => {
     window.removeEventListener('focus', fn);
-    window.removeEventListener('pageshow', fn);
+    window.removeEventListener('pageshow', restored);
     document.removeEventListener('visibilitychange', visible);
   };
 }
