@@ -36,3 +36,5 @@ INFOPLIST_KEY_LSApplicationCategoryType = public.app-category.productivity
 ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
 INFOPLIST_KEY_NSHumanReadableCopyright = MIT License
 SWIFT_VERSION = 6.0
+// Sparkle.framework (updates) is embedded in Contents/Frameworks; the app has to look there.
+LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/../Frameworks
