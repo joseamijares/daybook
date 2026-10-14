@@ -81,11 +81,20 @@ public struct PopoverView: View {
     private var footer: some View {
         HStack(spacing: 10) {
             let problem = model.error ?? model.frameStatus
-            Text(problem ?? status)
-                .font(Salon.text(11))
-                .foregroundStyle(problem == nil ? Salon.ink2 : Salon.amber)
-                .lineLimit(1)
-                .help(problem ?? status)
+            if problem == nil, let updates = model.updates, let version = updates.available {
+                Button("Daybook \(version) is available") { updates.check() }
+                    .buttonStyle(.plain)
+                    .font(Salon.text(11, .medium))
+                    .foregroundStyle(Salon.cobalt)
+                    .lineLimit(1)
+                    .help("Install the update")
+            } else {
+                Text(problem ?? status)
+                    .font(Salon.text(11))
+                    .foregroundStyle(problem == nil ? Salon.ink2 : Salon.amber)
+                    .lineLimit(1)
+                    .help(problem ?? status)
+            }
             Spacer()
             Button("Open Daybook") { model.open(model.isShowingToday ? "/" : "/?date=\(model.shownDate)") }
                 .buttonStyle(PillStyle(solid: true))

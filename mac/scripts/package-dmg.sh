@@ -5,7 +5,8 @@
 #   mac/scripts/package-dmg.sh
 #
 # Signing: with DEVELOPER_ID set (e.g. "Developer ID Application: Name (TEAMID)")
-# the app is signed with it and the hardened runtime. With notary credentials too
+# the app is signed with it and the hardened runtime, and so are the helpers inside
+# Sparkle.framework (the updater). With notary credentials too
 # the image is notarized and stapled, so it opens without a Gatekeeper prompt.
 # The first of these that is set is used:
 #   NOTARY_PROFILE                            a `xcrun notarytool store-credentials` profile
@@ -46,6 +47,22 @@ else
 fi
 
 APP="$DD/Build/Products/Release/Daybook.app"
+if [ -n "${DEVELOPER_ID:-}" ]; then
+  # Sparkle's installer, downloader and helper apps come ad-hoc signed, and Xcode
+  # re-signs only the framework around them, which the notary service rejects.
+  # Sign each one, inside out in the order Sparkle documents, then the app again,
+  # keeping the entitlements Xcode resolved. Never --deep.
+  SPARKLE="$APP/Contents/Frameworks/Sparkle.framework"
+  sign() { codesign --force --sign "$DEVELOPER_ID" --options runtime --timestamp "$@"; }
+  sign "$SPARKLE/Versions/B/XPCServices/Installer.xpc"
+  sign --preserve-metadata=entitlements "$SPARKLE/Versions/B/XPCServices/Downloader.xpc"
+  sign "$SPARKLE/Versions/B/Autoupdate"
+  sign "$SPARKLE/Versions/B/Updater.app"
+  sign "$SPARKLE"
+  sign --preserve-metadata=entitlements "$APP"
+  codesign --verify --deep --strict "$APP"
+fi
+
 mkdir -p "$STAGE"
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"

@@ -1,8 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// Where your Daybook lives, its key, the shutdown reminder, and the Frame:
-/// two-way sync and the TV's design. Every control is drawn in the salon
+/// Where your Daybook lives, its key, the shutdown reminder, the Frame (two-way
+/// sync and the TV's design) and updates. Every control is drawn in the salon
 /// style, so nothing inherits the menu bar's dark appearance.
 struct SettingsView: View {
     @Bindable var model: DaybookModel
@@ -55,6 +55,8 @@ struct SettingsView: View {
                 DesignPicker(model: model)
             }
 
+            if let updates = model.updates { UpdatesSection(updates: updates) }
+
             if let error = model.error, !needsKey {
                 Text(error).font(Salon.text(12)).foregroundStyle(Salon.amber)
             }
@@ -103,6 +105,33 @@ struct SettingsView: View {
 
     private var host: String {
         URL(string: model.baseURL).map { [$0.host, $0.port.map(String.init)].compactMap { $0 }.joined(separator: ":") } ?? model.baseURL
+    }
+}
+
+/// The version that's running, the daily check, and Check now / Install.
+struct UpdatesSection: View {
+    @Bindable var updates: Updates
+
+    var body: some View {
+        SettingsSection(title: "Updates") {
+            if updates.isEnabled {
+                SettingRow(title: "Check automatically", caption: "Once a day. Daybook asks before it installs anything.") {
+                    SalonToggle(isOn: $updates.checksAutomatically)
+                }
+                SettingRow(
+                    title: updates.available.map { "Daybook \($0) is available" } ?? "Daybook \(updates.version)",
+                    caption: updates.available == nil ? "The version you're running." : "It installs here, then Daybook reopens."
+                ) {
+                    Button(updates.available == nil ? "Check now" : "Install…") { updates.check() }
+                        .buttonStyle(PillStyle(solid: updates.available != nil))
+                        .disabled(!updates.canCheck)
+                }
+            } else {
+                SettingRow(title: "Daybook \(updates.version)", caption: "This build doesn't update itself. New versions are on GitHub.") {
+                    Button("Open") { NSWorkspace.shared.open(Updates.releasesPage) }.buttonStyle(PillStyle())
+                }
+            }
+        }
     }
 }
 

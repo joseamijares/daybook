@@ -37,6 +37,8 @@ public final class DaybookModel {
     public var openWindow: ((String) -> Void)?
     /// The path the window should show next.
     public var windowPath = "/"
+    /// Set by the app shell: in-app updates, for Settings and the popover.
+    public var updates: Updates?
 
     public init() {
         Fonts.register()
