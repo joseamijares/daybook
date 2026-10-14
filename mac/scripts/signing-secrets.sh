@@ -14,6 +14,13 @@
 # 3. Sets the repository secrets the workflow reads (DEVELOPER_ID_P12,
 #    DEVELOPER_ID_P12_PASSWORD, NOTARY_KEY_P8, NOTARY_KEY_ID, NOTARY_ISSUER)
 #    with `gh`.
+# 4. Sparkle's update key, which signs each release so installed copies take
+#    it as an update: makes it in your login keychain with Sparkle's
+#    generate_keys (the first time; later runs reuse it), backs it up like the
+#    rest, sets SPARKLE_ED_PRIVATE_KEY, and writes the public half into
+#    SUPublicEDKey in mac/Config/Info.plist for you to commit.
+#
+#   SPARKLE_ONLY=1 mac/scripts/signing-secrets.sh    # just step 4
 #
 # Nothing secret is printed or passed on a command line: it goes from files in
 # a private temporary folder, deleted at the end, to 1Password and gh.
@@ -27,13 +34,88 @@
 #   OP_VAULT        1Password vault (default: your default vault).
 #   BACKUP_DIR      Folder for the backup when 1Password isn't used
 #                   (default: ~/Desktop/Daybook signing backup).
-#   SKIP_1PASSWORD=1, SKIP_GITHUB=1   Leave out a step.
+#   SKIP_1PASSWORD=1, SKIP_GITHUB=1, SKIP_SPARKLE=1   Leave out a step.
+#   SPARKLE_ONLY=1  Only the Sparkle key (step 4).
+#   SPARKLE_ACCOUNT Keychain account of the Sparkle key (default: daybook).
 #   KEYCHAIN        Keychain to export from (default: your keychain search list).
 set -eu
 
 cd "$(dirname "$0")/../.."
 say() { printf '%s\n' "$*"; }
 fail() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+umask 077
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT INT TERM
+
+# 4. Sparkle's update key. Its tools come with the Sparkle package: from a
+# build's DerivedData, or from resolving the package.
+sparkle_key() {
+  BIN=
+  for DD in mac/build/dd mac/.build/dd; do
+    if [ -x "$DD/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_keys" ]; then
+      BIN="$DD/SourcePackages/artifacts/sparkle/Sparkle/bin"
+      break
+    fi
+  done
+  if [ -z "$BIN" ]; then
+    say "Fetching Sparkle's tools…"
+    swift package resolve --package-path mac/DaybookPackage > /dev/null
+    BIN=mac/DaybookPackage/.build/artifacts/sparkle/Sparkle/bin
+  fi
+  [ -x "$BIN/generate_keys" ] || fail "Sparkle's generate_keys not found"
+  ACCOUNT=${SPARKLE_ACCOUNT:-daybook}
+  PLIST=mac/Config/Info.plist
+
+  say "Sparkle update key (keychain account \"${ACCOUNT}\"; macOS may ask to allow access)…"
+  # Makes the key the first time and keeps it after that; prints only the public key.
+  "$BIN/generate_keys" --account "$ACCOUNT" > /dev/null
+  PUBLIC=$("$BIN/generate_keys" --account "$ACCOUNT" -p)
+  [ -n "$PUBLIC" ] || fail "generate_keys gave no public key"
+  CURRENT=$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$PLIST" 2> /dev/null || true)
+  if [ -n "$CURRENT" ] && [ "$CURRENT" != "$PUBLIC" ]; then
+    fail "$PLIST already has another SUPublicEDKey. Installed copies take only updates signed with the key they shipped with: set SPARKLE_ACCOUNT to that key's account (see Updates in mac/README.md before replacing it)."
+  fi
+  "$BIN/generate_keys" --account "$ACCOUNT" -x "$TMP/sparkle-key" > /dev/null
+  [ -s "$TMP/sparkle-key" ] || fail "generate_keys exported nothing"
+
+  if [ "${SKIP_1PASSWORD:-}" = 1 ]; then
+    say "Skipping the backup (SKIP_1PASSWORD=1)."
+  elif command -v op > /dev/null && op whoami > /dev/null 2>&1 \
+    && op document create "$TMP/sparkle-key" --title "Daybook · Sparkle update key ($ACCOUNT)" --file-name sparkle-ed25519-key.txt ${OP_VAULT:+--vault "$OP_VAULT"} > /dev/null; then
+    say "Backed up to 1Password: \"Daybook · Sparkle update key (${ACCOUNT})\"."
+  else
+    DIR=${BACKUP_DIR:-"$HOME/Desktop/Daybook signing backup"}
+    [ ! -L "$DIR" ] || fail "$DIR is a symlink; choose another BACKUP_DIR"
+    mkdir -p "$DIR"
+    chmod 700 "$DIR"
+    rm -f "$DIR/Sparkle update key.txt"
+    cp "$TMP/sparkle-key" "$DIR/Sparkle update key.txt"
+    say "1Password CLI isn't signed in (or failed): Sparkle's key is in $DIR. Move it into your password manager, then delete the folder."
+  fi
+
+  if [ "${SKIP_GITHUB:-}" = 1 ]; then
+    say "Skipping GitHub (SKIP_GITHUB=1)."
+  else
+    SPARKLE_REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+    tr -d ' \r\n' < "$TMP/sparkle-key" | gh secret set SPARKLE_ED_PRIVATE_KEY --repo "$SPARKLE_REPO"
+    say "Set SPARKLE_ED_PRIVATE_KEY on ${SPARKLE_REPO}."
+  fi
+
+  if [ "$CURRENT" = "$PUBLIC" ]; then
+    say "SUPublicEDKey in $PLIST is already this key."
+  else
+    # The line after <key>SUPublicEDKey</key> is its <string>; base64 has no "|".
+    sed -i '' -e '/<key>SUPublicEDKey<\/key>/{' -e 'n' -e "s|<string>[^<]*</string>|<string>$PUBLIC</string>|" -e '}' "$PLIST"
+    [ "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$PLIST")" = "$PUBLIC" ] || fail "couldn't write SUPublicEDKey into $PLIST"
+    say "Wrote the public key into $PLIST (SUPublicEDKey). Commit it: builds made with it update from releases signed with this key."
+  fi
+}
+
+if [ "${SPARKLE_ONLY:-}" = 1 ]; then
+  sparkle_key
+  exit 0
+fi
 
 # The App Store Connect API key.
 if [ -z "${NOTARY_KEY:-}" ]; then
@@ -60,10 +142,6 @@ IDENTITY=$(printf '%s\n' "$LINE" | sed 's/^[^"]*"\([^"]*\)".*$/\1/')
 TEAM=$(printf '%s\n' "$IDENTITY" | sed -n 's/.*(\([A-Z0-9]*\))$/\1/p')
 say "Identity:  $IDENTITY"
 say "API key:   $KEY_ID${NOTARY_ISSUER:+ (issuer $NOTARY_ISSUER)}"
-
-umask 077
-TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT INT TERM
 
 # 1. Export.
 say "Exporting the identity (macOS asks to allow it)…"
@@ -148,4 +226,11 @@ else
     printf '%s' "$NOTARY_ISSUER" | gh secret set NOTARY_ISSUER --repo "$REPO"
   fi
   say "Done. A mac-v* tag now builds a signed, notarized Daybook.dmg (see mac/README.md)."
+fi
+
+# 4. Sparkle's update key.
+if [ "${SKIP_SPARKLE:-}" = 1 ]; then
+  say "Skipping Sparkle's update key (SKIP_SPARKLE=1)."
+else
+  sparkle_key
 fi

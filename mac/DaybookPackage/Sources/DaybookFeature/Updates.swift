@@ -13,7 +13,7 @@ public final class Updates: NSObject {
     /// False in a build without a feed or a public key (a fork, say): it can't update itself.
     public let isEnabled: Bool
     /// The version that's running.
-    public let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+    public let version: String
     /// Sparkle can start a check now (it isn't checking or installing already).
     public private(set) var canCheck = false
     /// The version a check found, until it's installed or skipped.
@@ -43,6 +43,7 @@ public final class Updates: NSObject {
         let feed = info["SUFeedURL"] as? String ?? ""
         let key = info["SUPublicEDKey"] as? String ?? ""
         isEnabled = !feed.isEmpty && !key.isEmpty
+        version = info["CFBundleShortVersionString"] as? String ?? ""
         super.init()
         guard isEnabled else { return }
         let controller = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
@@ -50,6 +51,15 @@ public final class Updates: NSObject {
         observation = controller.updater.observe(\.canCheckForUpdates, options: [.initial, .new]) { [weak self] updater, _ in
             MainActor.assumeIsolated { self?.canCheck = updater.canCheckForUpdates }
         }
+    }
+
+    /// For snapshot tests: no Sparkle, and an update already found (or not).
+    init(preview version: String, available: String?) {
+        isEnabled = true
+        self.version = version
+        self.available = available
+        canCheck = true
+        super.init()
     }
 
     /// Checks now and shows the result: "You're up to date", or the update with its notes and Install.
