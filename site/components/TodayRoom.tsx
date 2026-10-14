@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import type { Copy } from '@site/lib/copy';
-import { addDays, artFor, formatDay, src } from '@site/lib/art';
+import { addDays, artFor, formatDay, src, thumb } from '@site/lib/art';
 import { useDay } from './Day';
 
 // Today's painting the way the app hangs it: the whole work at full height,
@@ -18,7 +18,7 @@ export function TodayRoom({ c }: { c: Copy }) {
 
   return (
     <section className="today" id="today" aria-labelledby="today-caption">
-      <Image className="today__blur" src={src(a)} alt="" width={600} height={Math.round(600 / a.ratio)} sizes="40vw" aria-hidden="true" />
+      <Image className="today__blur" src={thumb(a)} alt="" width={640} height={Math.round(640 / a.ratio)} aria-hidden="true" />
       <p className="today__caption" id="today-caption">
         <span className="dot" aria-hidden="true" />
         {c.today.caption}
@@ -31,7 +31,6 @@ export function TodayRoom({ c }: { c: Copy }) {
             alt={`${a.title}, ${a.artist}, ${a.date}`}
             width={1500}
             height={Math.round(1500 / a.ratio)}
-            sizes="(max-width: 1099px) 100vw, 62vw"
           />
           <figcaption className="today__credit">
             <a href={a.source} rel="noopener">

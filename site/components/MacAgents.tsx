@@ -32,7 +32,6 @@ export function MacAgents({ c }: { c: Copy }) {
             alt=""
             width={1500}
             height={Math.round(1500 / wallpaper.ratio)}
-            sizes="(max-width: 899px) 100vw, 45vw"
             aria-hidden="true"
           />
           <div className="desk__bar">
@@ -51,7 +50,6 @@ export function MacAgents({ c }: { c: Copy }) {
             alt={c.mac.alt}
             width={760}
             height={1306}
-            sizes="(max-width: 899px) 60vw, 24vw"
           />
         </div>
         <p className="also__body">{c.mac.body}</p>

@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import type { CSSProperties } from 'react';
 import type { Copy } from '@site/lib/copy';
-import { addDays, artFor, contain, daysUntil, formatDay, src, work, type Artwork } from '@site/lib/art';
+import { addDays, artFor, contain, daysUntil, formatDay, src, thumb, work, type Artwork } from '@site/lib/art';
 import { CENTER, RESERVES, SLOTS, type FrameKind, type Placement } from '@site/lib/hang';
 import { useDay } from './Day';
 
@@ -24,14 +24,13 @@ function vars(prefix: 'd' | 'm', p: Placement, a: Artwork): Vars {
 }
 
 // Sized by the stylesheet from the frame's variables; never cropped.
-function Painting({ a, sizes, priority }: { a: Artwork; sizes: string; priority?: boolean }) {
+function Painting({ a, small, priority }: { a: Artwork; small?: boolean; priority?: boolean }) {
   return (
     <Image
-      src={src(a)}
+      src={small ? thumb(a) : src(a)}
       alt={`${a.title}, ${a.artist}, ${a.date}`}
       width={1500}
       height={Math.round(1500 / a.ratio)}
-      sizes={sizes}
       priority={priority}
       draggable={false}
     />
@@ -98,7 +97,7 @@ export function SalonHang({ c }: { c: Copy }) {
           >
             <div className="work__frame">
               <div className="work__inner">
-                <Painting a={a} sizes="(max-width: 1099px) 34vw, 18vw" />
+                <Painting a={a} small />
               </div>
             </div>
             <figcaption className="work__label">
@@ -115,7 +114,7 @@ export function SalonHang({ c }: { c: Copy }) {
       <figure className="work work--gilt work--today" data-mobile="1" style={centerVars}>
         <div className="work__frame">
           <div className="work__inner">
-            <Painting a={today} sizes="(max-width: 1099px) 60vw, 31vw" priority />
+            <Painting a={today} priority />
           </div>
         </div>
         <figcaption className="sr-only">

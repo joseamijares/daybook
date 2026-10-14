@@ -25,11 +25,16 @@ pnpm site:verify             # typecheck + production build
 | `components/Motion.tsx` | Reveal on scroll, the Frame room's day-to-night, pointer parallax |
 | `app/site.css` | Palette, layout and motion (the app's `light-up`, `settle`, `drift`, `rise`) |
 | `scripts/sync-art.mjs` | Copies the 44 paintings from `../public/art` before `dev` and `build` |
+| `scripts/make-thumbs.sh` | Makes `public/art-small` (longest side 640px) for the wall and ledges. Re-run when the collection changes |
 | `art/` | Provenance of the one generated image |
 
 The page is prerendered with the build day's painting and switches to the
 visitor's own date in the browser, while the lamp comes on. Every animation
 respects `prefers-reduced-motion`.
+
+Images are served as static files (`images.unoptimized`): the full scans for the
+painting of the day, the small copies for everything hung around it. The on-demand
+optimizer made a cold first visit wait seconds for the wall.
 
 ## Deploy
 
