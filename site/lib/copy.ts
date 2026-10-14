@@ -126,7 +126,7 @@ const en = {
         'Drag Daybook into Applications, then open it.',
         'Paste your Daybook’s address and key. Today appears in the menu bar.',
       ],
-      note: 'Needs a Daybook in the cloud: see Your own cloud. Signed and notarized by Apple.',
+      note: 'Needs a Daybook in the cloud: see Your own cloud. Signed with a Developer ID and notarized by Apple.',
     },
     web: {
       title: 'In any browser',
@@ -183,7 +183,9 @@ const en = {
     otherHref: '/es',
   },
   consent: {
-    text: 'We use Google Analytics and Microsoft Clarity to see how this page is read.',
+    // {tools}: the ones switched on, e.g. "Google Analytics" or "Google Analytics and Microsoft Clarity".
+    text: 'We use {tools} to see how this page is read.',
+    and: 'and',
     accept: 'Accept',
     reject: 'Decline analytics',
   },
@@ -321,7 +323,7 @@ const es: Copy = {
         'Arrastra Daybook a Aplicaciones y ábrelo.',
         'Pega la dirección y la llave de tu Daybook. El día aparece en la barra de menús.',
       ],
-      note: 'Necesita un Daybook en la nube: ve Tu propia nube. Firmada y notarizada por Apple.',
+      note: 'Necesita un Daybook en la nube: ve Tu propia nube. Firmada con Developer ID y notarizada por Apple.',
     },
     web: {
       title: 'En cualquier navegador',
@@ -378,7 +380,8 @@ const es: Copy = {
     otherHref: '/',
   },
   consent: {
-    text: 'Usamos Google Analytics y Microsoft Clarity para ver cómo se lee esta página.',
+    text: 'Usamos {tools} para ver cómo se lee esta página.',
+    and: 'y',
     accept: 'Aceptar',
     reject: 'Rechazar analítica',
   },

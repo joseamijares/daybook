@@ -45,6 +45,10 @@ export function Analytics({ c, gaId, clarityId }: { c: Copy; gaId: string | null
     setChoice(next);
   };
 
+  // The banner names only the tools that are switched on.
+  const tools = [gaId && 'Google Analytics', clarityId && 'Microsoft Clarity'].filter(Boolean).join(` ${c.consent.and} `);
+  const text = c.consent.text.replace('{tools}', tools);
+
   return (
     <>
       {gaId && <GoogleAnalytics gaId={gaId} />}
@@ -55,8 +59,8 @@ export function Analytics({ c, gaId, clarityId }: { c: Copy; gaId: string | null
         >{`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script",${JSON.stringify(clarityId)});`}</Script>
       )}
       {choice === 'unknown' && (
-        <div className="consent" role="dialog" aria-label={c.consent.text}>
-          <p>{c.consent.text}</p>
+        <div className="consent" role="dialog" aria-label={text}>
+          <p>{text}</p>
           <div>
             <button type="button" className="pill pill--ink pill--small" onClick={() => choose('granted')}>
               {c.consent.accept}

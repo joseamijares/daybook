@@ -2,6 +2,8 @@ import type { Copy } from '@site/lib/copy';
 import { FILM, MAC_DOWNLOAD_URL, REPO_URL, SITE_URL } from '@site/lib/site';
 
 // Structured data in the server HTML: the app, the site, the video and the visible FAQ.
+const AUTHOR = { '@type': 'Person', name: 'José Antonio Mijares', url: 'https://github.com/joseamijares' };
+
 export function JsonLd({ c }: { c: Copy }) {
   const url = c.lang === 'es' ? `${SITE_URL}/es` : SITE_URL;
   const graph = [
@@ -13,7 +15,9 @@ export function JsonLd({ c }: { c: Copy }) {
       applicationCategory: 'ProductivityApplication',
       operatingSystem: 'Web, macOS 14+',
       downloadUrl: MAC_DOWNLOAD_URL,
-      softwareVersion: '0.1.0',
+      ...(process.env.MAC_VERSION && { softwareVersion: process.env.MAC_VERSION }),
+      author: AUTHOR,
+      publisher: AUTHOR,
       isAccessibleForFree: true,
       license: 'https://opensource.org/licenses/MIT',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
