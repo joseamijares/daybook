@@ -1,4 +1,4 @@
-import { AGENTS_DOC_URL, DEPLOY_URL, FRAME_URL, MAC_DOWNLOAD_URL, MAC_URL, REPO_URL, SITE_URL } from '@site/lib/site';
+import { AGENTS_DOC_URL, DEPLOY_URL, FILM, FRAME_URL, MAC_DOWNLOAD_URL, MAC_URL, REPO_URL, SITE_URL } from '@site/lib/site';
 
 // /llms.txt (also served at /.well-known/llms.txt and /llm.txt): what Daybook
 // is, for AI assistants, with absolute links.
@@ -11,6 +11,7 @@ export function GET() {
 - [Daybook](${SITE_URL}/): the landing page, in English.
 - [Daybook en español](${SITE_URL}/es): the same page in Spanish.
 - [Source code](${REPO_URL}): Next.js app, MCP server, CLI and Mac app, MIT licensed.
+- [The video](${SITE_URL}${FILM.landscape}): Daybook in 50 seconds (MP4, silent, English on-screen text).
 
 ## What it does
 - Today: one focus line, meetings, and a short list of tasks with time estimates against a 6-hour day. Unfinished tasks roll over and remember where they started.

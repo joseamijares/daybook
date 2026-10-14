@@ -6,6 +6,7 @@ import type { Copy } from '@site/lib/copy';
 import { addDays, artFor, contain, daysUntil, formatDay, src, thumb, work, type Artwork } from '@site/lib/art';
 import { CENTER, RESERVES, SLOTS, type FrameKind, type Placement } from '@site/lib/hang';
 import { useDay } from './Day';
+import { FilmButton } from './Film';
 
 type Vars = CSSProperties & Record<`--${string}`, string | number>;
 
@@ -115,6 +116,7 @@ export function SalonHang({ c }: { c: Copy }) {
         <div className="work__frame">
           <div className="work__inner">
             <Painting a={today} priority />
+            <FilmButton c={c} />
           </div>
         </div>
         <figcaption className="sr-only">

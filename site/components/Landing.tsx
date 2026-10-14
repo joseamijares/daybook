@@ -1,6 +1,7 @@
 import type { Copy } from '@site/lib/copy';
 import { Faq, Footer } from './Closing';
 import { DayProvider } from './Day';
+import { FilmProvider, FilmSection } from './Film';
 import { FrameRoom } from './FrameRoom';
 import { Hero } from './Hero';
 import { Install } from './Install';
@@ -16,17 +17,20 @@ import { TodayRoom } from './TodayRoom';
 export function Landing({ c, built }: { c: Copy; built: string }) {
   return (
     <DayProvider initial={built}>
-      <Hero c={c} />
-      <main>
-        <TodayRoom c={c} />
-        <Rotation c={c} />
-        <Rituals c={c} />
-        <FrameRoom c={c} />
-        <MacAgents c={c} />
-        <Install c={c} />
-        <Faq c={c} />
-      </main>
-      <Footer c={c} />
+      <FilmProvider c={c}>
+        <Hero c={c} />
+        <main>
+          <FilmSection c={c} />
+          <TodayRoom c={c} />
+          <Rotation c={c} />
+          <Rituals c={c} />
+          <FrameRoom c={c} />
+          <MacAgents c={c} />
+          <Install c={c} />
+          <Faq c={c} />
+        </main>
+        <Footer c={c} />
+      </FilmProvider>
       <Motion />
       <JsonLd c={c} />
     </DayProvider>

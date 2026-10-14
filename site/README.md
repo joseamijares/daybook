@@ -20,6 +20,8 @@ pnpm site:verify             # typecheck + production build
 | --- | --- |
 | `app/(en)`, `app/(es)/es` | `/` and `/es`, each with its own root layout so `<html lang>` is right |
 | `components/SalonHang.tsx` | The hero wall. Today's painting comes from the app's rotation (`lib/art.ts`) |
+| `components/Film.tsx` | The video: the play button in today's frame, its lightbox, and the screening room under the hero |
+| `public/film/` | The video for the web (see below) and its posters |
 | `lib/hang.ts` | Where each work hangs, on a 1440 × 960 wall and a 390 × 520 phone wall |
 | `lib/copy.ts` | Every word, in English and Spanish |
 | `components/Motion.tsx` | Reveal on scroll, the Frame room's day-to-night, pointer parallax |
@@ -35,6 +37,22 @@ respects `prefers-reduced-motion`.
 Images are served as static files (`images.unoptimized`): the full scans for the
 painting of the day, the small copies for everything hung around it. The on-demand
 optimizer made a cold first visit wait seconds for the wall.
+
+## The video
+
+`public/film/` holds web encodes of the Daybook showcase (49.5 s, silent), made in
+`jamak-launch-videos` (JAM-4347): `DaybookShowcase16x9` and `DaybookShowcase9x16`.
+Re-encode from those renders when the video changes:
+
+```bash
+ffmpeg -i daybook-16x9.mp4 -an -c:v libx264 -preset slow -tune animation -crf 23 \
+  -maxrate 2500k -bufsize 5000k -pix_fmt yuv420p -movflags +faststart public/film/daybook-film.mp4
+ffmpeg -i daybook-9x16.mp4 -an -vf scale=720:1280:flags=lanczos -c:v libx264 -preset slow \
+  -tune animation -crf 23 -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -movflags +faststart \
+  public/film/daybook-film-9x16.mp4
+```
+
+The posters are frame 470 ("02 · Today") of each cut, as WebP.
 
 ## Deploy
 
