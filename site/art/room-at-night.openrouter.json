@@ -1,0 +1,10 @@
+{
+  "output": "assets/generated/g2-room-at-night.png",
+  "request": {
+    "model": "google/gemini-3-pro-image",
+    "resolution": "2K",
+    "aspect_ratio": "16:9",
+    "n": 1,
+    "prompt": "Editorial interior photograph of a quiet room at night, in the mood of a Vilhelm Hammershøi painting. A grey-green painted wall with simple wainscoting and a worn oak floor. Centered on the wall at eye level hangs a large slim picture-frame television with a thin light-oak frame and a narrow off-white mat, in 16:9 proportion, filling about forty percent of the image width. The screen area inside the mat is a perfectly uniform flat dark grey rectangle, evenly lit, with no image and no reflections. Below it stands a low oak sideboard with a small lit ceramic table lamp, a closed linen notebook and a pencil. Warm practical lamp light pools on the wall, the corners fall into soft shadow. Shot perfectly frontal and symmetrical, straight-on, camera at the height of the screen's center, 35mm lens, no perspective distortion, fine film grain. No people, no text, no letters, no logos, no plants in front of the screen, no cables."
+  }
+}

@@ -37,6 +37,17 @@ xcodebuild -workspace mac/Daybook.xcworkspace -scheme Daybook -derivedDataPath m
 open mac/.build/dd/Build/Products/Debug/Daybook.app
 ```
 
+To ship a download (the landing page's "Download for Mac" points at the latest
+GitHub release's `Daybook.dmg`):
+
+```bash
+mac/scripts/package-dmg.sh                         # → mac/build/Daybook.dmg (universal, ad-hoc signed)
+DEVELOPER_ID="Developer ID Application: … (TEAMID)" NOTARY_PROFILE=daybook mac/scripts/package-dmg.sh   # signed + notarized
+```
+
+Without a Developer ID the first launch needs System Settings → Privacy &
+Security → Open Anyway; a notarized build opens directly.
+
 On first launch, enter your Daybook URL (for example
 `https://your-daybook.vercel.app`, or `http://localhost:3000` while
 developing) and your `DAYBOOK_KEY`.

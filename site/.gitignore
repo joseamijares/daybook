@@ -1,0 +1,8 @@
+# Copied from ../public/art by scripts/sync-art.mjs
+/public/art/
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+/node_modules/

@@ -73,6 +73,13 @@ keeps its data in `.data/daybook.json`.
 The UI is in English or Spanish (`DAYBOOK_LOCALE=en|es`), and the time zone
 that decides "today" is `DAYBOOK_TZ`.
 
+## The landing page
+
+[daybooksalon.vercel.app](https://daybooksalon.vercel.app) is Daybook's public page
+(`site/`): the painting of the day in a salon hang, the rotation, the Frame, the
+Mac app and how to install it. It is its own Next.js app and Vercel project
+(Root Directory `site`); see [site/README.md](site/README.md).
+
 ## Deploy your own
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjoseamijares%2Fdaybook)
