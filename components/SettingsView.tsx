@@ -8,6 +8,7 @@ import { minutesLabel } from '@/lib/time';
 import { AppearanceSettings } from './AppearanceSettings';
 import { api, ApiError, setMode, timeIn, useResource, useSession } from './client';
 import { FrameDesign } from './FrameDesign';
+import { askMac, useDaybookMac } from './mac';
 import { Masthead } from './Masthead';
 
 interface LinearStatus {
@@ -31,6 +32,7 @@ export function SettingsView() {
       <Masthead title={t.settings} sub={t.settingsSub} />
 
       <AppearanceSettings />
+      <MacApp />
 
       {session.local ? (
         <DataSettings />
@@ -54,6 +56,39 @@ export function SettingsView() {
         </>
       )}
     </section>
+  );
+}
+
+// ---- Daybook for Mac ----------------------------------------------------------
+// Only inside the Mac app's window (components/mac.ts): the version it runs, and
+// its updates. Update and Check now open the app's own update window.
+
+function MacApp() {
+  const { t } = useSession();
+  const mac = useDaybookMac();
+  if (!mac) return null;
+  const available = mac.available;
+  return (
+    <div className="settings-block">
+      <div className="section-head">
+        <span className="label">{t.macApp}</span>
+        <span className="meta">{fill(t.macVersion, { version: mac.version })}</span>
+      </div>
+      <div className="switch-row">
+        <span>
+          <strong>{available ? fill(t.macAvailable, { version: available }) : t.macUpdates}</strong>
+          <span className="meta">{available ? t.macAvailableLead : t.macUpdatesLead}</span>
+        </span>
+        <button
+          type="button"
+          className={available ? 'pill solid' : 'pill'}
+          disabled={!mac.canCheck}
+          onClick={() => askMac(available ? 'install' : 'check')}
+        >
+          {available ? t.macUpdate : t.macCheck}
+        </button>
+      </div>
+    </div>
   );
 }
 
