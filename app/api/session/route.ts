@@ -4,7 +4,7 @@
 import { connection } from 'next/server';
 import { getAppearance } from '@/lib/appearanceStore';
 import { artFor } from '@/lib/art';
-import { authorized, COOKIE, isOwner, sameKey, sessionValue, TOKEN_COOKIE } from '@/lib/auth';
+import { authorized, COOKIE, isOwner, openWithoutKey, sameKey, sessionValue, TOKEN_COOKIE } from '@/lib/auth';
 import { looksLikeToken, verifyToken } from '@/lib/tokens';
 import { capacity, getDayMeta } from '@/lib/daybook';
 import { frameArt, frameEnabled } from '@/lib/frame';
@@ -17,9 +17,10 @@ export async function GET(req: Request) {
   await connection();
   const day = today();
   const sunday = addDays(mondayOf(day), 6);
-  // "Cloud" works when this server can keep data and is locked with a key. A
-  // deploy without either still serves the app, for use on this device only.
-  const cloud = storageReady() && (Boolean(process.env.DAYBOOK_KEY) || !process.env.VERCEL);
+  // "Cloud" works when this server can keep data and is locked with a key (or
+  // is `next dev` on your own machine). A server without either still serves
+  // the app, for use on this device only.
+  const cloud = storageReady() && (Boolean(process.env.DAYBOOK_KEY) || openWithoutKey());
   const base = {
     cloud,
     needsKey: Boolean(process.env.DAYBOOK_KEY),

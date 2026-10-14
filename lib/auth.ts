@@ -2,7 +2,9 @@
 // - DAYBOOK_KEY, the master key: `Authorization: Bearer <key>` or `?key=`;
 // - agent tokens (dbk_…) created in Settings, one per connection, revocable;
 // - the browser's httpOnly session cookie, set after signing in once.
-// With no DAYBOOK_KEY the app is open — fine on localhost, refused on Vercel.
+// With no DAYBOOK_KEY only `next dev` is open (your own machine while you
+// develop). Any other server without a key, on Vercel or anywhere else, has no
+// cloud Daybook: it offers only "on this device".
 
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { looksLikeToken, verifyToken } from './tokens';
@@ -13,11 +15,16 @@ export const TOKEN_COOKIE = 'daybook_token';
 
 const digest = (s: string) => createHash('sha256').update(s).digest();
 
-export function sameKey(given: string | null | undefined) {
-  const key = process.env.DAYBOOK_KEY;
-  if (!key || !given) return false;
-  return timingSafeEqual(digest(given), digest(key));
+/** Compares in constant time; an unset secret matches nothing. */
+export function sameSecret(given: string | null | undefined, secret: string | undefined) {
+  if (!secret || !given) return false;
+  return timingSafeEqual(digest(given), digest(secret));
 }
+
+export const sameKey = (given: string | null | undefined) => sameSecret(given, process.env.DAYBOOK_KEY);
+
+/** No key and a development server: everyone is let in. */
+export const openWithoutKey = () => !process.env.DAYBOOK_KEY && process.env.NODE_ENV !== 'production';
 
 // The cookie holds a hash of the key, not the key itself.
 export const sessionValue = () => createHash('sha256').update(`daybook:${process.env.DAYBOOK_KEY}`).digest('hex');
@@ -32,7 +39,7 @@ function credentials(req: Request) {
 }
 
 export async function authorized(req: Request): Promise<boolean> {
-  if (!process.env.DAYBOOK_KEY) return !process.env.VERCEL;
+  if (!process.env.DAYBOOK_KEY) return openWithoutKey();
   const { bearer, query, cookie, tokenCookie } = credentials(req);
   if (sameKey(bearer) || sameKey(query)) return true;
   if (cookie) {
@@ -45,7 +52,7 @@ export async function authorized(req: Request): Promise<boolean> {
 
 /** The browser session (or master key) only: managing tokens and secrets isn't for agents. */
 export async function isOwner(req: Request): Promise<boolean> {
-  if (!process.env.DAYBOOK_KEY) return !process.env.VERCEL;
+  if (!process.env.DAYBOOK_KEY) return openWithoutKey();
   const { bearer, query, cookie } = credentials(req);
   if (sameKey(bearer) || sameKey(query)) return true;
   const expected = sessionValue();

@@ -46,8 +46,9 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
   cobalt), Modern (white and one red dot) or Nocturne (blue-black and gilt).
   Settings → Appearance, with an option to turn to Nocturne after shutdown.
 - **Mac app.** The full Daybook in a window, a glance at today in the menu
-  bar, a shutdown reminder, and Frame sync every two minutes. See
-  [mac/README.md](mac/README.md).
+  bar, a shutdown reminder, and Frame sync every two minutes. Signed and
+  notarized: [download Daybook.dmg](https://github.com/joseamijares/daybook/releases/latest/download/Daybook.dmg)
+  (macOS 14+, Apple silicon and Intel). See [mac/README.md](mac/README.md).
 
 | Plan the day (Timetable, Modern) | Week (Notebook) |
 | --- | --- |
@@ -67,8 +68,9 @@ cp .env.example .env.local      # optional locally: works with no key and stores
 pnpm dev                        # http://localhost:3000
 ```
 
-Without `DAYBOOK_KEY`, a local server lets everyone on your machine in and
-keeps its data in `.data/daybook.json`.
+Without `DAYBOOK_KEY`, `pnpm dev` lets in anyone who can reach it (it listens
+on your network too) and keeps its data in `.data/daybook.json`. Any other
+server without a key, `pnpm start` included, offers only "on this device".
 
 The UI is in English or Spanish (`DAYBOOK_LOCALE=en|es`), and the time zone
 that decides "today" is `DAYBOOK_TZ`.
@@ -123,8 +125,8 @@ it runs:
 - on the Vercel Cron schedule;
 - when you press **Sync with Frame**.
 
-On Vercel, a cloud Daybook needs both Upstash and `DAYBOOK_KEY`; without them
-the deploy only offers "on this device". Anyone with the key can read and
+A cloud Daybook needs storage (Upstash on Vercel) and `DAYBOOK_KEY`; without
+them a deploy only offers "on this device". Anyone with the key can read and
 change your plan, so treat it like a password.
 
 ## Connect your agents

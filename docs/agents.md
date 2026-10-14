@@ -36,8 +36,9 @@ Send either one in one of these ways:
   password, so don't paste it anywhere public;
 - the browser's httpOnly session cookie, which is set after signing in once.
 
-If `DAYBOOK_KEY` is unset, the API is open. That's fine on localhost; on
-Vercel there is then no cloud Daybook at all, only "on this device".
+If `DAYBOOK_KEY` is unset, only `pnpm dev` is open (for development on your
+own machine). Any other server then has no cloud Daybook at all, only "on
+this device".
 
 ## Client setup
 

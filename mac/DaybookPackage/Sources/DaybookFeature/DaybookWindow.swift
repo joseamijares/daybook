@@ -120,6 +120,11 @@ struct WebView: NSViewRepresentable {
             }
         }
 
+        /// The port, with the scheme's default filled in (https://x and https://x:443 are one origin).
+        private static func port(_ url: URL) -> Int? {
+            url.port ?? (url.scheme == "https" ? 443 : url.scheme == "http" ? 80 : nil)
+        }
+
         // WebKit may end the page's process while the Mac sleeps; load it again
         // instead of leaving a blank (or frozen) window.
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
@@ -134,7 +139,10 @@ struct WebView: NSViewRepresentable {
                     webView.animator().alphaValue = 1
                 }
             }
-            guard !triedSignIn, !key.isEmpty else { return }
+            // The key goes only to the Daybook set in Settings: never to a page a
+            // redirect or a script took the window to.
+            guard !triedSignIn, !key.isEmpty, let page = webView.url, let home = loaded,
+                  page.scheme == home.scheme, page.host == home.host, Self.port(page) == Self.port(home) else { return }
             triedSignIn = true
             // Sign the page in with the saved key if it isn't already, then reload.
             // callAsyncJavaScript runs this as the body of an async function:
