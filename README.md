@@ -46,8 +46,8 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
   cobalt), Modern (white and one red dot) or Nocturne (blue-black and gilt).
   Settings → Appearance, with an option to turn to Nocturne after shutdown.
 - **Mac app.** The full Daybook in a window, a glance at today in the menu
-  bar, a shutdown reminder, and Frame sync every two minutes. Signed and
-  notarized: [download Daybook.dmg](https://github.com/joseamijares/daybook/releases/latest/download/Daybook.dmg)
+  bar, a shutdown reminder, and Frame sync every two minutes. It updates
+  itself. Signed and notarized: [download Daybook.dmg](https://github.com/joseamijares/daybook/releases/latest/download/Daybook.dmg)
   (macOS 14+, Apple silicon and Intel). See [mac/README.md](mac/README.md).
 
 | Plan the day (Timetable, Modern) | Week (Notebook) |

@@ -2,9 +2,12 @@ name: Mac release
 
 # A mac-v* tag builds Daybook.dmg with mac/scripts/package-dmg.sh and attaches it
 # to that tag's GitHub release. With the Developer ID and notary secrets (see
-# mac/README.md) the image is signed, notarized and stapled; without them it's
-# ad-hoc signed and the release notes say how to open it. Pull requests that
-# touch mac/ build it too, ad-hoc and without secrets, as a workflow artifact.
+# mac/README.md) the image is signed, notarized and stapled, then signed for
+# Sparkle with SPARKLE_ED_PRIVATE_KEY, and the release gets an appcast.xml that
+# installed copies read at releases/latest/download/appcast.xml to update
+# themselves. Without the Developer ID secrets it's ad-hoc signed, gets no
+# appcast, and the release notes say how to open it. Pull requests that touch
+# mac/ build it too, ad-hoc and without secrets, as a workflow artifact.
 
 on:
   push:
@@ -27,8 +30,12 @@ jobs:
     timeout-minutes: 90 # notarizing usually takes minutes, but can take much longer
     outputs:
       macos: ${{ steps.version.outputs.macos }}
+      minimum-system-version: ${{ steps.version.outputs.minimum-system-version }}
+      build-number: ${{ steps.version.outputs.build }}
       signing: ${{ steps.dmg.outputs.signing }}
       sha256: ${{ steps.dmg.outputs.sha256 }}
+      update-signature: ${{ steps.update.outputs.signature }}
+      update-length: ${{ steps.update.outputs.length }}
     steps:
       - uses: actions/checkout@v4
 
@@ -37,14 +44,33 @@ jobs:
         run: |
           set -euo pipefail
           version=$(sed -n 's/^MARKETING_VERSION = //p' mac/Config/Shared.xcconfig)
+          build=$(sed -n 's/^CURRENT_PROJECT_VERSION = //p' mac/Config/Shared.xcconfig)
           macos=$(sed -n 's/^MACOSX_DEPLOYMENT_TARGET = //p' mac/Config/Shared.xcconfig)
-          echo "macos=${macos%.0}" >> "$GITHUB_OUTPUT"
+          {
+            echo "macos=${macos%.0}"
+            echo "minimum-system-version=$(echo "$macos" | awk -F. '{ printf "%d.%d.%d", $1, $2, $3 }')"
+            echo "build=$build"
+          } >> "$GITHUB_OUTPUT"
           if [ "$GITHUB_REF_TYPE" = tag ]; then
             tag_version=${GITHUB_REF_NAME#mac-v}
             if [ "${tag_version%%-*}" != "$version" ]; then
               echo "::error::Tag $GITHUB_REF_NAME doesn't match MARKETING_VERSION $version in mac/Config/Shared.xcconfig."
               exit 1
             fi
+            # Sparkle offers an update only when its build number (CFBundleVersion) is
+            # higher than the installed one's, whatever the version says.
+            feed=$(curl -fsSL "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/latest/download/appcast.xml" || true)
+            published_version=$(printf '%s\n' "$feed" | sed -n 's|.*<sparkle:shortVersionString>\([^<]*\)</sparkle:shortVersionString>.*|\1|p' | head -n 1)
+            published_build=$(printf '%s\n' "$feed" | sed -n 's|.*<sparkle:version>\([^<]*\)</sparkle:version>.*|\1|p' | head -n 1)
+            case "$build:$published_build" in
+              *[!0-9:]* | *: | :*) ;;
+              *)
+                if [ "$published_version" != "$version" ] && [ "$build" -le "$published_build" ]; then
+                  echo "::error::CURRENT_PROJECT_VERSION $build isn't higher than $published_build, the build number of Daybook $published_version in the published appcast, so installed copies wouldn't see this update. Raise it in mac/Config/Shared.xcconfig."
+                  exit 1
+                fi
+                ;;
+            esac
           fi
           xcodebuild -version
 
@@ -54,6 +80,7 @@ jobs:
         id: signing
         if: startsWith(github.ref, 'refs/tags/mac-v')
         env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
           DEVELOPER_ID_P12: ${{ secrets.DEVELOPER_ID_P12 }}
           DEVELOPER_ID_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
           NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
@@ -100,6 +127,18 @@ jobs:
             echo "notary=apple-id" >> "$GITHUB_OUTPUT"
           else
             echo "::warning title=Not notarized::Signing with a Developer ID, but there are no notary secrets (NOTARY_KEY_P8 and NOTARY_KEY_ID, or NOTARY_APPLE_ID, NOTARY_PASSWORD and NOTARY_TEAM_ID), so macOS will still warn and the release notes say how to open it."
+            exit 0
+          fi
+
+          # A notarized release is one installed copies update to, so it has to be
+          # signed for Sparkle too. Stop now rather than after notarizing.
+          if [ -z "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' mac/Config/Info.plist 2> /dev/null || true)" ]; then
+            echo "::error::SUPublicEDKey in mac/Config/Info.plist is empty, so this build couldn't check updates. Run mac/scripts/signing-secrets.sh (see Updates in mac/README.md), commit the key, and tag again."
+            exit 1
+          fi
+          if [ -z "$SPARKLE_ED_PRIVATE_KEY" ]; then
+            echo "::error::The SPARKLE_ED_PRIVATE_KEY secret isn't set, so this release can't be signed as an update. Run mac/scripts/signing-secrets.sh (see Updates in mac/README.md), then re-run this workflow."
+            exit 1
           fi
 
       - name: Build the disk image
@@ -133,6 +172,26 @@ jobs:
           set -euo pipefail
           xcrun stapler validate mac/build/Daybook.dmg
           spctl --assess --type open --context context:primary-signature --verbose=2 mac/build/Daybook.dmg
+
+      # Installed copies take the update only if its EdDSA signature checks out with
+      # the public key they shipped with (SUPublicEDKey), so check that here too.
+      # sign_update comes with the Sparkle package the build resolved.
+      - name: Sign the update
+        id: update
+        if: steps.dmg.outputs.signing == 'notarized'
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          dmg=mac/build/Daybook.dmg
+          public_key=$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' mac/build/dd/Build/Products/Release/Daybook.app/Contents/Info.plist)
+          signature=$(printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | mac/build/dd/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update --ed-key-file - -p "$dmg")
+          if ! xcrun swift mac/scripts/check-update-signature.swift "$dmg" "$signature" "$public_key"; then
+            echo "::error::SPARKLE_ED_PRIVATE_KEY isn't the private half of SUPublicEDKey in mac/Config/Info.plist, so installed copies would refuse this update."
+            exit 1
+          fi
+          { echo "signature=$signature"; echo "length=$(stat -f %z "$dmg")"; } >> "$GITHUB_OUTPUT"
+          echo "Signed for Sparkle; the release gets appcast.xml." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Remove the signing keychain
         if: always() && steps.signing.outputs.keychain != ''
@@ -171,8 +230,12 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
           MIN_MACOS: ${{ needs.build.outputs.macos }}
+          MINIMUM_SYSTEM_VERSION: ${{ needs.build.outputs.minimum-system-version }}
+          BUILD_NUMBER: ${{ needs.build.outputs.build-number }}
           SIGNING: ${{ needs.build.outputs.signing }}
           SHA256: ${{ needs.build.outputs.sha256 }}
+          UPDATE_SIGNATURE: ${{ needs.build.outputs.update-signature }}
+          UPDATE_LENGTH: ${{ needs.build.outputs.update-length }}
         run: |
           set -euo pipefail
           repo_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
@@ -195,7 +258,7 @@ jobs:
             cat >> "$section" <<'MD'
           3. Open it. It's signed with a Developer ID and notarized by Apple, so it opens like any other app.
           MD
-            update='Updating? Quit Daybook and drag the new one into Applications to replace it.'
+            update='Updating? Daybook checks for updates once a day and installs them when you say so (Daybook → Check for Updates… checks now). From Daybook 0.1.1 or earlier, quit it and drag this one into Applications once.'
           else
             cat >> "$section" <<'MD'
           3. Open it. This build isn't notarized by Apple, so the first time macOS says it "could not verify" Daybook and offers only **Done** and **Move to Trash**:
@@ -239,5 +302,42 @@ jobs:
           else
             gh release create "$TAG" dist/Daybook.dmg --verify-tag --title "Daybook for Mac $version" \
               --notes-file "$section" ${prerelease:+--prerelease}
+            cp "$section" "$notes"
           fi
           echo "Published $repo_url/releases/tag/$TAG ($SIGNING)" >> "$GITHUB_STEP_SUMMARY"
+
+          # The appcast, after the image it points to. Installed copies read the latest
+          # release's (releases/latest/download/appcast.xml, so pre-releases aren't
+          # offered). Its notes are the "What's new" above the workflow's block, as
+          # they are now: re-run this job after editing them.
+          if [ -n "$UPDATE_SIGNATURE" ]; then
+            appcast="$RUNNER_TEMP/appcast.xml"
+            whats_new=$(awk '/<!-- mac-release:start -->/ { exit } { print }' "$notes" | sed 's/]]>/]]]]><![CDATA[>/g')
+            {
+              cat <<XML
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+            <channel>
+              <title>Daybook for Mac</title>
+              <link>$repo_url/releases</link>
+              <item>
+                <title>Daybook $version</title>
+                <pubDate>$(LC_ALL=C date -u '+%a, %d %b %Y %H:%M:%S +0000')</pubDate>
+                <sparkle:version>$BUILD_NUMBER</sparkle:version>
+                <sparkle:shortVersionString>$version</sparkle:shortVersionString>
+                <sparkle:minimumSystemVersion>$MINIMUM_SYSTEM_VERSION</sparkle:minimumSystemVersion>
+                <sparkle:fullReleaseNotesLink>$repo_url/releases/tag/$TAG</sparkle:fullReleaseNotesLink>
+          XML
+              if grep -q '[^[:space:]]' <<< "$whats_new"; then
+                printf '      <description sparkle:format="markdown"><![CDATA[%s]]></description>\n' "$whats_new"
+              fi
+              cat <<XML
+                <enclosure url="$repo_url/releases/download/$TAG/Daybook.dmg" length="$UPDATE_LENGTH" type="application/octet-stream" sparkle:edSignature="$UPDATE_SIGNATURE"/>
+              </item>
+            </channel>
+          </rss>
+          XML
+            } > "$appcast"
+            gh release upload "$TAG" "$appcast" --clobber
+            echo "Appcast: $repo_url/releases/download/$TAG/appcast.xml (build $BUILD_NUMBER)" >> "$GITHUB_STEP_SUMMARY"
+          fi

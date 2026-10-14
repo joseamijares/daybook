@@ -4,7 +4,8 @@ import SwiftUI
 import UserNotifications
 
 /// Daybook for Mac: the full Daybook in a window, and a glance at today in
-/// the menu bar. Closing the window keeps the menu bar item running.
+/// the menu bar. Closing the window keeps the menu bar item running. It
+/// updates itself (Sparkle; see Updates in DaybookFeature).
 @main
 struct DaybookApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
@@ -16,6 +17,9 @@ struct DaybookApp: App {
         .defaultSize(width: 1280, height: 820)
         .windowStyle(.hiddenTitleBar)
         .commands {
+            CommandGroup(after: .appInfo) {
+                CheckForUpdatesButton(updates: delegate.updates)
+            }
             CommandGroup(replacing: .newItem) {}
             CommandMenu("Go") {
                 Button("Today") { delegate.model.open("/") }.keyboardShortcut("1")
@@ -57,6 +61,12 @@ struct MenuLabel: View {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     let model = DaybookModel()
+    let updates = Updates()
+
+    override init() {
+        super.init()
+        model.updates = updates
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().delegate = self

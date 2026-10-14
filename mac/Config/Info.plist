@@ -8,5 +8,20 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<!-- Updates (Sparkle). Each mac-v* release publishes appcast.xml next to Daybook.dmg, signed with
+	     the private half of SUPublicEDKey (the SPARKLE_ED_PRIVATE_KEY secret). mac/scripts/signing-secrets.sh
+	     fills in the key; see "Updates" in mac/README.md. Without a key the app doesn't update itself. -->
+	<key>SUFeedURL</key>
+	<string>https://github.com/joseamijares/daybook/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>Y6lAcdFNrl7qOpFKv7AhrAOR9SFdl2BodZrFPxcQcak=</string>
+	<!-- The app is sandboxed: Sparkle's installer runs outside it, through this XPC service. -->
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+	<!-- Check once a day without asking first; Settings → Updates turns it off. -->
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 </dict>
 </plist>

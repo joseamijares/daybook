@@ -4,8 +4,14 @@
 <dict>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
-	<!-- Talks to your Daybook (and loads it in the window). -->
+	<!-- Talks to your Daybook (and loads it in the window), and downloads updates. -->
 	<key>com.apple.security.network.client</key>
 	<true/>
+	<!-- Sparkle's installer and its status service, which install updates from outside the sandbox. -->
+	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
+	<array>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)-spks</string>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)-spki</string>
+	</array>
 </dict>
 </plist>

@@ -45,6 +45,17 @@ import Testing
     #expect(s.frameSentAt != nil)
 }
 
+/// Without a feed and a public key in Info.plist (a fork, or this test runner)
+/// the updater doesn't start, and nothing offers a check.
+@MainActor
+@Test func doesNotUpdateWithoutAFeedAndKey() {
+    let updates = Updates()
+    #expect(!updates.isEnabled)
+    #expect(!updates.canCheck)
+    #expect(!updates.checksAutomatically)
+    #expect(updates.available == nil)
+}
+
 /// Renders the popover to $SNAPSHOT_DIR/popover.png for a visual check
 /// (the painting itself doesn't load offline; the wall colour stands in).
 @MainActor
@@ -72,6 +83,7 @@ import Testing
                             linear: true, frame: true, frameAutoSync: false,
                             art: DBArt(title: "The Loire", artist: "Alfred Sisley", date: "1896", image: "art/x.webp", collection: nil))
     let model = DaybookModel(preview: week, session: session, now: f.date(from: "2026-10-12T15:35:00Z")!)
+    model.updates = Updates(preview: "0.1.1", available: "0.2.0")
     let renderer = ImageRenderer(content: PopoverView(model: model, scrolls: false))
     renderer.scale = 2
     let image = try #require(renderer.nsImage)
@@ -79,7 +91,7 @@ import Testing
     try #require(rep.representation(using: .png, properties: [:])).write(to: URL(fileURLWithPath: dir).appending(path: "popover.png"))
 }
 
-/// Renders Settings with the Frame design cards to $SNAPSHOT_DIR/settings.png.
+/// Renders Settings with the Frame design cards and Updates to $SNAPSHOT_DIR/settings.png.
 @MainActor
 @Test func rendersTheSettingsSnapshot() throws {
     guard let dir = ProcessInfo.processInfo.environment["SNAPSHOT_DIR"] else { return }
@@ -92,6 +104,7 @@ import Testing
         FrameDesign(id: "salon", name: "Salon", description: "The painting in its frame on the gallery wall, all day."),
         FrameDesign(id: "painting", name: "Painting", description: "The painting fills the screen, day and night."),
     ], supported: true)
+    model.updates = Updates(preview: "0.1.1", available: nil)
     let renderer = ImageRenderer(content: SettingsView(model: model, done: {}))
     renderer.scale = 2
     let image = try #require(renderer.nsImage)
