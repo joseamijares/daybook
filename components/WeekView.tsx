@@ -21,7 +21,14 @@ const Chevron = ({ back }: { back?: boolean }) => (
 export function WeekView() {
   const { session, t } = useSession();
   const { style } = useLook();
-  const [anchor, setAnchor] = useState(mondayOf(session.today));
+  const thisMonday = mondayOf(session.today);
+  const [anchor, setAnchor] = useState(thisMonday);
+  // Showing this week when a new one starts (Sunday night to Monday): follow it.
+  const [seenMonday, setSeenMonday] = useState(thisMonday);
+  if (thisMonday !== seenMonday) {
+    setSeenMonday(thisMonday);
+    if (anchor === seenMonday) setAnchor(thisMonday);
+  }
   const { data: week, reload } = useResource<Week>(`/api/week?date=${anchor}`);
   const ops = useOps(reload);
   const [over, setOver] = useState<string | null>(null);

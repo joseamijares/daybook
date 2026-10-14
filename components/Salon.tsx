@@ -12,8 +12,8 @@ import { usePathname } from 'next/navigation';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type Appearance, DEFAULT_APPEARANCE } from '@/lib/appearance';
 import { type Artwork, artFor, credit } from '@/lib/art';
-import { addDays, mondayOf } from '@/lib/time';
-import { api, getMode, type Look, LookContext, type Session, SessionContext, setMode, stringsFor } from './client';
+import { addDays, mondayOf, ymdInTz } from '@/lib/time';
+import { api, getMode, type Look, LookContext, onComeBack, type Session, SessionContext, setMode, stringsFor } from './client';
 import { Welcome } from './Welcome';
 
 export type View = 'today' | 'plan' | 'week' | 'backlog' | 'shutdown' | 'settings';
@@ -41,22 +41,27 @@ export function Salon({ children }: { children: ReactNode }) {
   }, []);
 
   // Load the session, then keep it current: a tab or the Mac window left open
-  // overnight moves on to the new day, and a failed first load tries again.
+  // overnight, or a computer waking from sleep, moves on to the new day, and a
+  // failed first load tries again.
   const loaded = useRef(false);
   useEffect(() => {
     let alive = true;
     let retry: ReturnType<typeof setTimeout> | undefined;
+    let shown: Session | null = null;
+    let asked: string | null = null;
     const load = () =>
       api<Session>('/api/session')
         .then((s) => {
           if (!alive) return;
           loaded.current = true;
+          shown = s;
           // A browser a server already lets in (its cookie, or a server with no
           // key on your own machine) is a cloud browser; no need to ask.
           if (!getMode() && s.authorized && !s.local) setMode('cloud');
           setSession(s);
         })
         .catch(() => {
+          asked = null; // just woke and the network isn't back: the clock asks again
           if (!alive || loaded.current) return;
           setMessage(stringsFor(navigator.language.toLowerCase().startsWith('es') ? 'es' : 'en').unreachable);
           clearTimeout(retry);
@@ -64,12 +69,24 @@ export function Salon({ children }: { children: ReactNode }) {
         });
     load();
     const timer = setInterval(() => document.visibilityState === 'visible' && load(), 60000);
-    window.addEventListener('focus', load);
+    // The server decides what today is; this clock only notices that the date
+    // has probably moved on and asks again at once (once per date, so a wrong
+    // clock can't keep asking).
+    const clock = setInterval(() => {
+      if (!shown) return;
+      const now = ymdInTz(new Date(), shown.tz);
+      if (now !== shown.today && now !== asked) {
+        asked = now;
+        load();
+      }
+    }, 15000);
+    const stop = onComeBack(load);
     return () => {
       alive = false;
       clearTimeout(retry);
       clearInterval(timer);
-      window.removeEventListener('focus', load);
+      clearInterval(clock);
+      stop();
     };
   }, []);
 

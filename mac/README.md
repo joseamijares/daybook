@@ -45,8 +45,19 @@ mac/scripts/package-dmg.sh                         # → mac/build/Daybook.dmg (
 DEVELOPER_ID="Developer ID Application: … (TEAMID)" NOTARY_PROFILE=daybook mac/scripts/package-dmg.sh   # signed + notarized
 ```
 
-Without a Developer ID the first launch needs System Settings → Privacy &
-Security → Open Anyway; a notarized build opens directly.
+Without a Developer ID, macOS 15 and later says it "could not verify"
+Daybook and offers only Done and Move to Trash. Choose Done, then System
+Settings → Privacy & Security → (bottom of the pane) Open Anyway → Open. Or, in
+Terminal: `xattr -d com.apple.quarantine /Applications/Daybook.app`. A notarized
+build opens directly, so ship notarized when you can. Notarizing needs an Apple
+Developer Program membership and, on the Mac that builds:
+
+1. A **Developer ID Application** certificate in the login keychain (Xcode →
+   Settings → Accounts → Manage Certificates → + → Developer ID Application).
+   Check with `security find-identity -v -p codesigning`.
+2. A notary profile: `xcrun notarytool store-credentials daybook --apple-id
+   <you> --team-id <TEAMID>` (it asks for an app-specific password from
+   account.apple.com).
 
 On first launch, enter your Daybook URL (for example
 `https://your-daybook.vercel.app`, or `http://localhost:3000` while
