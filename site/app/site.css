@@ -48,6 +48,7 @@
 
 html {
   background: var(--wall);
+  scrollbar-gutter: stable;
   color: var(--on-wall);
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
@@ -569,6 +570,24 @@ img {
   border-left: 1px solid rgba(236, 230, 216, 0.25);
   font: 500 12px/16px var(--mono);
   color: var(--on-wall-2);
+}
+/* Compact (▶ 0:50) inside a tall painting, and on phones below. */
+.is-narrow .film-play {
+  gap: 8px;
+  padding-right: 12px;
+}
+.is-narrow .film-play__text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.is-narrow .film-play__time {
+  padding-left: 0;
+  border-left: 0;
+  color: var(--bone);
 }
 
 /* ---- The video: a screening room under the hero --------------------------- */
