@@ -368,7 +368,10 @@ textarea {
   font-weight: 700;
   letter-spacing: -0.035em;
   color: var(--color-card-ink);
-  overflow-wrap: anywhere;
+  /* Never break inside a word ("Wednesda / y"): Masthead sets the heading
+     smaller when its longest word doesn't fit. */
+  overflow-wrap: normal;
+  hyphens: manual;
   text-wrap: balance;
 }
 .sub {
