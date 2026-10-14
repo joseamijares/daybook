@@ -87,10 +87,16 @@ say "Exported and checked: one identity, with its private key."
 # 2. Back up.
 backup_to_folder() {
   DIR=${BACKUP_DIR:-"$HOME/Desktop/Daybook signing backup"}
+  [ ! -L "$DIR" ] || fail "$DIR is a symlink; choose another BACKUP_DIR"
   mkdir -p "$DIR"
+  chmod 700 "$DIR"
+  # New files, not overwritten ones, so each is owner-only (umask 077) even if
+  # an older, readable copy was there.
+  P8_NAME=$(basename "$NOTARY_KEY")
+  for f in DeveloperID.p12 "DeveloperID.p12 password.txt" "$P8_NAME" README.txt; do rm -f "$DIR/$f"; done
   cp "$TMP/DeveloperID.p12" "$DIR/DeveloperID.p12"
   cp "$TMP/p12-password.txt" "$DIR/DeveloperID.p12 password.txt"
-  cp "$NOTARY_KEY" "$DIR/"
+  cp "$NOTARY_KEY" "$DIR/$P8_NAME"
   printf 'Identity: %s\nTeam ID: %s\nAPI key ID: %s\nIssuer ID: %s\n' \
     "$IDENTITY" "$TEAM" "$KEY_ID" "${NOTARY_ISSUER:-(individual key)}" > "$DIR/README.txt"
   say "Backup written to $DIR. Move it into your password manager, then delete the folder."
