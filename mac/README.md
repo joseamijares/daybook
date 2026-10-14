@@ -199,15 +199,18 @@ gh secret set SPARKLE_ED_PRIVATE_KEY < sparkle-key.txt   # then delete the file
 
 Build two versions signed with your Developer ID (no need to notarize them),
 the second with a higher `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION`, and
-keep a copy of the first `Daybook.app`. Sign the second image and put it with
+keep a copy of the first `Daybook.app`. If Daybook is running on that Mac, give
+both builds another `PRODUCT_BUNDLE_IDENTIFIER` (say `dev.daybook.mac.updatetest`)
+so the test copy has its own settings. Sign the second image and put it with
 an `appcast.xml` (copy the release job's) in a folder:
 
 ```bash
 sign_update --account daybook mac/build/Daybook.dmg     # sparkle:edSignature="…" length="…" for the enclosure
-python3 -m http.server 8000                              # in the folder with appcast.xml and the image
-open -n Daybook.app --args -DaybookAppcastURL http://localhost:8000/appcast.xml
+python3 -m http.server 8000 --bind 127.0.0.1             # in the folder with appcast.xml and the image
+open -n Daybook.app --args -DaybookAppcastURL http://127.0.0.1:8000/appcast.xml
 ```
 
-Then Daybook → Check for Updates…. The `-DaybookAppcastURL` argument only
-changes the feed for that launch, and the update still has to be signed with
-the key in `Info.plist`.
+With automatic checks on, the first launch checks right away; otherwise use
+Daybook → Check for Updates…. The `-DaybookAppcastURL` argument only changes
+the feed for that launch (the relaunched app reads the real one again), and
+the update still has to be signed with the key in `Info.plist`.
