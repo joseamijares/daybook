@@ -217,6 +217,9 @@ jobs:
           <!-- mac-release:end -->
           MD
 
+          version=${TAG#mac-v}
+          prerelease=
+          case "$version" in *-*) prerelease=yes ;; esac
           body="$RUNNER_TEMP/body.md"
           notes="$RUNNER_TEMP/notes.md"
           if gh release view "$TAG" --json body --jq '.body // ""' > "$body" 2> /dev/null; then
@@ -232,11 +235,8 @@ jobs:
             else
               cp "$section" "$notes"
             fi
-            gh release edit "$TAG" --notes-file "$notes"
+            gh release edit "$TAG" --notes-file "$notes" ${prerelease:+--prerelease}
           else
-            version=${TAG#mac-v}
-            prerelease=
-            case "$version" in *-*) prerelease=yes ;; esac
             gh release create "$TAG" dist/Daybook.dmg --verify-tag --title "Daybook for Mac $version" \
               --notes-file "$section" ${prerelease:+--prerelease}
           fi

@@ -36,8 +36,10 @@ build() {
 
 if [ -n "${DEVELOPER_ID:-}" ]; then
   # Each setting is its own argument, so an identity with spaces stays whole.
+  # The team comes from the identity's "(TEAMID)"; an identity given as a
+  # SHA-1 hash has none, and the build goes on without setting it.
   TEAM=$(printf '%s\n' "$DEVELOPER_ID" | sed -n 's/.*(\([A-Z0-9]*\))$/\1/p')
-  build "CODE_SIGN_IDENTITY=$DEVELOPER_ID" "DEVELOPMENT_TEAM=$TEAM" CODE_SIGN_STYLE=Manual \
+  build "CODE_SIGN_IDENTITY=$DEVELOPER_ID" ${TEAM:+"DEVELOPMENT_TEAM=$TEAM"} CODE_SIGN_STYLE=Manual \
     ENABLE_HARDENED_RUNTIME=YES OTHER_CODE_SIGN_FLAGS=--timestamp
 else
   build CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=

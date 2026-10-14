@@ -95,7 +95,8 @@ struct WebView: NSViewRepresentable {
             webView = view
             let wake = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated {
-                    Task { @MainActor [weak self] in
+                    // Typed: as assumeIsolated's result, a bare Task is ambiguous to Xcode 26's compiler.
+                    Task<Void, Never> { @MainActor [weak self] in
                         try? await Task.sleep(for: .seconds(2))
                         self?.comeBack()
                     }
