@@ -23,7 +23,7 @@ public final class Updates: NSObject {
     public var checksAutomatically: Bool {
         get {
             access(keyPath: \.checksAutomatically)
-            return controller?.updater.automaticallyChecksForUpdates ?? false
+            return controller?.updater.automaticallyChecksForUpdates ?? previewChecks
         }
         set {
             withMutation(keyPath: \.checksAutomatically) {
@@ -36,6 +36,7 @@ public final class Updates: NSObject {
     static let releasesPage = URL(string: "https://github.com/joseamijares/daybook/releases")!
 
     @ObservationIgnored private var controller: SPUStandardUpdaterController?
+    @ObservationIgnored private var previewChecks = false
     @ObservationIgnored private var observation: NSKeyValueObservation?
 
     override public init() {
@@ -59,6 +60,7 @@ public final class Updates: NSObject {
         self.version = version
         self.available = available
         canCheck = true
+        previewChecks = true
         super.init()
     }
 

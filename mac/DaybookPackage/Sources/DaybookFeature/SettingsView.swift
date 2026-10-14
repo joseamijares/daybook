@@ -115,7 +115,7 @@ struct UpdatesSection: View {
     var body: some View {
         SettingsSection(title: "Updates") {
             if updates.isEnabled {
-                SettingRow(title: "Check automatically", caption: "Once a day. Daybook asks before it installs anything.") {
+                SettingRow(title: "Check automatically", caption: "Once a day, in the background.") {
                     SalonToggle(isOn: $updates.checksAutomatically)
                 }
                 SettingRow(
