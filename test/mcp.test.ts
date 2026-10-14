@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from '@/app/api/mcp/route';
 import { fileStore, setStore } from '@/lib/store';
 
@@ -59,5 +59,29 @@ describe('REST', () => {
     const { POST: create } = await import('@/app/api/tasks/route');
     const res = await create(new Request('http://localhost/api/tasks', { method: 'POST', body: JSON.stringify({ text: 'Someday 1h', date: null }) }), undefined);
     expect((await res.json()).task.date).toBeNull();
+  });
+
+  it("ignores a Linear source sent by a client (only the Linear sync sets it)", async () => {
+    const { POST: create } = await import('@/app/api/tasks/route');
+    const source = { kind: 'linear', id: 'issue-1', identifier: 'ENG-1', url: 'https://linear.app/x/issue/ENG-1' };
+    const res = await create(new Request('http://localhost/api/tasks', { method: 'POST', body: JSON.stringify({ title: 'Looks linked', source }) }), undefined);
+    expect((await res.json()).task.source).toBeNull();
+  });
+});
+
+describe('without DAYBOOK_KEY', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('is open on a development server', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    expect((await rpc({ jsonrpc: '2.0', id: 9, method: 'ping' })).status).toBe(200);
+  });
+
+  it('refuses everyone on any production server, not only on Vercel', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    expect((await rpc({ jsonrpc: '2.0', id: 10, method: 'ping' })).status).toBe(401);
+    const { isOwner, openWithoutKey } = await import('@/lib/auth');
+    expect(openWithoutKey()).toBe(false); // so GET /api/session offers no cloud Daybook
+    expect(await isOwner(new Request('http://localhost/api/export'))).toBe(false);
   });
 });

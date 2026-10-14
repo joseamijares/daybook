@@ -1,6 +1,8 @@
 # Daybook for Mac
 
 The full Daybook in a window, plus a glance at today in the menu bar.
+[Download Daybook.dmg](https://github.com/joseamijares/daybook/releases/latest/download/Daybook.dmg):
+signed with Developer ID and notarized, macOS 14 or later.
 
 - **Window:** the web app itself (Today, Week, Backlog, Shut down), with the
   painting of the day. Use ⌘1–⌘4 for the four screens. The page signs itself
@@ -111,3 +113,15 @@ notarized, which macOS 15+ still blocks the same way, and the notes say so.
 The API key wins when both are set. Only tag builds get the secrets. The
 workflow imports the certificate into a temporary keychain, deletes it
 afterwards, and never prints a secret.
+
+On the Mac that holds the certificate and the API key, one script exports
+the Developer ID identity (and no other) to a `.p12` with a new password,
+backs it up with the `.p8` to 1Password (`op` CLI; otherwise to a folder on
+your Desktop), and sets all five secrets with `gh`. It prints no secret:
+
+```bash
+NOTARY_ISSUER=<Issuer ID> mac/scripts/signing-secrets.sh
+```
+
+The header of [`scripts/signing-secrets.sh`](scripts/signing-secrets.sh)
+lists its options.

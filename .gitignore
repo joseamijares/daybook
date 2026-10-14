@@ -23,6 +23,10 @@
 # misc
 .DS_Store
 *.pem
+# signing material (Developer ID .p12, App Store Connect .p8)
+*.p12
+*.p8
+AuthKey_*
 
 # debug
 npm-debug.log*

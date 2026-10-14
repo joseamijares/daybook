@@ -134,7 +134,10 @@ struct WebView: NSViewRepresentable {
                     webView.animator().alphaValue = 1
                 }
             }
-            guard !triedSignIn, !key.isEmpty else { return }
+            // The key goes only to the Daybook set in Settings: never to a page a
+            // redirect or a script took the window to.
+            guard !triedSignIn, !key.isEmpty, let page = webView.url, let home = loaded,
+                  page.scheme == home.scheme, page.host == home.host, page.port == home.port else { return }
             triedSignIn = true
             // Sign the page in with the saved key if it isn't already, then reload.
             // callAsyncJavaScript runs this as the body of an async function:
