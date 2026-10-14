@@ -139,7 +139,7 @@ if [ "${SKIP_GITHUB:-}" = 1 ]; then
   say "Skipping GitHub (SKIP_GITHUB=1)."
 else
   REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
-  say "Setting the secrets on $REPO…"
+  say "Setting the secrets on ${REPO}…"
   base64 -i "$TMP/DeveloperID.p12" | gh secret set DEVELOPER_ID_P12 --repo "$REPO"
   gh secret set DEVELOPER_ID_P12_PASSWORD --repo "$REPO" < "$TMP/p12-password.txt"
   gh secret set NOTARY_KEY_P8 --repo "$REPO" < "$NOTARY_KEY"
