@@ -29,7 +29,8 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
 - `cli/daybook.mjs` must stay dependency-free; it runs straight from a clone.
 - `mac/` is the SwiftUI Mac app (window = the web app in a WKWebView; menu bar popover = native, reading
   `/api/session` and `/api/week`). Mirror API shape changes in `mac/DaybookPackage/Sources/DaybookFeature/Models.swift`
-  and run `swift test --package-path mac/DaybookPackage`.
+  and run `swift test --package-path mac/DaybookPackage`. The window tells the page the app's version and updates
+  (`window.daybookMac`, `components/mac.ts`), and only your Daybook's own page can ask it to check.
 - Motion lives in `app/globals.css` (section "Motion") and must respect `prefers-reduced-motion`.
 - `lib/secrets.ts` stores integration keys set in Settings, encrypted, and env vars win. `lib/tokens.ts` holds
   agent tokens (hashed). `lib/auth.ts`: `authorized()` accepts the master key, tokens or the session cookie;

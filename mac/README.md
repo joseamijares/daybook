@@ -165,6 +165,13 @@ service). `package-dmg.sh` signs Sparkle's helpers with the Developer ID and
 the hardened runtime, which `xcodebuild build` doesn't do for them; the
 notary service rejects the app otherwise.
 
+The window's own Settings (the web app's gear) shows it too: the app sets
+`window.daybookMac` (version, the update found) on your Daybook's pages, and
+the page's Update and Check now ask the app to open its update window
+(`components/mac.ts`; nothing shows in a browser). Launch with
+`-DaybookPreviewUpdate 0.9.9` to see the "available" state before there's a
+newer release.
+
 Builds without a feed or key (a fork, say) don't update themselves, and
 Settings links to the releases instead. Debug builds check only when you ask.
 
