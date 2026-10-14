@@ -5,6 +5,9 @@
 - The landing page (`site/`): the painting of the day in a salon hang among the
   collection, today as the app hangs it, the next 44 paintings, morning and
   evening, the Frame at home, the Mac app and agents. English and Spanish.
+- The landing page shows the 50-second video: a play button in today's gilt
+  frame opens it in a lightbox, and it plays in a screening room under the
+  hero (the 9:16 cut on phones).
 
 ## 0.1.0 (first public release)
 

@@ -491,6 +491,214 @@ img {
   width: 100%;
 }
 
+/* The play button inside today's gilt frame. It opens the video in the
+   screening-room lightbox (or, without JavaScript, scrolls to it). */
+.work--today .work__inner {
+  position: relative;
+}
+.film-play {
+  position: absolute;
+  left: calc(14 * var(--u));
+  bottom: calc(14 * var(--u));
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 14px 5px 5px;
+  border: 1px solid rgba(236, 230, 216, 0.22);
+  border-radius: 999px;
+  background: rgba(17, 22, 19, 0.58);
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  color: var(--bone);
+  font: 600 13px/16px var(--sans);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.3s var(--ease-gallery),
+    border-color 0.3s var(--ease-gallery),
+    translate 0.2s var(--ease-gallery),
+    scale 0.16s var(--ease-gallery);
+}
+.film-play:hover {
+  background: rgba(17, 22, 19, 0.8);
+  border-color: rgba(236, 230, 216, 0.45);
+  translate: 0 -1px;
+}
+.film-play:active {
+  scale: 0.97;
+}
+.film-play:focus-visible,
+.screen__close:focus-visible {
+  outline: 2px solid var(--gilt);
+  outline-offset: 3px;
+}
+.film-play__icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--brass);
+  box-shadow: inset 0 1px 0 rgba(255, 240, 200, 0.55);
+  color: #2a2013;
+  transition: scale 0.3s var(--ease-gallery);
+}
+.film-play:hover .film-play__icon {
+  scale: 1.08;
+}
+.film-play__icon svg {
+  width: 11px;
+  height: 11px;
+  translate: 1px 0;
+  fill: currentColor;
+}
+.film-play__icon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--gilt);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.film-play__time {
+  padding-left: 10px;
+  border-left: 1px solid rgba(236, 230, 216, 0.25);
+  font: 500 12px/16px var(--mono);
+  color: var(--on-wall-2);
+}
+
+/* ---- The video: a screening room under the hero --------------------------- */
+
+.film {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 110px 68px 130px;
+  scroll-margin-top: 24px;
+}
+.film__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 48px;
+  margin-bottom: 56px;
+}
+.film h2 {
+  margin-top: 14px;
+  font: 400 72px/70px var(--serif);
+  letter-spacing: -0.02em;
+}
+.film__body {
+  width: 440px;
+  flex-shrink: 0;
+  font-size: 18px;
+  line-height: 28px;
+  color: var(--on-wall-2);
+}
+.film__work {
+  position: relative;
+  max-width: min(1180px, calc((100vh - 140px) * 16 / 9));
+  margin: 0 auto;
+}
+/* A picture light's pool on the wall behind the screen. */
+.film__work::before {
+  content: '';
+  position: absolute;
+  inset: -12% 8% 30%;
+  z-index: -1;
+  border-radius: 50%;
+  background: var(--lamp-light);
+  filter: blur(70px);
+  pointer-events: none;
+}
+.film__frame,
+.screen__frame {
+  padding: 12px;
+  background: var(--frame-black);
+  box-shadow:
+    0 40px 90px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(200, 164, 92, 0.35);
+}
+.film-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--wall);
+  object-fit: contain;
+}
+.film__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: max-content;
+  max-width: 100%;
+  margin: 24px 0 0 auto;
+  padding: 12px 16px;
+  background: var(--bone);
+  color: var(--ink);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+  line-height: 18px;
+}
+.film__label em {
+  font: italic 400 20px/24px var(--serif);
+}
+.film__label span {
+  color: var(--ink-2);
+}
+
+/* The lightbox: the wall goes dark and the video hangs in the middle. */
+.screen {
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  background: transparent;
+  color: var(--bone);
+}
+.screen::backdrop {
+  background: rgba(8, 10, 9, 0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.screen .film-video {
+  width: min(calc(100vw - 96px), calc((100vh - 150px) * 16 / 9), 1600px);
+}
+.screen__close {
+  position: absolute;
+  top: -52px;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(236, 230, 216, 0.3);
+  border-radius: 50%;
+  background: rgba(17, 22, 19, 0.6);
+  color: var(--bone);
+  cursor: pointer;
+  transition: border-color 0.3s var(--ease-gallery);
+}
+.screen__close:hover {
+  border-color: rgba(236, 230, 216, 0.75);
+}
+.screen__close svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+html:has(.screen[open]) {
+  overflow: hidden;
+}
+
 /* ---- Today, as the app hangs it ------------------------------------------ */
 
 .today {
@@ -1670,6 +1878,78 @@ img {
   translate: 0 0;
 }
 
+/* The video: the play button is hung after today's painting settles and
+   rings twice; the screening room lights up like a painting. */
+@keyframes ring {
+  from {
+    opacity: 0.85;
+    scale: 1;
+  }
+  to {
+    opacity: 0;
+    scale: 2;
+  }
+}
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 14px;
+  }
+}
+.js .hang .film-play {
+  opacity: 0;
+}
+.js .hang.is-lit .film-play {
+  opacity: 1;
+  animation: rise 0.8s var(--ease-gallery) 2s backwards;
+}
+.js .hang.is-lit .film-play__icon::after {
+  animation: ring 1.8s var(--ease-gallery) 2.8s 2;
+}
+.screen[open] {
+  animation: screen-in 0.55s var(--ease-gallery);
+}
+.screen[open]::backdrop {
+  animation: light-up 0.4s var(--ease-gallery);
+}
+.js .film__head > * {
+  transition:
+    opacity 0.9s var(--ease-gallery),
+    translate 0.9s var(--ease-gallery);
+}
+.film__head > :nth-child(2) { transition-delay: 0.12s; }
+.js .film__head:not(.is-in) > * {
+  opacity: 0;
+  translate: 0 14px;
+}
+.js .film__frame {
+  transition:
+    opacity 1.4s var(--ease-gallery),
+    scale 1.6s var(--ease-gallery),
+    filter 1.6s var(--ease-gallery);
+}
+.js .film__work:not(.is-in) .film__frame {
+  opacity: 0;
+  scale: 1.03;
+  filter: blur(6px);
+}
+.js .film__work::before {
+  transition: opacity 2.2s var(--ease-gallery) 0.2s;
+}
+.js .film__work:not(.is-in)::before {
+  opacity: 0;
+}
+.js .film__label {
+  transition:
+    opacity 0.8s var(--ease-gallery) 0.7s,
+    translate 0.8s var(--ease-gallery) 0.7s;
+}
+.js .film__work:not(.is-in) .film__label {
+  opacity: 0;
+  translate: 0 10px;
+}
+
 /* Today: the painting lights up, then the placard is hung and its lines
    rise in order; the load bar fills and the invoice gets ticked. */
 .js .today__art img {
@@ -1920,6 +2200,58 @@ img {
     width: calc(180 * var(--u));
   }
 
+  .film-play {
+    left: calc(8 * var(--u));
+    bottom: calc(8 * var(--u));
+    gap: 7px;
+    padding: 4px 10px 4px 4px;
+  }
+  .film-play__icon {
+    width: 26px;
+    height: 26px;
+  }
+  .film-play__text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .film-play__time {
+    padding-left: 0;
+    border-left: 0;
+    color: var(--bone);
+  }
+
+  .film {
+    padding: 64px 20px 72px;
+  }
+  .film__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .film h2 {
+    font-size: 44px;
+    line-height: 44px;
+  }
+  .film__body {
+    width: auto;
+    font-size: 16px;
+    line-height: 25px;
+  }
+  .film__frame {
+    padding: 8px;
+  }
+  .film__label {
+    margin-top: 16px;
+  }
+  .screen .film-video {
+    width: min(calc(100vw - 32px), calc((100vh - 150px) * 16 / 9));
+  }
+
   .hero__label {
     position: relative;
     left: auto;
@@ -2117,4 +2449,26 @@ img {
 
 .today__credit > * {
   max-width: 600px;
+}
+
+/* Phones held upright get the 9:16 cut, in the page and in the lightbox
+   (the same query as the <source media> in components/Film.tsx). */
+@media (max-width: 700px) and (orientation: portrait) {
+  .film-video {
+    aspect-ratio: 9 / 16;
+  }
+  .film__frame {
+    width: fit-content;
+    margin: 0 auto;
+  }
+  .film__frame .film-video {
+    width: min(calc(100vw - 56px), calc(78svh * 9 / 16));
+  }
+  .screen .film-video {
+    width: min(calc(100vw - 40px), calc((100svh - 150px) * 9 / 16));
+  }
+  .film__label {
+    margin-left: auto;
+    margin-right: auto;
+  }
 }

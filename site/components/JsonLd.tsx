@@ -1,7 +1,7 @@
 import type { Copy } from '@site/lib/copy';
-import { MAC_DOWNLOAD_URL, REPO_URL, SITE_URL } from '@site/lib/site';
+import { FILM, MAC_DOWNLOAD_URL, REPO_URL, SITE_URL } from '@site/lib/site';
 
-// Structured data in the server HTML: the app, the site, and the visible FAQ.
+// Structured data in the server HTML: the app, the site, the video and the visible FAQ.
 export function JsonLd({ c }: { c: Copy }) {
   const url = c.lang === 'es' ? `${SITE_URL}/es` : SITE_URL;
   const graph = [
@@ -20,6 +20,16 @@ export function JsonLd({ c }: { c: Copy }) {
       sameAs: [REPO_URL],
     },
     { '@type': 'WebSite', name: 'Daybook', url: SITE_URL, inLanguage: c.lang },
+    {
+      '@type': 'VideoObject',
+      name: c.film.work,
+      description: c.film.body,
+      thumbnailUrl: `${SITE_URL}${FILM.poster}`,
+      contentUrl: `${SITE_URL}${FILM.landscape}`,
+      uploadDate: FILM.published,
+      duration: FILM.duration,
+      inLanguage: 'en',
+    },
     {
       '@type': 'FAQPage',
       inLanguage: c.lang,

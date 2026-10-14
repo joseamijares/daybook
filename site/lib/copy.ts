@@ -21,6 +21,16 @@ const en = {
     hangsToday: 'On the wall today',
     hangsOn: 'Hangs next on {date}',
   },
+  film: {
+    watch: 'Watch the video',
+    length: '0:50',
+    eyebrow: 'The video',
+    title: 'Daybook in fifty seconds.',
+    body: 'Plan the morning, work the day, shut down at night and let your agents do the typing: in the browser, on your Mac and on the wall. No sound needed.',
+    work: 'Daybook, in fifty seconds',
+    medium: '2026 · Moving image, silent · 0:50',
+    close: 'Close the video',
+  },
   today: {
     caption: 'Today on every Daybook, as the app hangs it',
     source: 'Source',
@@ -205,6 +215,16 @@ const es: Copy = {
     plaque: 'Hoy',
     hangsToday: 'En el muro hoy',
     hangsOn: 'Vuelve a colgarse el {date}',
+  },
+  film: {
+    watch: 'Ver el video',
+    length: '0:50',
+    eyebrow: 'El video',
+    title: 'Daybook en cincuenta segundos.',
+    body: 'Planea la mañana, trabaja el día, cierra al atardecer y deja que tus agentes escriban por ti: en el navegador, en tu Mac y en la pared. No necesita sonido.',
+    work: 'Daybook, en cincuenta segundos',
+    medium: '2026 · Imagen en movimiento, sin sonido, en inglés · 0:50',
+    close: 'Cerrar el video',
   },
   today: {
     caption: 'Hoy en cada Daybook, como lo cuelga la app',
