@@ -112,7 +112,12 @@ export function SalonHang({ c }: { c: Copy }) {
         );
       })}
 
-      <figure className="work work--gilt work--today" data-mobile="1" style={centerVars}>
+      {/* A tall painting (narrower than 320 on the 1440 wall) gets the compact play button. */}
+      <figure
+        className={`work work--gilt work--today${center.d.w < 320 ? ' is-narrow' : ''}`}
+        data-mobile="1"
+        style={centerVars}
+      >
         <div className="work__frame">
           <div className="work__inner">
             <Painting a={today} priority />
