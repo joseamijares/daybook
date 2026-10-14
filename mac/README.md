@@ -95,8 +95,8 @@ ad-hoc and without secrets, and keep it as a workflow artifact.
 
 With these repository secrets (Settings → Secrets and variables → Actions) a
 tag build is signed with the Developer ID, notarized and stapled. Without the
-certificate it's ad-hoc signed and the notes carry the Open Anyway steps
-above. With the certificate but no notary secrets it's signed but not
+certificate it's ad-hoc signed and the notes carry the Done → Open Anyway
+steps. With the certificate but no notary secrets it's signed but not
 notarized, which macOS 15+ still blocks the same way, and the notes say so.
 
 | Secret | What |
