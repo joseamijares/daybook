@@ -5,6 +5,7 @@ import type { Task } from '@/lib/daybook';
 import { dow, fill, weekdayName } from '@/lib/i18n';
 import { minutesLabel } from '@/lib/time';
 import { useLook, useSession } from './client';
+import type { SortRow } from './sortable';
 
 export function Check({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
   return (
@@ -36,7 +37,7 @@ export const Handle = () => (
 );
 
 export type Move = 'today' | 'tomorrow' | 'backlog';
-type Patch = { title?: string; date?: string | null; tag?: string | null; estimate?: number | null };
+export type Patch = { title?: string; date?: string | null; tag?: string | null; estimate?: number | null };
 
 interface Props {
   task: Task;
@@ -46,11 +47,9 @@ interface Props {
   moves?: Move[];
   /** Tags used elsewhere, offered when tagging. */
   tags?: string[];
-  draggable?: boolean;
-  dropBefore?: boolean;
-  onDragStart?: () => void;
-  onDragEnd?: () => void;
-  onDragOver?: () => void;
+  /** From useSortable: makes the row draggable within its list. */
+  sort?: SortRow;
+  dragging?: boolean;
 }
 
 // "45m", "1h30", "1.5h", "90" → minutes; "" → no estimate; anything else → undefined.
@@ -78,9 +77,8 @@ export function useTaskNotes(task: Task, short = false) {
   return { carried, linearState };
 }
 
-export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow', 'backlog'], tags = [], ...drag }: Props) {
+export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow', 'backlog'], tags = [], sort, dragging }: Props) {
   const [open, setOpen] = useState(false);
-  const [dragging, setDragging] = useState(false);
   const { carried, linearState } = useTaskNotes(task);
 
   const meta: React.ReactNode[] = [];
@@ -107,22 +105,9 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
   return (
     <>
       <div
-        className={['row', 'hoverable', task.done && 'is-done', dragging && 'dragging', drag.dropBefore && 'drop-before'].filter(Boolean).join(' ')}
-        draggable={drag.draggable && !open}
-        onDragStart={(e) => {
-          e.dataTransfer.setData('text/plain', task.id);
-          e.dataTransfer.effectAllowed = 'move';
-          setDragging(true);
-          drag.onDragStart?.();
-        }}
-        onDragEnd={() => {
-          setDragging(false);
-          drag.onDragEnd?.();
-        }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          drag.onDragOver?.();
-        }}
+        className={['row', 'hoverable', task.done && 'is-done', dragging && 'dragging'].filter(Boolean).join(' ')}
+        draggable={Boolean(sort) && !open}
+        {...sort}
       >
         <Check on={task.done} onClick={onToggle} label={task.title} />
         <div className="body" role="button" tabIndex={0} aria-expanded={open} onClick={toggleOpen} onKeyDown={onKey}>
@@ -145,7 +130,7 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
 
 // An open task, in place: rename it, tag it, time it, move it or delete it.
 // Enter saves, Escape closes without saving.
-function Editor({
+export function Editor({
   task,
   tags,
   moves,

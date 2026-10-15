@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import type { Task } from '@/lib/daybook';
 import { fill } from '@/lib/i18n';
 import { Masthead } from './Masthead';
@@ -15,6 +17,9 @@ export function BacklogView() {
   const linear = list.filter((x) => x.source);
   const own = list.filter((x) => !x.source);
   const tags = list.map((x) => x.tag).filter((x): x is string => Boolean(x));
+  // Opened from planning (/backlog?plan=YYYY-MM-DD): offer the way back.
+  const plan = useSearchParams().get('plan');
+  const backToPlan = plan && /^\d{4}-\d{2}-\d{2}$/.test(plan) ? (plan === session.today ? '/plan' : `/plan?date=${plan}`) : null;
 
   const group = (title: string, tasks: Task[]) =>
     tasks.length > 0 && (
@@ -45,10 +50,22 @@ export function BacklogView() {
         title={t.backlog}
         sub={session.linear ? fill(t.backlogSub, { n: list.length, linear: linear.length }) : (list.length === 1 ? t.oneTask : fill(t.tasksN, { n: list.length }))}
         actions={
-          session.linear && (
-            <button type="button" className="pill" onClick={() => ops.syncLinear()}>
-              {t.syncLinear}
-            </button>
+          (backToPlan || session.linear) && (
+            <>
+              {session.linear && (
+                <button type="button" className="pill" onClick={() => ops.syncLinear()}>
+                  {t.syncLinear}
+                </button>
+              )}
+              {backToPlan && (
+                <Link className="pill solid" href={backToPlan}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+                    <path d="M7.5 2.5 4 6l3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {t.backToPlan}
+                </Link>
+              )}
+            </>
           )
         }
       />
