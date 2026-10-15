@@ -175,6 +175,19 @@ newer release.
 Builds without a feed or key (a fork, say) don't update themselves, and
 Settings links to the releases instead. Debug builds check only when you ask.
 
+### Opening
+
+On a cold launch the window plays the landing's salon hang
+(`LaunchScene.swift`; Paper: "Mac · Launch" and its motion spec on
+"v3 · Placard"): the picture lamp warms, the works hang (small copies in
+`Art/Hang`, placed as in `site/lib/hang.ts`), then Daybook's mark and today's
+date. Meanwhile the page loads hidden and signs in with the saved key, so its
+key screen never shows. The scene gives way once it has played (2.6s) and the
+page has said `ready` through the same message handler as Update
+(`components/mac.ts`); a Daybook from before `ready` gets 1.5s after its
+signed-in page loads, and nothing waits more than 8s. Reopening the window
+skips the scene, and Reduce Motion shows it without movement.
+
 ### The key, once
 
 Sparkle's key pair is made once and kept: installed copies accept only updates

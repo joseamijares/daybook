@@ -57,7 +57,11 @@ export function useDaybookMac() {
   return useSyncExternalStore(subscribe, snapshot, () => null);
 }
 
-/** Asks the Mac app to check for updates, or to show the one it found (Sparkle's window installs it). */
-export function askMac(action: 'check' | 'install') {
+/**
+ * Asks the Mac app to check for updates, or to show the one it found (Sparkle's
+ * window installs it), or tells it the page is ready: signed in and painted, so
+ * its launch scene can give way to the app.
+ */
+export function askMac(action: 'check' | 'install' | 'ready') {
   window.webkit?.messageHandlers?.daybookMac?.postMessage({ action });
 }

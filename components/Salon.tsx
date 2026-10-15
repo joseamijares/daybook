@@ -14,6 +14,7 @@ import { type Appearance, DEFAULT_APPEARANCE } from '@/lib/appearance';
 import { type Artwork, artFor, credit } from '@/lib/art';
 import { addDays, mondayOf, ymdInTz } from '@/lib/time';
 import { api, getMode, type Look, LookContext, onComeBack, type Session, SessionContext, setMode, stringsFor } from './client';
+import { askMac } from './mac';
 import { UpdateMark } from './updates';
 import { Welcome } from './Welcome';
 
@@ -41,10 +42,20 @@ export function Salon({ children }: { children: ReactNode }) {
     setSession(await api<Session>('/api/session'));
   }, []);
 
+  // In the Mac app's window: the page has its session and is about to paint, so
+  // the window's launch scene can give way to it (once; nothing in a browser).
+  const toldMac = useRef(false);
+  useEffect(() => {
+    if (!session || toldMac.current) return;
+    toldMac.current = true;
+    requestAnimationFrame(() => askMac('ready'));
+  }, [session]);
+
   // Load the session, then keep it current: a tab or the Mac window left open
   // overnight, or a computer waking from sleep, moves on to the new day, and a
   // failed first load tries again.
   const loaded = useRef(false);
+
   useEffect(() => {
     let alive = true;
     let retry: ReturnType<typeof setTimeout> | undefined;
