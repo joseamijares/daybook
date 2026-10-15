@@ -63,12 +63,28 @@ if [ -n "${DEVELOPER_ID:-}" ]; then
   codesign --verify --deep --strict "$APP"
 fi
 
-mkdir -p "$STAGE"
-cp -R "$APP" "$STAGE/"
-ln -s /Applications "$STAGE/Applications"
-hdiutil create -volname Daybook -srcfolder "$STAGE" -ov -format UDZO "$DMG" -quiet
-# The staging folder links to /Applications; don't leave it for tools that walk the repo.
-rm -rf "$STAGE"
+# The window the image opens in: Daybook in a gilt frame, an arrow to Applications
+# (dmg/settings.py, drawn in Paper). dmgbuild writes it without scripting Finder,
+# so it works on CI too; it comes from uvx or pipx. Without either, a plain window.
+if command -v uvx > /dev/null 2>&1; then
+  DMGBUILD="uvx --from dmgbuild==1.6.7 dmgbuild"
+elif command -v pipx > /dev/null 2>&1; then
+  DMGBUILD="pipx run --spec dmgbuild==1.6.7 dmgbuild"
+else
+  DMGBUILD=""
+fi
+rm -f "$DMG"
+if [ -n "$DMGBUILD" ]; then
+  $DMGBUILD -s dmg/settings.py -D app="$APP" -D background="$(pwd)/dmg/background.tiff" Daybook "$DMG"
+else
+  echo "warning: no uvx or pipx, so Daybook.dmg opens in a plain window" >&2
+  mkdir -p "$STAGE"
+  cp -R "$APP" "$STAGE/"
+  ln -s /Applications "$STAGE/Applications"
+  hdiutil create -volname Daybook -srcfolder "$STAGE" -ov -format UDZO "$DMG" -quiet
+  # The staging folder links to /Applications; don't leave it for tools that walk the repo.
+  rm -rf "$STAGE"
+fi
 
 if [ -n "${DEVELOPER_ID:-}" ]; then
   codesign --sign "$DEVELOPER_ID" --timestamp "$DMG"
