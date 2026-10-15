@@ -203,32 +203,53 @@ struct WebView: NSViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            if webView.alphaValue < 1 {
-                NSAnimationContext.runAnimationGroup { ctx in
-                    ctx.duration = 1.2
-                    ctx.timingFunction = CAMediaTimingFunction(controlPoints: 0.22, 1, 0.36, 1)
-                    webView.animator().alphaValue = 1
-                }
-            }
             // The key goes only to the Daybook set in Settings: never to a page a
             // redirect or a script took the window to.
             guard !triedSignIn, !key.isEmpty, let page = webView.url, let home = loaded,
-                  page.scheme == home.scheme, page.host == home.host, Self.port(page) == Self.port(home) else { return }
+                  page.scheme == home.scheme, page.host == home.host, Self.port(page) == Self.port(home) else {
+                return show(webView)
+            }
             triedSignIn = true
-            // Sign the page in with the saved key if it isn't already, then reload.
-            // callAsyncJavaScript runs this as the body of an async function:
-            // it has to `return` (and await) the result, or the window reloads
-            // before the sign-in lands and shows the page's own key form.
+            // Sign the page in with the saved key before the window shows it, so
+            // the page's own key screen never flashes by. callAsyncJavaScript runs
+            // this as the body of an async function: it has to `return` (and
+            // await) the result, or the window moves on before the sign-in lands.
+            // This window opens a cloud Daybook, so the page never keeps its days
+            // "on this device" here.
             let js = """
+            const local = localStorage.getItem('daybook.mode') === 'local';
             const s = await fetch('/api/session', { credentials: 'same-origin' }).then(r => r.json());
-            if (s.authorized) return false;
-            const r = await fetch('/api/session', { method: 'POST', credentials: 'same-origin',
-              headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: KEY }) });
-            return r.ok;
+            if (!s.authorized) {
+              const r = await fetch('/api/session', { method: 'POST', credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: KEY }) });
+              if (!r.ok) return 'failed';
+            }
+            localStorage.setItem('daybook.mode', 'cloud');
+            return s.authorized && !local ? 'in' : 'signed';
             """
             let encoded = (try? String(data: JSONEncoder().encode(key), encoding: .utf8)) ?? "\"\""
-            webView.callAsyncJavaScript(js.replacingOccurrences(of: "KEY", with: encoded), arguments: [:], in: nil, in: .page) { result in
-                if case let .success(value) = result, (value as? Bool) == true { webView.reload() }
+            webView.callAsyncJavaScript(js.replacingOccurrences(of: "KEY", with: encoded), arguments: [:], in: nil, in: .page) { [weak self] result in
+                switch result {
+                case .success(let value as String) where value == "signed":
+                    webView.reload() // still hidden; it shows when the signed-in page has loaded
+                case .success(let value as String) where value == "failed":
+                    // The saved key didn't open it: show the page's key form, open.
+                    var parts = URLComponents(url: home, resolvingAgainstBaseURL: false)
+                    parts?.queryItems = [URLQueryItem(name: "own", value: nil)]
+                    if let own = parts?.url { webView.load(URLRequest(url: own)) } else { self?.show(webView) }
+                default:
+                    self?.show(webView)
+                }
+            }
+        }
+
+        /// Fades the page up the first time it's ready to be seen.
+        private func show(_ webView: WKWebView) {
+            guard webView.alphaValue < 1 else { return }
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 1.2
+                ctx.timingFunction = CAMediaTimingFunction(controlPoints: 0.22, 1, 0.36, 1)
+                webView.animator().alphaValue = 1
             }
         }
 
