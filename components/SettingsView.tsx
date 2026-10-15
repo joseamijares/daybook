@@ -6,7 +6,7 @@ import type { AgentToken } from '@/lib/tokens';
 import { fill } from '@/lib/i18n';
 import { minutesLabel } from '@/lib/time';
 import { AppearanceSettings } from './AppearanceSettings';
-import { api, ApiError, setMode, timeIn, useResource, useSession } from './client';
+import { api, ApiError, downloadCopy, forgetCopies, setMode, timeIn, useResource, useSession } from './client';
 import { FrameDesign } from './FrameDesign';
 import { Masthead } from './Masthead';
 
@@ -67,15 +67,7 @@ function DataSettings() {
   const local = Boolean(session.local);
   const file = useRef<HTMLInputElement>(null);
 
-  const exportCopy = () =>
-    run(async () => {
-      const data = await api('/api/export');
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-      a.download = `daybook-${session.today}.json`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    });
+  const exportCopy = () => run(() => downloadCopy(session.today));
   const importCopy = (chosen: File) =>
     run(async () => {
       if (!confirm(t.importConfirm)) return;
@@ -95,12 +87,14 @@ function DataSettings() {
     confirm(t.eraseConfirm) &&
     run(async () => {
       await api('/api/data', { method: 'DELETE' });
+      forgetCopies();
       await refreshSession();
     });
   const leave = async () => {
     if (!local) await api('/api/session', { method: 'DELETE' }).catch(() => undefined);
     setMode(null);
-    window.location.replace(window.location.origin); // a fresh start, so the welcome screen asks again
+    // A fresh start on the welcome screen; on the way to a cloud Daybook, with its key form open.
+    window.location.replace(local ? `${window.location.origin}/?own` : window.location.origin);
   };
   const setLength = (hours: number) =>
     run(async () => {

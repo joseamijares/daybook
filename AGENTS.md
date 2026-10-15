@@ -19,7 +19,8 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
 - "On this device": `lib/localStore.ts` (the store in localStorage) and `lib/localApi.ts` (the same routes
   and JSON as `app/api`, answered in the browser). `components/client.tsx` `api()` sends requests there
   when `daybook.mode` is `local`. A route the browser should answer on this device needs an entry in
-  `localApi.ts` too. `components/Welcome.tsx` asks which mode; `lib/backup.ts` is the export/import file.
+  `localApi.ts` too. `components/Welcome.tsx` starts on this device (a quiet link opens a cloud Daybook with its key);
+  `lib/backup.ts` is the export/import file, and `lib/copyReminder.ts` decides when Today asks for a copy.
 - `lib/mcp.ts` is a hand-rolled, stateless MCP server (JSON-RPC over POST). Adding a tool means one entry
   in `tools`, using the same function the REST route uses.
 - `components/` are client components. `Salon.tsx` is the shared shell (painting, nav, placard slot,

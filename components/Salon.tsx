@@ -49,10 +49,14 @@ export function Salon({ children }: { children: ReactNode }) {
     let retry: ReturnType<typeof setTimeout> | undefined;
     let shown: Session | null = null;
     let asked: string | null = null;
-    const load = () =>
-      api<Session>('/api/session')
+    const load = () => {
+      const mode = getMode();
+      return api<Session>('/api/session')
         .then((s) => {
-          if (!alive) return;
+          // Start (or a key) changed where this browser's days live while this
+          // was on its way, as when the click that starts also focuses the
+          // window: the answer is about the other Daybook, so drop it.
+          if (!alive || getMode() !== mode) return;
           loaded.current = true;
           shown = s;
           // A browser a server already lets in (its cookie, or a server with no
@@ -67,6 +71,7 @@ export function Salon({ children }: { children: ReactNode }) {
           clearTimeout(retry);
           retry = setTimeout(load, 10000);
         });
+    };
     load();
     const timer = setInterval(() => document.visibilityState === 'visible' && load(), 60000);
     // The server decides what today is; this clock only notices that the date
