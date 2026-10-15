@@ -1381,11 +1381,6 @@ textarea {
   border-radius: 6px;
   transition: background-color 0.2s var(--ease-gallery);
 }
-.col.drop {
-  background: var(--tint-accent);
-  outline: 1.5px dashed var(--accent);
-  outline-offset: 6px;
-}
 .col-head {
   display: flex;
   justify-content: space-between;
@@ -1465,15 +1460,6 @@ textarea {
   line-height: 18px;
   font-weight: 600;
   color: var(--color-amber);
-}
-.col .drop-note {
-  padding: 10px;
-  border: 1.5px dashed var(--accent);
-  border-radius: 6px;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent);
 }
 [data-style="timetable"] .col-head {
   padding-bottom: 6px;
@@ -3392,13 +3378,147 @@ html.is-sorting {
     opacity: 0;
   }
 }
-.col .item,
-.chip {
-  transition: opacity 0.2s var(--ease-gallery);
+/* Week's board (components/board.ts). The card in your hand is a copy of the
+   task in a layer over the page, on raised paper with a soft shadow; the task
+   stays where it was, faded, until the card lands. Over a day the rows part
+   with a spring around a dashed slot (over its own day the faded task moves
+   to its new line); over the backlog, the backlog lights up. */
+[data-board] [data-board-id] {
+  -webkit-touch-callout: none;
+  transition:
+    transform 0.5s var(--ease-spring),
+    opacity 0.2s var(--ease-gallery);
 }
-.col .item.dragging,
-.chip.dragging {
+@media (pointer: coarse) {
+  [data-board] [data-board-id] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+[data-board] [data-board-source] {
   opacity: 0.4;
+}
+[data-board][data-sorted] .col .item,
+[data-board][data-sorted] .chip {
+  animation: none;
+}
+[data-board][data-sorted] .col .item[data-board-landed],
+[data-board][data-sorted] .chip[data-board-landed] {
+  animation: board-land 0.3s var(--ease-gallery) both;
+}
+@keyframes board-land {
+  from {
+    opacity: 0;
+  }
+}
+[data-zone-rows] {
+  position: relative;
+  isolation: isolate;
+  transition: padding-bottom 0.5s var(--ease-spring);
+}
+.col [data-zone-rows] > .sort-slot {
+  left: -4px;
+  right: -4px;
+}
+[data-style="timetable"] .col [data-zone-rows] > .sort-slot {
+  left: 0;
+  right: 0;
+  border-radius: 3px;
+}
+.col.drop .col-head .dow,
+.col.drop .col-head .num {
+  color: var(--accent);
+}
+.col-head .dow,
+.col-head .num {
+  transition: color 0.25s var(--ease-gallery);
+}
+.backlog-zone .chips {
+  border-radius: 6px;
+  outline: 1.5px dashed transparent;
+  outline-offset: 6px;
+  transition:
+    background-color 0.25s var(--ease-gallery),
+    outline-color 0.25s var(--ease-gallery);
+}
+.backlog-zone.drop .chips {
+  background: var(--tint-accent);
+  outline-color: var(--accent);
+}
+/* The card that follows the pointer. Its layer is a day's column, so the copy
+   is drawn like the task it copies. */
+html .board-float.col {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  display: block;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--color-card-ink);
+  animation: none;
+  pointer-events: none;
+}
+.board-float.col > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  isolation: isolate;
+  cursor: grabbing;
+  animation: none;
+  transition:
+    scale 0.25s var(--ease-gallery),
+    box-shadow 0.25s var(--ease-gallery);
+}
+.board-float.col > [data-lift='up'] {
+  scale: 1.03;
+}
+.board-float.col > [data-lift='settle'] {
+  scale: 1;
+  transition:
+    translate 0.45s var(--ease-spring),
+    scale 0.35s var(--ease-gallery),
+    opacity 0.4s var(--ease-gallery),
+    box-shadow 0.45s var(--ease-gallery);
+}
+/* Raised paper behind a task drawn on the page itself (wall and notebook);
+   a task drawn as a block (a chip, a timetable task) casts the shadow. */
+.board-float.col > .item {
+  border-top-color: transparent;
+}
+.board-float.col > .item::before,
+[data-style="notebook"] .board-float.col > .chip::before {
+  content: '';
+  position: absolute;
+  inset: 0 -8px;
+  z-index: -1;
+  border-radius: 6px;
+  background: var(--color-paper-raised);
+  box-shadow: var(--lift-shadow);
+  transition: box-shadow 0.25s var(--ease-gallery);
+}
+[data-style="notebook"] .board-float.col > .chip {
+  border-bottom-color: transparent;
+}
+.board-float.col > .chip[data-lift='up'],
+[data-style="timetable"] .board-float.col > .item[data-lift='up'] {
+  box-shadow: var(--lift-shadow);
+}
+[data-style="timetable"] .board-float.col > .item::before {
+  content: none;
+}
+[data-style="notebook"] .board-float.col > .chip[data-lift] {
+  box-shadow: none;
+}
+.board-float.col > [data-lift='settle']::before {
+  box-shadow: 0 0 0 transparent;
+  transition: box-shadow 0.45s var(--ease-gallery);
 }
 .cols > .col {
   animation: rise 0.8s var(--ease-gallery) both;
@@ -3488,9 +3608,6 @@ html.is-sorting {
     opacity: 0;
     transform: translate(-50%, 12px);
   }
-}
-.col.drop {
-  transition: background-color 0.25s var(--ease-gallery);
 }
 
 @media (prefers-reduced-motion: reduce) {

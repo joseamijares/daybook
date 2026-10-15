@@ -27,6 +27,11 @@
   little spring, and it glides into its place when let go. Escape puts it
   back, the list scrolls when you hold a task near its edge, and on a
   touchscreen you hold a task a moment to lift it.
+- Week's board works the same way. Pick up a task from the backlog or a day
+  and it follows the pointer anywhere on the board, faded where it was; the
+  day under it opens a slot on the line where it will land, and it glides into
+  place when let go. Drop a day's task on the backlog to take it off its day
+  (it goes first). Past days take nothing, and Escape puts it back.
 - A small "Update" mark beside the Settings gear when a newer deploy is live
   (a click reloads) or when the Mac app has found a new version (a click
   installs it). (#24)

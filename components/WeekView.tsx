@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { type DragEvent, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { DayView, WeekView as Week } from '@/lib/daybook';
 import { dayNum, dow, fill, fmtDate, monthDay, weekdayName } from '@/lib/i18n';
+import { placeAt } from '@/lib/order';
 import { addDays, minutesLabel, mondayOf } from '@/lib/time';
+import { useBoard } from './board';
 import { useLook, useResource, useSession } from './client';
 import { capitalize } from './day';
 import { DraftText } from './DraftText';
@@ -32,22 +34,28 @@ export function WeekView() {
   }
   const { data: week, reload, setData } = useResource<Week>(`/api/week?date=${anchor}`);
   const ops = useOps(reload);
-  const [over, setOver] = useState<string | null>(null);
-  // The task being dragged, faded where it was (set after the browser has
-  // taken its picture of it, so the picture isn't faded).
-  const [lifted, setLifted] = useState<string | null>(null);
-  const lifting = useRef<string | null>(null);
-  const lift = (id: string) => ({
-    draggable: true,
-    onDragStart: (e: DragEvent) => {
-      e.dataTransfer.setData('text/plain', id);
-      e.dataTransfer.effectAllowed = 'move';
-      lifting.current = id;
-      setTimeout(() => lifting.current === id && setLifted(id));
+  // Drag a task onto a line of any day from today on (a past day would roll
+  // it straight back to today), or a day's task back into the backlog. The
+  // task moves at once; the saves follow.
+  const board = useBoard<HTMLElement>({
+    accepts: (id, zone) => {
+      const task = week && [...week.days.flatMap((d) => d.tasks), ...week.backlog].find((x) => x.id === id);
+      if (!task) return false;
+      return zone === 'backlog' ? task.date !== null && !task.done : zone >= session.today;
     },
-    onDragEnd: () => {
-      lifting.current = null;
-      setLifted(null);
+    onDrop: (id, zone, index) => {
+      if (!week) return;
+      if (zone === 'backlog') {
+        // First in the backlog, where it was put down.
+        const rest = week.backlog.filter((x) => x.id !== id);
+        setData((w) => w && arranged(w, null, [id, ...rest.map((x) => x.id)]));
+        ops.patch(id, { date: null, order: (rest[0]?.order ?? Date.now()) - 1 });
+        return;
+      }
+      if (zone < session.today) return;
+      const next = placeAt(week.days.find((d) => d.date === zone)?.tasks.map((x) => x.id) || [], id, index);
+      setData((w) => w && arranged(w, zone, next));
+      ops.arrange(zone, next);
     },
   });
 
@@ -66,19 +74,8 @@ export function WeekView() {
   const range = `${capitalize(monthDay(week.weekOf, session.locale))} – ${dayNum(addDays(week.weekOf, 6))}`;
   const plannedLabel = fill(t.plannedTotal, { h: minutesLabel(planned) });
 
-  // Only tasks we know about move (not text dragged in from a field), and only
-  // onto today or later: a past day would roll them straight back to today.
-  const known = new Set([...week.days.flatMap((d) => d.tasks), ...week.backlog].map((x) => x.id));
-  // The task moves at once; the save follows.
-  const drop = (date: string, e: React.DragEvent) => {
-    e.preventDefault();
-    setOver(null);
-    const id = e.dataTransfer.getData('text/plain');
-    const onto = week.days.find((d) => d.date === date)?.tasks.map((x) => x.id) || [];
-    if (!known.has(id) || date < session.today || onto.includes(id)) return;
-    setData((w) => w && arranged(w, date, [...onto, id]));
-    ops.patch(id, { date });
-  };
+  // A day's task in hand: the backlog says it takes it back.
+  const fromDay = Boolean(board.lifted && week.days.some((d) => d.tasks.some((x) => x.id === board.lifted && !x.done)));
 
   const title = style === 'notebook' ? fill(t.weekOf, { date: monthDay(week.weekOf, session.locale) }) : current ? t.thisWeek : range;
   const sub =
@@ -89,7 +86,7 @@ export function WeekView() {
         : `${range} · ${plannedLabel}`;
 
   return (
-    <section className="placard wide" aria-label={t.week}>
+    <section className="placard wide" aria-label={t.week} {...board.boardProps}>
       <Masthead
         numeral={`${dayNum(week.weekOf)}–${dayNum(addDays(week.weekOf, 6))}`}
         title={capitalize(title)}
@@ -129,26 +126,20 @@ export function WeekView() {
 
       <div className="cols">
         {columns.map((d) => (
-          <Column
-            key={d.date}
-            day={d}
-            past={d.date < session.today}
-            highlighted={over === d.date}
-            onDragOver={() => setOver(d.date)}
-            onDragLeave={() => setOver((o) => (o === d.date ? null : o))}
-            onDrop={(e) => drop(d.date, e)}
-            ops={ops}
-            lifted={lifted}
-            lift={lift}
-          />
+          <Column key={d.date} day={d} past={d.date < session.today} board={board} ops={ops} />
         ))}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 16, borderTop: '1px solid var(--color-card-ink)' }}>
+      <div
+        className={`backlog-zone${board.over === 'backlog' ? ' drop' : ''}`}
+        data-zone="backlog"
+        data-zone-pile=""
+        style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 16, borderTop: '1px solid var(--color-card-ink)' }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
           <span style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
             <span className="label">{style === 'notebook' ? t.someday : t.backlog}</span>
-            <span className="meta">{t.dragHint}</span>
+            <span className="meta">{fromDay ? t.dropToBacklog : t.dragHint}</span>
           </span>
           <span className="meta" style={{ display: 'flex', gap: 16 }}>
             {session.linear && (
@@ -161,10 +152,10 @@ export function WeekView() {
             </Link>
           </span>
         </div>
-        <div className="chips">
+        <div className="chips" data-zone-rows="">
           {!week.backlog.length && <span className="meta">{t.emptyBacklog}</span>}
           {week.backlog.slice(0, 10).map((task) => (
-            <div key={task.id} className={`chip${lifted === task.id ? ' dragging' : ''}`} {...lift(task.id)}>
+            <div key={task.id} className="chip" {...board.card(task.id)}>
               {task.source && <span className="key">{task.source.key}</span>}
               <span>{task.title}</span>
               {task.estimate ? <span className="est">{minutesLabel(task.estimate)}</span> : null}
@@ -176,27 +167,7 @@ export function WeekView() {
   );
 }
 
-function Column({
-  day,
-  past,
-  highlighted,
-  onDragOver,
-  onDragLeave,
-  onDrop,
-  ops,
-  lifted,
-  lift,
-}: {
-  day: DayView;
-  past: boolean;
-  highlighted: boolean;
-  onDragOver: () => void;
-  onDragLeave: () => void;
-  onDrop: (e: React.DragEvent) => void;
-  ops: ReturnType<typeof useOps>;
-  lifted: string | null;
-  lift: (id: string) => { draggable: boolean; onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
-}) {
+function Column({ day, past, board, ops }: { day: DayView; past: boolean; board: ReturnType<typeof useBoard>; ops: ReturnType<typeof useOps> }) {
   const { session, t } = useSession();
   const { style } = useLook();
   const [text, setText] = useState('');
@@ -205,18 +176,8 @@ function Column({
 
   return (
     <div
-      className={['col', day.isToday && 'is-today', past && 'is-past', highlighted && 'drop'].filter(Boolean).join(' ')}
-      onDragOver={(e) => {
-        if (past) return; // not a drop target
-        e.preventDefault();
-        onDragOver();
-      }}
-      onDragLeave={(e) => {
-        // WebKit often leaves relatedTarget empty: ask where the pointer is.
-        const r = e.currentTarget.getBoundingClientRect();
-        if (e.clientX <= r.left || e.clientX >= r.right || e.clientY <= r.top || e.clientY >= r.bottom) onDragLeave();
-      }}
-      onDrop={onDrop}
+      className={['col', day.isToday && 'is-today', past && 'is-past', board.over === day.date && 'drop'].filter(Boolean).join(' ')}
+      data-zone={day.date}
     >
       <Link className="col-head" href={`/?date=${day.date}`}>
         <span>
@@ -241,26 +202,30 @@ function Column({
         onCommit={(next) => ops.setFocus(day.date, next)}
       />
       <div>
-        {day.tasks.map((task, i) => {
-          const height = Math.max(26, Math.round(((task.estimate || 30) / 60) * 28));
-          return (
-            <div
-              key={task.id}
-              className={['item', task.done && 'done', !task.done && ends[i] > day.capacity && 'past-cap', lifted === task.id && 'dragging'].filter(Boolean).join(' ')}
-              style={{ '--h': height } as React.CSSProperties}
-              {...lift(task.id)}
-            >
-              <span style={{ transform: 'scale(0.8)', transformOrigin: 'left top' }}>
-                <Check on={task.done} onClick={() => ops.toggle(task)} label={task.title} />
-              </span>
-              <span className={`title${task.done ? ' is-done' : ''}`} title={task.source?.key || task.tag || undefined}>
-                <span className={`strike${task.done ? ' is-done' : ''}`}>{task.title}</span>
-              </span>
-              <span className="est">{task.estimate ? minutesLabel(task.estimate) : ''}</span>
-            </div>
-          );
-        })}
-        {highlighted && <div className="drop-note">{fill(t.dropOn, { day: weekdayName(day.date, session.locale) })}</div>}
+        <div data-zone-rows="">
+          {board.slot?.zone === day.date && (
+            <div className="sort-slot" style={{ transform: `translate3d(0, ${board.slot.top}px, 0)`, height: board.slot.height }} />
+          )}
+          {day.tasks.map((task, i) => {
+            const height = Math.max(26, Math.round(((task.estimate || 30) / 60) * 28));
+            return (
+              <div
+                key={task.id}
+                className={['item', task.done && 'done', !task.done && ends[i] > day.capacity && 'past-cap'].filter(Boolean).join(' ')}
+                style={{ '--h': height } as React.CSSProperties}
+                {...board.card(task.id)}
+              >
+                <span style={{ transform: 'scale(0.8)', transformOrigin: 'left top' }}>
+                  <Check on={task.done} onClick={() => ops.toggle(task)} label={task.title} />
+                </span>
+                <span className={`title${task.done ? ' is-done' : ''}`} title={task.source?.key || task.tag || undefined}>
+                  <span className={`strike${task.done ? ' is-done' : ''}`}>{task.title}</span>
+                </span>
+                <span className="est">{task.estimate ? minutesLabel(task.estimate) : ''}</span>
+              </div>
+            );
+          })}
+        </div>
         {!past && <form
           className="add"
           onSubmit={(e) => {

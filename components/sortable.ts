@@ -427,18 +427,16 @@ export function useSortable<T extends HTMLElement = HTMLDivElement>({
   return { listProps, rowProps, slot };
 }
 
-// The week as it will be once `ids` is the order of `date`: put it on screen
-// before the saves finish. A task may come from the backlog or another day.
-export function arranged<W extends WeekView>(week: W, date: string, ids: string[]): W {
+// The week as it will be once `ids` is the order of `date` (of the backlog when
+// `date` is null): put it on screen before the saves finish. A task may come
+// from the backlog or another day.
+export function arranged<W extends WeekView>(week: W, date: string | null, ids: string[]): W {
   const all = new Map<string, Task>([...week.days.flatMap((d) => d.tasks), ...week.backlog].map((x) => [x.id, x]));
   const placed = new Set(ids);
+  const put = ids.flatMap((id) => (all.has(id) ? [{ ...all.get(id)!, date }] : []));
   return {
     ...week,
-    backlog: week.backlog.filter((x) => !placed.has(x.id)),
-    days: week.days.map((d) =>
-      d.date === date
-        ? { ...d, tasks: ids.flatMap((id) => (all.has(id) ? [{ ...all.get(id)!, date }] : [])) }
-        : { ...d, tasks: d.tasks.filter((x) => !placed.has(x.id)) },
-    ),
+    backlog: date === null ? put : week.backlog.filter((x) => !placed.has(x.id)),
+    days: week.days.map((d) => (d.date === date ? { ...d, tasks: put } : { ...d, tasks: d.tasks.filter((x) => !placed.has(x.id)) })),
   };
 }

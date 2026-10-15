@@ -49,8 +49,10 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
   backlog), edit or delete them without leaving the plan, and reorder by
   dragging: the task lifts and follows the pointer, and the other rows part
   to show where it will land (hold it a moment on a touchscreen).
-- **Week.** One card with a column per day, Sunsama style. Drag backlog items
-  onto a day, and each day turns amber when it's over capacity.
+- **Week.** One card with a column per day, Sunsama style. Pick up a task
+  from the backlog or any day and put it on a line of another day, or back in
+  the backlog: it lifts and follows the pointer, and the rows part where it
+  will land. Each day turns amber when it's over capacity.
 - **Shut down.** The same painting at dusk. You see what got done, choose
   where unfinished work goes (tomorrow, the backlog, or stay), and write one
   line for the journal.

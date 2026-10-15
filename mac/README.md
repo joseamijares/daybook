@@ -181,7 +181,8 @@ The window's own Settings (the web app's gear) shows it too: the app sets
 the page's Update and Check now ask the app to open its update window
 (`components/mac.ts`; nothing shows in a browser). The same handler takes
 `haptic`, so a Force Touch trackpad ticks as a dragged task lifts, finds a new
-place and lands (`components/sortable.ts`). Launch with
+place and lands (`components/sortable.ts`, and Week's board in
+`components/board.ts`). Launch with
 `-DaybookPreviewUpdate 0.9.9` to see the "available" state before there's a
 newer release.
 
