@@ -45,6 +45,10 @@
   never flashes first. (#26, #27, #32)
 - `Daybook.dmg` opens in a designed window: Daybook in a gilt frame and a
   brass arrow to Applications. (#29)
+- In the menu bar, drag a to-do to put the day in a new order: the other rows
+  part with a little spring, a Force Touch trackpad ticks as the task finds
+  each place, and the order is saved as you let go (the old one comes back if
+  the save fails).
 - After sleep the window and the menu bar show the new day. (#10)
 
 ### The landing page

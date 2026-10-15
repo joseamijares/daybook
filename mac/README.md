@@ -10,8 +10,12 @@ signed with Developer ID and notarized, macOS 14 or later.
 - **Menu bar:** today's painting with the day set over it, then:
   - the focus line;
   - meetings from Frame Dashboard;
-  - your to-dos, which you can tick, push to tomorrow, or add to with
-    quick-add ("Draft deck 45m #client");
+  - your to-dos, which you can tick, push to tomorrow, drag into a new
+    order, or add to with quick-add ("Draft deck 45m #client"). While you
+    drag, the other rows part to show where the task will land, and a Force
+    Touch trackpad ticks at each new place. Letting go saves each task's
+    place on the day, as the web app does; if that fails, the old order comes
+    back;
   - the week strip.
 
   The text beside the icon is your next meeting when it's close, otherwise
