@@ -2,6 +2,7 @@
 // and per week, rollover of unfinished work, and the shutdown ritual.
 // The web app, the REST API and the MCP server all call these functions.
 
+import { getAppearance } from './appearanceStore';
 import { parseQuickAdd } from './quickadd';
 import { wrapLine } from './recap';
 import { store } from './storage';
@@ -169,6 +170,9 @@ export async function updateTask(id: string, patch: TaskPatch): Promise<Task> {
     next.done = Boolean(patch.done);
     next.doneAt = next.done ? now() : null;
     if (next.done && !next.date) next.date = today(); // finishing a backlog item counts today
+    // A finished task goes under the ones still to do, unless this patch places
+    // it or Settings keeps it where it was. Undone, it stays where it is.
+    if (next.done && patch.order === undefined && (await getAppearance()).doneToBottom) next.order = nextOrder();
   }
   await store().put('tasks', id, next);
   return next;

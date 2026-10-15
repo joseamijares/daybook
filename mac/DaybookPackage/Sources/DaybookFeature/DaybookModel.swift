@@ -200,8 +200,13 @@ public final class DaybookModel {
     }
 
     func toggle(_ task: DBTask) async {
+        // Finished, it goes under the ones still to do, as the server will put it
+        // (Settings → Appearance), so the list doesn't jump when the week is read again.
+        let sinks = !task.done && session?.appearance?.doneToBottom == true
         await edit(task.id) { day in
-            if let i = day.tasks.firstIndex(where: { $0.id == task.id }) { day.tasks[i].done.toggle() }
+            guard let i = day.tasks.firstIndex(where: { $0.id == task.id }) else { return }
+            day.tasks[i].done.toggle()
+            if sinks { day.tasks.append(day.tasks.remove(at: i)) }
         } send: { api in try await api.setDone(task.id, !task.done) }
     }
 

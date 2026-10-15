@@ -1,7 +1,8 @@
 'use client';
 
-// Settings → Appearance: one of three designs, one of three palettes, and
-// whether the room turns to Nocturne after shutdown. Changes show at once.
+// Settings → Appearance: one of three designs, one of three palettes, whether
+// the room turns to Nocturne after shutdown, and whether a finished task moves
+// to the bottom of its day. Changes show at once.
 
 import { DEFAULT_APPEARANCE, type Palette, type Style } from '@/lib/appearance';
 import { useSession } from './client';
@@ -136,6 +137,23 @@ export function AppearanceSettings() {
             <i />
           </button>
         </div>
+      </div>
+
+      <div className="toggle-row">
+        <span>
+          <span style={{ display: 'block', fontSize: 15, fontWeight: 600 }}>{t.doneToBottom}</span>
+          <span className="meta">{t.doneToBottomLead}</span>
+        </span>
+        <button
+          type="button"
+          className="toggle"
+          role="switch"
+          aria-checked={look.doneToBottom !== false}
+          aria-label={t.doneToBottom}
+          onClick={() => setAppearance({ doneToBottom: look.doneToBottom === false })}
+        >
+          <i />
+        </button>
       </div>
     </div>
   );

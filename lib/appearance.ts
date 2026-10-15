@@ -1,6 +1,7 @@
-// How Daybook looks: one of three designs (the type and layout) and one of
-// three palettes (the room around the painting). Pure, so the browser can use
-// it; lib/appearanceStore.ts saves it once for the whole Daybook.
+// How Daybook looks: one of three designs (the type and layout), one of three
+// palettes (the room around the painting), and where a finished task goes.
+// Pure, so the browser can use it; lib/appearanceStore.ts saves it once for
+// the whole Daybook.
 
 export const STYLES = ['wall', 'timetable', 'notebook'] as const;
 export const PALETTES = ['salon', 'modern', 'nocturne'] as const;
@@ -12,9 +13,10 @@ export interface Appearance {
   style: Style; // wall: a museum label · timetable: wide numerals and blocks · notebook: a written list
   palette: Palette; // salon: bone and cobalt · modern: white and one red dot · nocturne: blue-black and gilt
   eveningNocturne: boolean; // turn to Nocturne once the day is shut down
+  doneToBottom: boolean; // a task marked done moves under the ones still to do
 }
 
-export const DEFAULT_APPEARANCE: Appearance = { style: 'wall', palette: 'salon', eveningNocturne: false };
+export const DEFAULT_APPEARANCE: Appearance = { style: 'wall', palette: 'salon', eveningNocturne: false, doneToBottom: true };
 
 // Merge a patch onto the current appearance; unknown values are an error, not ignored.
 export function mergeAppearance(base: Appearance, patch: unknown): Appearance {
@@ -32,6 +34,10 @@ export function mergeAppearance(base: Appearance, patch: unknown): Appearance {
   if (p.eveningNocturne !== undefined) {
     if (typeof p.eveningNocturne !== 'boolean') throw new Error('eveningNocturne must be true or false');
     next.eveningNocturne = p.eveningNocturne;
+  }
+  if (p.doneToBottom !== undefined) {
+    if (typeof p.doneToBottom !== 'boolean') throw new Error('doneToBottom must be true or false');
+    next.doneToBottom = p.doneToBottom;
   }
   return next;
 }

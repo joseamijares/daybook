@@ -2,6 +2,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setAppearance } from '@/lib/appearanceStore';
 import { addTask, backlog, getDay, getWeek, parseQuickAdd, planDay, rollover, setDay, shutdown, updateTask } from '@/lib/daybook';
 import { toFramePlan } from '@/lib/frame';
 import { fileStore, setStore } from '@/lib/store';
@@ -33,6 +34,34 @@ describe('order', () => {
     // The clock is frozen here, so every stamp lands in the same millisecond.
     for (const title of ['First', 'Second', 'Third']) await addTask({ title, date: '2026-10-12' });
     expect((await getDay('2026-10-12')).tasks.map((t) => t.title)).toEqual(['First', 'Second', 'Third']);
+  });
+
+  it('moves a finished task under the ones still to do, and leaves it there when undone', async () => {
+    const tasks = [];
+    for (const title of ['A', 'B', 'C', 'D']) tasks.push(await addTask({ title }));
+    const titles = async () => (await getDay()).tasks.map((t) => t.title);
+    await updateTask(tasks[1].id, { done: true });
+    expect(await titles()).toEqual(['A', 'C', 'D', 'B']);
+    await updateTask(tasks[0].id, { done: true });
+    expect(await titles()).toEqual(['C', 'D', 'B', 'A']);
+    await updateTask(tasks[1].id, { done: false });
+    expect(await titles()).toEqual(['C', 'D', 'B', 'A']);
+  });
+
+  it('goes under tasks put in order by hand, and keeps a place the same patch gives it', async () => {
+    const [a, b, c] = [await addTask({ title: 'A' }), await addTask({ title: 'B' }), await addTask({ title: 'C' })];
+    for (const [i, t] of [c, a, b].entries()) await updateTask(t.id, { order: i + 1 }); // dragged: C, A, B
+    await updateTask(c.id, { done: true });
+    expect((await getDay()).tasks.map((t) => t.title)).toEqual(['A', 'B', 'C']);
+    await updateTask(b.id, { done: true, order: 0 });
+    expect((await getDay()).tasks.map((t) => t.title)).toEqual(['B', 'A', 'C']);
+  });
+
+  it('keeps a finished task where it was when Settings says so', async () => {
+    await setAppearance({ doneToBottom: false });
+    const [a] = [await addTask({ title: 'A' }), await addTask({ title: 'B' })];
+    await updateTask(a.id, { done: true });
+    expect((await getDay()).tasks.map((t) => t.title)).toEqual(['A', 'B']);
   });
 });
 

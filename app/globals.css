@@ -3111,10 +3111,10 @@ textarea {
   }
 }
 
-/* ---- Welcome: start on this device, or open your own Daybook ---------------- */
+/* ---- Welcome: start on this device; a footnote to your own Daybook ---------- */
 
 .placard.welcome {
-  gap: 30px;
+  gap: 34px;
 }
 .welcome-start {
   display: flex;
@@ -3132,9 +3132,9 @@ textarea {
   line-height: 27px;
 }
 .pill.big {
-  height: 44px;
-  padding: 0 28px;
-  font-size: 16px;
+  height: 52px;
+  padding: 0 32px;
+  font-size: 17px;
 }
 .welcome-own {
   display: flex;
@@ -3168,6 +3168,37 @@ textarea {
 }
 .welcome-own .key-where {
   margin-top: 4px;
+}
+/* The one quiet way past Start: a footnote, no rule, no button. */
+.welcome-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-card-ink-3);
+}
+[data-style='notebook'] .welcome-foot {
+  font-size: 13px;
+  line-height: 18px;
+}
+.welcome-foot p {
+  margin: 0;
+}
+.welcome-foot a,
+.welcome-foot .link-btn {
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: 500;
+  color: var(--color-card-ink-2);
+  text-decoration: underline;
+  text-decoration-color: var(--color-rule-strong);
+  text-underline-offset: 3px;
+}
+.welcome-foot a:hover,
+.welcome-foot .link-btn:hover {
+  color: var(--color-card-ink);
 }
 
 /* Settings → Your data */

@@ -124,7 +124,7 @@ If the client only speaks stdio, run `node cli/daybook.mjs mcp` with
 | `list_backlog` | Unscheduled tasks, including Linear issues |
 | `add_task` | Add to a day or the backlog. The title can use quick-add: `"Draft deck 45m #client"` |
 | `update_task` | Change the title, estimate, tag or notes, or move the task (`date: "backlog"` unschedules it) |
-| `complete_task` | Mark done or undone. For a Linear-linked task, this completes the issue too |
+| `complete_task` | Mark done or undone. A finished task moves to the bottom of its day (unless Settings → Appearance keeps it in place). For a Linear-linked task, this completes the issue too |
 | `delete_task` | Delete a task (agents are told to ask first) |
 | `set_focus` | The focus line for a day, or for the week with `scope: "week"` |
 | `plan_day` | Put these task ids on the day in this order and set the focus. Warns when the day is over capacity |
@@ -158,14 +158,14 @@ in clients that support prompts.
 | `PUT /api/week` | `{ date, focus }` |
 | `GET /api/tasks` | The backlog |
 | `POST /api/tasks` | `{ text }` (quick-add) or `{ title, date?, estimate?, tag?, notes? }` |
-| `PATCH /api/tasks/:id` | `{ title?, date?, estimate?, tag?, notes?, done?, order? }` |
+| `PATCH /api/tasks/:id` | `{ title?, date?, estimate?, tag?, notes?, done?, order? }`. `done: true` without `order` moves the task to the bottom of its day when the appearance's `doneToBottom` is on (the default) |
 | `DELETE /api/tasks/:id` | Deletes the task |
 | `POST /api/shutdown` | `{ date?, note?, carry?: { [id]: "tomorrow" \| "backlog" \| "keep" } }` |
 | `DELETE /api/shutdown?date=` | Reopen a closed day (tasks already moved stay where they went) |
 | `POST /api/linear` | Sync Linear |
 | `GET /api/frame?date=` / `POST /api/frame` | Preview the Frame Dashboard plan, or run a two-way sync |
 | `GET /api/frame/settings` / `PUT /api/frame/settings` | The Frame's design and the designs it offers / `{ layout }` to switch |
-| `GET /api/appearance` / `PUT /api/appearance` | How Daybook looks / `{ style?: "wall" \| "timetable" \| "notebook", palette?: "salon" \| "modern" \| "nocturne", eveningNocturne?: boolean }`. `GET /api/session` also returns `appearance` and `closedToday` |
+| `GET /api/appearance` / `PUT /api/appearance` | How Daybook looks / `{ style?: "wall" \| "timetable" \| "notebook", palette?: "salon" \| "modern" \| "nocturne", eveningNocturne?: boolean, doneToBottom?: boolean }`. `doneToBottom` (default `true`) moves a task marked done under the ones still to do. `GET /api/session` also returns `appearance` and `closedToday` |
 | `GET /api/cron/sync` | Vercel Cron: sync Linear and Frame (bearer `CRON_SECRET` or `DAYBOOK_KEY`) |
 | `GET/POST /api/tokens`, `DELETE /api/tokens/:id` | Agent tokens: list, create (the token is shown once), revoke. Owner only |
 | `GET/PUT/DELETE /api/integrations/linear` | Linear status / `{ apiKey }` to connect (checked, stored encrypted) / disconnect. Owner only |
