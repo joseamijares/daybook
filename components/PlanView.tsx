@@ -117,10 +117,19 @@ export function PlanView() {
     setData((w) => w && arranged(w, date, [...ids, task.id]));
     ops.patch(task.id, { date });
   };
+  // No longer "just added": Undo, a move off this day or a delete. Otherwise a
+  // task that left the day would linger on the right as "On today", with an Undo.
+  const forget = (id: string) => {
+    setFresh((f) => f.filter((x) => x !== id));
+    setAdded((a) => a.filter((x) => x.id !== id));
+  };
   const undo = async (task: Task) => {
-    setFresh((f) => f.filter((x) => x !== task.id));
-    setAdded((a) => a.filter((x) => x.id !== task.id));
+    forget(task.id);
     await ops.patch(task.id, { date: null });
+  };
+  // run() answers undefined when the change failed (and says why in a toast).
+  const thenForget = async (id: string, change: Promise<unknown>) => {
+    if ((await change) !== undefined) forget(id);
   };
   const write = async () => {
     const value = text.trim();
@@ -222,11 +231,12 @@ export function PlanView() {
                 sort={sort.rowProps(task.id)}
                 dragging={sort.dragging === task.id}
                 onUndo={() => undo(task)}
-                onRemove={() => ops.patch(task.id, { date: null })}
+                onRemove={() => thenForget(task.id, ops.patch(task.id, { date: null }))}
                 moves={moves}
                 tags={tags}
-                onPatch={(p) => ops.patch(task.id, p)}
-                onDelete={() => ops.remove(task.id)}
+                // The editor only offers moves off this day, so a new date means it left.
+                onPatch={(p) => (p.date !== undefined && p.date !== date ? thenForget(task.id, ops.patch(task.id, p)) : ops.patch(task.id, p))}
+                onDelete={() => thenForget(task.id, ops.remove(task.id))}
               />
             ))}
             {sort.slot && <div className="sort-slot" aria-hidden style={{ transform: `translate3d(0, ${sort.slot.top}px, 0)`, height: sort.slot.height }} />}
