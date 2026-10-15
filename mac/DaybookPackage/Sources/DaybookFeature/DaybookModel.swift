@@ -219,7 +219,7 @@ public final class DaybookModel {
         guard let api, let d = week?.days.firstIndex(where: { $0.date == date }) else { return nil }
         let before = week!.days[d].tasks
         let after = ids.compactMap { id in before.first { $0.id == id } }
-        guard after.count == before.count, after != before else { return nil }
+        guard after.count == before.count, Set(ids).count == ids.count, after != before else { return nil }
         week!.days[d].tasks = after
         // Orders are saved one after another, and the week is read again only
         // once the last is saved: a read between two quick drags would show half of each.

@@ -122,6 +122,7 @@ import Testing
     @Test func ignoresAnOrderThatChangesNothing() {
         #expect(model.reorder(["1", "2", "3", "4"]) == nil)
         #expect(model.reorder(["1", "2", "3"]) == nil) // a task left out: not this day's order
+        #expect(model.reorder(["1", "1", "2", "3"]) == nil) // one twice
     }
 }
 
