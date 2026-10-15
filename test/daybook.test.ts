@@ -28,6 +28,14 @@ describe('quick add', () => {
   ])('%s', (text, expected) => expect(parseQuickAdd(text)).toEqual(expected));
 });
 
+describe('order', () => {
+  it('keeps tasks added in the same millisecond in the order they were added', async () => {
+    // The clock is frozen here, so every stamp lands in the same millisecond.
+    for (const title of ['First', 'Second', 'Third']) await addTask({ title, date: '2026-10-12' });
+    expect((await getDay('2026-10-12')).tasks.map((t) => t.title)).toEqual(['First', 'Second', 'Third']);
+  });
+});
+
 describe('dates', () => {
   it('reads words, weekdays and backlog', () => {
     expect(resolveDate('tomorrow', '2026-10-12')).toBe('2026-10-13');

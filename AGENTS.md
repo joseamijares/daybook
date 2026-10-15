@@ -32,6 +32,8 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
   `/api/session` and `/api/week`). Mirror API shape changes in `mac/DaybookPackage/Sources/DaybookFeature/Models.swift`
   and run `swift test --package-path mac/DaybookPackage`. The window tells the page the app's version and updates
   (`window.daybookMac`, `components/mac.ts`), and only your Daybook's own page can ask it to check.
+- `components/updates.tsx` is the small "Update" mark by the Settings gear: a newer Mac app (from the window),
+  or a newer deploy than the open page (its build commit, `NEXT_PUBLIC_DAYBOOK_SHA`, vs `/api/health`'s).
 - Motion lives in `app/globals.css` (section "Motion") and must respect `prefers-reduced-motion`.
 - `lib/secrets.ts` stores integration keys set in Settings, encrypted, and env vars win. `lib/tokens.ts` holds
   agent tokens (hashed). `lib/auth.ts`: `authorized()` accepts the master key, tokens or the session cookie;
