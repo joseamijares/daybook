@@ -14,6 +14,7 @@ import { capitalize, Schedule, Workload } from './day';
 import { DraftText } from './DraftText';
 import { Masthead } from './Masthead';
 import { useOps } from './ops';
+import { arranged, useSortable } from './sortable';
 import { AddRow, TaskRow } from './TaskRow';
 
 export const FrameIcon = () => (
@@ -40,12 +41,19 @@ export function TodayView() {
   }
   const date = picked && picked !== session.today ? picked : session.today;
   const setDate = (d: string) => setPicked(d === session.today ? null : d);
-  const [dropAt, setDropAt] = useState<number | null>(null);
-  const [dragId, setDragId] = useState<string | null>(null);
-
-  const { data: week, reload } = useResource<WeekView & { events?: Record<string, FrameEvent[]> }>(`/api/week?date=${date}`);
+  const { data: week, reload, setData } = useResource<WeekView & { events?: Record<string, FrameEvent[]> }>(`/api/week?date=${date}`);
   const ops = useOps(reload);
   const day = week?.days.find((d) => d.date === date);
+  const ids = (day?.tasks || []).map((x) => x.id);
+  // Drag to reorder: the new order shows at once and saves behind.
+  const sort = useSortable({
+    ids,
+    onMove: (id, index) => {
+      const next = placeAt(ids, id, index);
+      setData((w) => w && arranged(w, date, next));
+      ops.arrange(date, next);
+    },
+  });
   const isToday = date === session.today;
   const tags = useMemo(
     () => [...(week?.days.flatMap((d) => d.tasks) || []), ...(week?.backlog || [])].map((x) => x.tag).filter((x): x is string => Boolean(x)),
@@ -61,13 +69,6 @@ export function TodayView() {
   }
 
   const tasks = day.tasks;
-  const dropInto = (index: number) => {
-    const id = dragId;
-    setDropAt(null);
-    setDragId(null);
-    if (!id) return;
-    ops.arrange(date, placeAt(tasks.map((x) => x.id), id, index));
-  };
 
   const weekday = capitalize(weekdayName(date, session.locale));
   const planHref = isToday ? '/plan' : `/plan?date=${date}`;
@@ -112,15 +113,7 @@ export function TodayView() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {tasks.length > 0 && <Workload day={day} />}
-        <div
-          className="rows"
-          onDragOver={(e) => e.preventDefault()}
-          onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setDropAt(null)}
-          onDrop={(e) => {
-            e.preventDefault();
-            dropInto(dropAt ?? tasks.length);
-          }}
-        >
+        <div className="rows" {...sort.listProps}>
           {!tasks.length && (
             <div className="empty-plan">
               <h2>{t.nothingPlanned}</h2>
@@ -133,7 +126,7 @@ export function TodayView() {
               </Link>
             </div>
           )}
-          {tasks.map((task, i) => (
+          {tasks.map((task) => (
             <TaskRow
               key={task.id}
               task={task}
@@ -142,14 +135,8 @@ export function TodayView() {
               onPatch={(p) => ops.patch(task.id, p)}
               onDelete={() => ops.remove(task.id)}
               moves={isToday ? ['tomorrow', 'backlog'] : ['today', 'backlog']}
-              draggable
-              dropBefore={dropAt === i && dragId !== task.id}
-              onDragStart={() => setDragId(task.id)}
-              onDragEnd={() => {
-                setDragId(null);
-                setDropAt(null);
-              }}
-              onDragOver={() => setDropAt(i)}
+              sort={sort.rowProps(task.id)}
+              dragging={sort.dragging === task.id}
             />
           ))}
           <AddRow placeholder={`${t.addTask} · ${t.addHint}`} onAdd={(text) => ops.add({ text, date })} />
