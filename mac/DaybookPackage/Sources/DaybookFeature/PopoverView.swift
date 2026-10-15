@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// The menu bar popover: today's painting with the day set over it, then the
 /// bone placard: focus, schedule, to-dos, quick add and the week.
@@ -7,7 +8,7 @@ public struct PopoverView: View {
     @Bindable var model: DaybookModel
     @State private var showSettings = false
     @State private var dayHeight: CGFloat = 0
-    /// Off for offscreen snapshots, which can't draw a scroll view.
+    /// Off for offscreen snapshots, which can't draw a scroll view (or a drop target).
     var scrolls = true
 
     public init(model: DaybookModel) { self.model = model }
@@ -67,7 +68,7 @@ public struct PopoverView: View {
         VStack(alignment: .leading, spacing: 18) {
             FocusField(model: model)
             if !model.events.isEmpty { Schedule(model: model) }
-            Tasks(model: model)
+            Tasks(model: model, reorders: scrolls)
         }
     }
 
@@ -236,10 +237,17 @@ struct Schedule: View {
 
 struct Tasks: View {
     @Bindable var model: DaybookModel
+    /// Drag and drop; off for offscreen snapshots.
+    var reorders = true
     @State private var newTask = ""
+    /// The task picked up, and the order shown while it's over the list.
+    @State private var dragging: String?
+    @State private var order: [String]?
+    @State private var frames: [String: CGRect] = [:]
 
     var body: some View {
         let day = model.shownDay
+        let ids = day?.tasks.map(\.id) ?? []
         VStack(alignment: .leading, spacing: 0) {
             SectionHead(
                 title: model.locale == "es" ? "Por hacer" : "To do",
@@ -248,11 +256,29 @@ struct Tasks: View {
             )
             if let day {
                 LoadBar(day: day).padding(.bottom, 2)
-                ForEach(day.tasks) { task in
+                ForEach(Self.arranged(day.tasks, order)) { task in
                     VStack(spacing: 0) {
                         TaskRow(model: model, task: task)
                         Divider().overlay(Salon.rule)
                     }
+                    // The task being moved leaves a faint place where it will land.
+                    .opacity(order != nil && dragging == task.id ? 0.3 : 1)
+                    .background(GeometryReader { g in
+                        Color.clear.preference(key: RowFrames.self, value: [task.id: g.frame(in: .named(Self.space))])
+                    })
+                    .when(reorders) { $0.onDrag {
+                        dragging = task.id
+                        let item = NSItemProvider()
+                        item.register(DraggedTask(id: task.id))
+                        return item
+                    } preview: {
+                        // Lifted off the page on raised paper.
+                        TaskRow(model: model, task: task)
+                            .padding(.horizontal, 10)
+                            .frame(width: 336)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Salon.paper))
+                            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Salon.rule))
+                    } }
                     .transition(.asymmetric(
                         insertion: .opacity.combined(with: .offset(y: -6)),
                         removal: .opacity.combined(with: .offset(x: 24))
@@ -273,7 +299,96 @@ struct Tasks: View {
             }
             .padding(.vertical, 8)
         }
+        .coordinateSpace(.named(Self.space))
+        .onPreferenceChange(RowFrames.self) { frames = $0 }
+        .when(reorders) { $0.onDrop(of: [DraggedTask.type], delegate: Reordering(ids: ids, dragging: dragging, frames: frames, order: $order) { ids in
+            model.reorder(ids)
+        }) }
+        // A tick on a Force Touch trackpad each time the task finds a new place.
+        .sensoryFeedback(.alignment, trigger: order) { old, new in old != nil && new != nil }
         .animation(.spring(duration: 0.45, bounce: 0.2), value: day?.tasks)
+        // The other rows part with a little spring as the task moves.
+        .animation(.spring(duration: 0.3, bounce: 0.25), value: order)
+    }
+
+    private static let space = "tasks"
+
+    /// The day's tasks in the order shown while one is dragged: tasks that came
+    /// in since go last, and ones that went are left out.
+    nonisolated static func arranged(_ tasks: [DBTask], _ order: [String]?) -> [DBTask] {
+        guard let order else { return tasks }
+        let placed = order.compactMap { id in tasks.first { $0.id == id } }
+        return placed + tasks.filter { !order.contains($0.id) }
+    }
+
+    /// Where a dragged task goes with the pointer at `y`: after every other row
+    /// whose middle is above it. A row's middle has to be passed to swap with it,
+    /// so the order holds still between two rows.
+    nonisolated static func placing(_ id: String, at y: CGFloat, in order: [String], frames: [String: CGRect]) -> [String] {
+        var others = order.filter { $0 != id }
+        let index = others.prefix { frames[$0].map { $0.midY < y } ?? false }.count
+        others.insert(id, at: index)
+        return others
+    }
+}
+
+/// What a dragged task carries: its id, inside this app only.
+struct DraggedTask: Codable, Transferable {
+    var id: String
+
+    /// Declared in Config/Info.plist.
+    static let type = UTType(exportedAs: "dev.daybook.task")
+    static var transferRepresentation: some TransferRepresentation {
+        CodableRepresentation(contentType: type).visibility(.ownProcess)
+    }
+}
+
+/// Drag and drop within the list: the rows part as the task finds its place,
+/// and letting go saves the order. Leaving the list or pressing Escape puts it back.
+private struct Reordering: DropDelegate {
+    let ids: [String]
+    let dragging: String?
+    let frames: [String: CGRect]
+    @Binding var order: [String]?
+    let save: ([String]) -> Void
+
+    func validateDrop(info: DropInfo) -> Bool {
+        dragging.map(ids.contains) == true && info.hasItemsConforming(to: [DraggedTask.type])
+    }
+
+    func dropEntered(info: DropInfo) { place(info) }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        place(info)
+        return DropProposal(operation: .move)
+    }
+
+    func dropExited(info: DropInfo) { order = nil }
+
+    func performDrop(info: DropInfo) -> Bool {
+        if let order, order != ids { save(order) }
+        order = nil
+        return true
+    }
+
+    private func place(_ info: DropInfo) {
+        guard let dragging, ids.contains(dragging) else { return }
+        let next = Tasks.placing(dragging, at: info.location.y, in: order ?? ids, frames: frames)
+        if next != order { order = next }
+    }
+}
+
+private extension View {
+    /// `transform` applied only when `condition` holds (fixed for a view's life).
+    @ViewBuilder func when(_ condition: Bool, _ transform: (Self) -> some View) -> some View {
+        if condition { transform(self) } else { self }
+    }
+}
+
+private struct RowFrames: PreferenceKey {
+    static let defaultValue: [String: CGRect] = [:]
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue()) { $1 }
     }
 }
 

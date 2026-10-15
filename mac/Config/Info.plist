@@ -23,5 +23,19 @@
 	<true/>
 	<key>SUScheduledCheckInterval</key>
 	<integer>86400</integer>
+	<!-- What a task dragged in the menu bar carries (DraggedTask in PopoverView.swift); only this app reads it. -->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>dev.daybook.task</string>
+			<key>UTTypeDescription</key>
+			<string>Daybook task</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

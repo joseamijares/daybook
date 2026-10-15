@@ -45,6 +45,135 @@ import Testing
     #expect(s.frameSentAt != nil)
 }
 
+/// A dragged task swaps with a row once the pointer passes that row's middle,
+/// and holds still in between.
+@Test func placesADraggedTaskByThePointer() {
+    let frames = ["a": CGRect(x: 0, y: 0, width: 300, height: 30), "b": CGRect(x: 0, y: 30, width: 300, height: 30),
+                  "c": CGRect(x: 0, y: 60, width: 300, height: 30)]
+    #expect(Tasks.placing("a", at: 20, in: ["a", "b", "c"], frames: frames) == ["a", "b", "c"])
+    #expect(Tasks.placing("a", at: 50, in: ["a", "b", "c"], frames: frames) == ["b", "a", "c"])
+    #expect(Tasks.placing("a", at: 200, in: ["a", "b", "c"], frames: frames) == ["b", "c", "a"])
+    #expect(Tasks.placing("c", at: -10, in: ["a", "b", "c"], frames: frames) == ["c", "a", "b"])
+    // Moved down a place: the rows have shifted, and between the middles it stays put.
+    let moved = ["b": CGRect(x: 0, y: 0, width: 300, height: 30), "a": CGRect(x: 0, y: 30, width: 300, height: 30),
+                 "c": CGRect(x: 0, y: 60, width: 300, height: 30)]
+    #expect(Tasks.placing("a", at: 30, in: ["b", "a", "c"], frames: moved) == ["b", "a", "c"])
+    #expect(Tasks.placing("a", at: 10, in: ["b", "a", "c"], frames: moved) == ["a", "b", "c"])
+}
+
+@Test func showsTheDraggedOrderWithNewTasksLast() {
+    let tasks = ["1", "2", "3"].map { DBTask(id: $0, title: $0, done: false) }
+    #expect(Tasks.arranged(tasks, nil).map(\.id) == ["1", "2", "3"])
+    #expect(Tasks.arranged(tasks, ["3", "1", "gone"]).map(\.id) == ["3", "1", "2"])
+}
+
+/// Reordering against a stand-in server (nothing leaves the machine).
+@MainActor
+@Suite(.serialized) struct Reordering {
+    let model: DaybookModel
+
+    init() {
+        let tasks = ["1", "2", "3", "4"].map { DBTask(id: $0, title: "Task \($0)", date: "2026-10-12", done: false) }
+        let day = DBDay(date: "2026-10-12", focus: nil, note: nil, shutdownAt: nil, isToday: true, tasks: tasks,
+                        planned: 0, remaining: 0, doneCount: 0, capacity: 360, over: 0)
+        let week = DBWeek(weekOf: "2026-10-12", focus: nil, today: "2026-10-12", days: [day], backlog: [], events: nil)
+        let session = DBSession(authorized: true, needsKey: false, locale: "en", today: "2026-10-12", tz: "UTC", capacity: 360,
+                                linear: false, frame: false, art: nil)
+        model = DaybookModel(preview: week, session: session, now: Date())
+        StubServer.reset()
+    }
+
+    var shown: [String] { model.shownDay?.tasks.map(\.id) ?? [] }
+
+    @Test func savesEachTasksPlaceInTheNewOrder() async throws {
+        URLProtocol.registerClass(StubServer.self)
+        defer { URLProtocol.unregisterClass(StubServer.self) }
+        let save = try #require(model.reorder(["3", "1", "2", "4"]))
+        #expect(shown == ["3", "1", "2", "4"]) // at once, before the server answers
+        await save.value
+        #expect(StubServer.patches == [
+            .init(id: "3", date: "2026-10-12", order: 1), .init(id: "1", date: "2026-10-12", order: 2),
+            .init(id: "2", date: "2026-10-12", order: 3), .init(id: "4", date: "2026-10-12", order: 4),
+        ])
+        #expect(shown == ["3", "1", "2", "4"])
+    }
+
+    @Test func savesTwoQuickDragsOneAfterTheOther() async throws {
+        URLProtocol.registerClass(StubServer.self)
+        defer { URLProtocol.unregisterClass(StubServer.self) }
+        model.reorder(["3", "1", "2", "4"])
+        let second = try #require(model.reorder(["4", "3", "1", "2"]))
+        await second.value
+        #expect(StubServer.patches.map(\.id) == ["3", "1", "2", "4", "4", "3", "1", "2"])
+        #expect(shown == ["4", "3", "1", "2"])
+    }
+
+    @Test func putsTheOldOrderBackWhenTheSaveFails() async throws {
+        URLProtocol.registerClass(StubServer.self)
+        defer { URLProtocol.unregisterClass(StubServer.self) }
+        StubServer.failing = "/api/tasks/1"
+        let save = try #require(model.reorder(["3", "1", "2", "4"]))
+        await save.value
+        #expect(StubServer.patches.map(\.id) == ["3", "1"]) // stops at the failure
+        #expect(shown == ["1", "2", "3", "4"]) // back, though the week can't be read again (offline)
+        #expect(model.error != nil)
+    }
+
+    @Test func ignoresAnOrderThatChangesNothing() {
+        #expect(model.reorder(["1", "2", "3", "4"]) == nil)
+        #expect(model.reorder(["1", "2", "3"]) == nil) // a task left out: not this day's order
+    }
+}
+
+/// Answers the model's requests to example.com: PATCHes succeed (except `failing`),
+/// and anything else fails as if offline, so the week isn't read again.
+final class StubServer: URLProtocol, @unchecked Sendable {
+    struct Patch: Equatable { var id: String; var date: String; var order: Int }
+
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var seen: [Patch] = []
+    nonisolated(unsafe) private static var failingPath: String?
+
+    static var patches: [Patch] { lock.withLock { seen } }
+    static var failing: String? {
+        get { lock.withLock { failingPath } }
+        set { lock.withLock { failingPath = newValue } }
+    }
+
+    static func reset() { lock.withLock { seen = []; failingPath = nil } }
+
+    override class func canInit(with request: URLRequest) -> Bool { request.url?.host == "example.com" }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func stopLoading() {}
+
+    override func startLoading() {
+        guard let url = request.url, request.httpMethod == "PATCH" else {
+            return client!.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+        }
+        let body = (request.httpBodyStream.map(Self.read)).flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] } ?? [:]
+        Self.lock.withLock {
+            Self.seen.append(Patch(id: url.lastPathComponent, date: body["date"] as? String ?? "", order: body["order"] as? Int ?? 0))
+        }
+        let code = url.path == Self.failing ? 500 : 200
+        client!.urlProtocol(self, didReceive: HTTPURLResponse(url: url, statusCode: code, httpVersion: nil, headerFields: nil)!, cacheStoragePolicy: .notAllowed)
+        client!.urlProtocol(self, didLoad: Data(#"{"error":"stand-in"}"#.utf8))
+        client!.urlProtocolDidFinishLoading(self)
+    }
+
+    private static func read(_ stream: InputStream) -> Data {
+        stream.open()
+        defer { stream.close() }
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 1024)
+        while stream.hasBytesAvailable {
+            let n = stream.read(&buffer, maxLength: buffer.count)
+            guard n > 0 else { break }
+            data.append(buffer, count: n)
+        }
+        return data
+    }
+}
+
 /// Without a feed and a public key in Info.plist (a fork, or this test runner)
 /// the updater doesn't start, and nothing offers a check.
 @MainActor
