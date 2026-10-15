@@ -78,6 +78,10 @@ public final class DaybookModel {
     /// Configured once a server answered and let us in.
     public var isConfigured: Bool { isPreview || session?.authorized == true }
 
+    /// A key is saved and the first answer hasn't come back yet: not the time
+    /// to ask for an address and key (the window shows its launch scene).
+    var isChecking: Bool { !isPreview && hasKey && session == nil && error == nil }
+
     var timeZone: TimeZone { session.flatMap { TimeZone(identifier: $0.tz) } ?? .current }
     var locale: String { session?.locale ?? "en" }
 

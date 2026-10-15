@@ -7,12 +7,16 @@ import WebKit
 /// also learns the app's version and updates, for its Settings screen.
 public struct DaybookWindow: View {
     @Bindable var model: DaybookModel
-    /// The launch scene plays over the window once per launch, while the page signs in.
-    @State private var scene = !LaunchScene.hasPlayed
+    /// The launch scene plays over the window once per launch while the app checks
+    /// its key and the page signs in; a Mac with no key saved goes straight to setup.
+    @State private var scene: Bool
     /// The page has signed in and painted (components/mac.ts "ready"), or gave up.
     @State private var pageReady = false
 
-    public init(model: DaybookModel) { self.model = model }
+    public init(model: DaybookModel) {
+        self.model = model
+        _scene = State(initialValue: !LaunchScene.hasPlayed && model.hasKey)
+    }
 
     public var body: some View {
         ZStack {
@@ -21,17 +25,22 @@ public struct DaybookWindow: View {
                 WebView(url: url, key: model.key, mac: macState, check: { model.updates?.check() }, ready: { pageReady = true })
                     .ignoresSafeArea() // the painting runs under the title bar
                     .transition(.opacity)
-                if scene {
-                    LaunchScene(ready: pageReady) {
-                        withAnimation(LaunchScene.gallery(0.8)) { scene = false }
-                    }
-                    .transition(.opacity.combined(with: .scale(scale: 1.03)))
-                    .onAppear { LaunchScene.hasPlayed = true }
-                }
-            } else {
-                // Not connected yet: the welcome screen.
+            } else if !model.isChecking {
+                // Not connected yet: the welcome screen. Never while the saved key is
+                // still being checked, or it flashes by before the app opens.
                 OnboardingView(model: model)
                     .transition(.opacity)
+            }
+        }
+        .overlay {
+            if scene {
+                // Ready when the page says so, or when the key turned out not to open
+                // the Daybook (the welcome screen is underneath).
+                LaunchScene(ready: pageReady || (!model.isConfigured && !model.isChecking)) {
+                    withAnimation(LaunchScene.gallery(0.6)) { scene = false }
+                }
+                .transition(.opacity.combined(with: .scale(scale: 1.03)))
+                .onAppear { LaunchScene.hasPlayed = true }
             }
         }
         .overlay(alignment: .top) {
@@ -277,7 +286,7 @@ struct WebView: NSViewRepresentable {
             } else {
                 // A Daybook from before "ready" never says it: give its page a moment to paint.
                 Task { @MainActor [weak self] in
-                    try? await Task.sleep(for: .seconds(1.5))
+                    try? await Task.sleep(for: .seconds(0.8))
                     self?.ready()
                 }
             }

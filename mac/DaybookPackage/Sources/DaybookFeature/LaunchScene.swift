@@ -43,7 +43,7 @@ struct LaunchScene: View {
                     HungWork(work: work, u: u)
                         .offset(x: origin.x + work.x * u, y: origin.y + work.y * u + (lit ? 0 : -14 * u))
                         .opacity(lit ? 1 : 0)
-                        .animation(reduceMotion ? nil : Self.gallery(0.9, delay: 0.2 + Double(i) * 0.07), value: lit)
+                        .animation(reduceMotion ? nil : Self.gallery(0.6, delay: 0.05 + Double(i) * 0.035), value: lit)
                 }
                 lamp(u, origin)
                 TheMark(lit: lit, reduceMotion: reduceMotion, u: u)
@@ -56,12 +56,12 @@ struct LaunchScene: View {
         .ignoresSafeArea()
         .task {
             lit = true
-            // The minimum: the mark's plaque has risen (2.2s + its 0.4s).
-            try? await Task.sleep(for: .seconds(reduceMotion ? 0.4 : 2.6))
+            // The minimum: the mark's plaque has risen (1.0s + its 0.45s).
+            try? await Task.sleep(for: .seconds(reduceMotion ? 0.3 : 1.5))
             played = true
             if ready { onDone() }
             // A page that never says it's ready doesn't keep the app behind the wall: 8s at most.
-            try? await Task.sleep(for: .seconds(reduceMotion ? 7.6 : 5.4))
+            try? await Task.sleep(for: .seconds(reduceMotion ? 7.7 : 6.5))
             onDone()
         }
         .onChange(of: ready) { _, now in
@@ -77,7 +77,7 @@ struct LaunchScene: View {
             .blur(radius: 60 * u)
             .offset(x: origin.x + 560 * u, y: origin.y + 170 * u)
             .opacity(lit ? 1 : 0)
-            .animation(reduceMotion ? nil : Self.gallery(2.2, delay: 0.2), value: lit)
+            .animation(reduceMotion ? nil : Self.gallery(1.4, delay: 0.1), value: lit)
     }
 
     private func lamp(_ u: CGFloat, _ origin: CGPoint) -> some View {
@@ -90,7 +90,7 @@ struct LaunchScene: View {
         }
         .offset(x: origin.x + 662 * u, y: origin.y + 212 * u)
         .opacity(lit ? 1 : 0)
-        .animation(reduceMotion ? nil : Self.gallery(1.2), value: lit)
+        .animation(reduceMotion ? nil : Self.gallery(0.8), value: lit)
     }
 }
 
@@ -201,7 +201,7 @@ private struct TheMark: View {
                     .fill(Salon.bone)
                     .frame(width: sun, height: sun)
                     .offset(y: lit || reduceMotion ? sun / 2 : sun)
-                    .animation(gallery(0.9, 1.6), value: lit)
+                    .animation(gallery(0.6, 0.7), value: lit)
             }
             .frame(width: w - 2 * stroke, height: h - 2 * stroke, alignment: .bottom)
             .clipped()
@@ -211,20 +211,20 @@ private struct TheMark: View {
             .scaleEffect(lit || reduceMotion ? 1 : 1.06)
             .blur(radius: lit || reduceMotion ? 0 : 8 * u)
             .opacity(lit ? 1 : 0)
-            .animation(gallery(1.0, 1.2), value: lit)
+            .animation(gallery(0.7, 0.45), value: lit)
 
             Text("Daybook")
                 .font(Salon.display(64 * u))
                 .foregroundStyle(Salon.bone)
                 .offset(y: lit ? 0 : 10 * u)
                 .opacity(lit ? 1 : 0)
-                .animation(gallery(0.6, 1.9), value: lit)
+                .animation(gallery(0.45, 0.85), value: lit)
 
             Plaque(u: u)
                 .padding(.top, 10 * u)
                 .offset(y: lit ? 0 : 10 * u)
                 .opacity(lit ? 1 : 0)
-                .animation(gallery(0.6, 2.2), value: lit)
+                .animation(gallery(0.45, 1.0), value: lit)
         }
     }
 }
