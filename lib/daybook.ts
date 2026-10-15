@@ -71,6 +71,11 @@ export { parseQuickAdd };
 const now = () => new Date().toISOString();
 const newId = () => globalThis.crypto.randomUUID().replace(/-/g, '').slice(0, 10);
 const byOrder = (a: Task, b: Task) => a.order - b.order || a.createdAt.localeCompare(b.createdAt);
+// A task's order is stamped from the clock so a new one goes last. Two stamped in
+// the same millisecond would tie and sort either way, so each stamp is at least
+// one past the last.
+let lastStamp = 0;
+const nextOrder = () => (lastStamp = Math.max(Date.now(), lastStamp + 1));
 
 export async function allTasks(): Promise<Task[]> {
   return Object.values(await store().all<Task>('tasks'));
@@ -116,7 +121,7 @@ export async function addTask(input: AddTaskInput): Promise<Task> {
     tag: clean(input.tag ?? parsed.tag, 'tag', 40),
     done: false,
     doneAt: null,
-    order: Date.now(),
+    order: nextOrder(),
     source: input.source || null,
     rolledFrom: null,
     createdAt: now(),
@@ -157,7 +162,7 @@ export async function updateTask(id: string, patch: TaskPatch): Promise<Task> {
   if (patch.date !== undefined) {
     const date = resolveDate(patch.date);
     next.date = date ?? null;
-    if (next.date !== t.date) next.order = patch.order ?? Date.now();
+    if (next.date !== t.date) next.order = patch.order ?? nextOrder();
     if (next.date === null) next.rolledFrom = null;
   }
   if (patch.done !== undefined && patch.done !== t.done) {
@@ -290,7 +295,7 @@ export async function shutdown(date: string | undefined, opts: { note?: string |
       ...t,
       date: to === 'backlog' ? null : addDays(d, 1),
       rolledFrom: to === 'backlog' ? null : t.rolledFrom || d,
-      order: Date.now(),
+      order: nextOrder(),
       updatedAt: now(),
     });
     moved++;
