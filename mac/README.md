@@ -140,6 +140,14 @@ NOTARY_ISSUER=<Issuer ID> mac/scripts/signing-secrets.sh
 The header of [`scripts/signing-secrets.sh`](scripts/signing-secrets.sh)
 lists its options.
 
+The image opens in a designed window: Daybook in a gilt frame under a picture
+lamp, a brass arrow to Applications, and each name on a brass plaque
+([`dmg/settings.py`](dmg/settings.py), drawn in Paper as "Mac · DMG window").
+`package-dmg.sh` lays it out with [dmgbuild](https://pypi.org/project/dmgbuild/)
+through `uvx` or `pipx` (both on GitHub's macOS runners have pipx), so Finder is
+never scripted. To change the art, export "Mac · DMG background (export)" at
+1x and 2x and join them: `tiffutil -cathidpicheck bg.png bg@2x.png -out dmg/background.tiff`.
+
 ## Updates
 
 Daybook updates itself with [Sparkle](https://sparkle-project.org) 2
