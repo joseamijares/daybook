@@ -70,6 +70,11 @@ struct DaybookAPI: Sendable {
         _ = try await request("api/tasks/\(id)", method: "PATCH", body: ["date": date ?? NSNull()])
     }
 
+    /// A task's place on a day (1 is first), as drag and drop saves it.
+    func arrange(_ id: String, date: String, order: Int) async throws {
+        _ = try await request("api/tasks/\(id)", method: "PATCH", body: ["date": date, "order": order])
+    }
+
     func setFocus(_ focus: String, date: String) async throws {
         _ = try await request("api/day", method: "PUT", body: ["date": date, "focus": focus])
     }

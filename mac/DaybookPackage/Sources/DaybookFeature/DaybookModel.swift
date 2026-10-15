@@ -72,7 +72,8 @@ public final class DaybookModel {
     var api: DaybookAPI? {
         guard let url = URL(string: baseURL.trimmingCharacters(in: .whitespaces)),
               url.scheme?.hasPrefix("http") == true else { return nil }
-        return DaybookAPI(baseURL: url, key: Keychain.read() ?? "")
+        // Previews and tests never read the Keychain (it would ask for the app's key).
+        return DaybookAPI(baseURL: url, key: isPreview ? "" : Keychain.read() ?? "")
     }
 
     /// Configured once a server answered and let us in.
@@ -173,7 +174,11 @@ public final class DaybookModel {
                 error = s.needsKey ? "Add your DAYBOOK_KEY in Settings." : nil
                 return
             }
-            week = try await api.week(containing: selectedDate)
+            let read = try await api.week(containing: selectedDate)
+            // While an order is being saved the server has only half of it: the
+            // order shown stays, and the last save reads the week again.
+            guard ordersSaving == 0 else { return }
+            week = read
             error = nil
             lastSync = Date()
         } catch {
@@ -203,6 +208,45 @@ public final class DaybookModel {
     func moveToTomorrow(_ task: DBTask) async {
         await edit(task.id) { day in day.tasks.removeAll { $0.id == task.id } } send: { api in try await api.move(task.id, to: "tomorrow") }
     }
+
+    /// Puts the shown day's tasks in this order (drag and drop). The new order
+    /// shows at once; then each task's place is saved in turn, as the web app
+    /// does (components/ops.ts `arrange`), and a failure puts the old order back.
+    /// Returns the save, for tests.
+    @discardableResult
+    func reorder(_ ids: [String]) -> Task<Void, Never>? {
+        let date = shownDate
+        guard let api, let d = week?.days.firstIndex(where: { $0.date == date }) else { return nil }
+        let before = week!.days[d].tasks
+        let after = ids.compactMap { id in before.first { $0.id == id } }
+        guard after.count == before.count, Set(ids).count == ids.count, after != before else { return nil }
+        week!.days[d].tasks = after
+        // Orders are saved one after another, and the week is read again only
+        // once the last is saved: a read between two quick drags would show half of each.
+        let ahead = saving
+        ordersSaving += 1
+        let save = Task {
+            await ahead?.value
+            do {
+                for (i, task) in after.enumerated() { try await api.arrange(task.id, date: date, order: i + 1) }
+                error = nil
+            } catch {
+                self.error = error.localizedDescription
+                // The old order back, unless the day has been moved around since.
+                if let d = week?.days.firstIndex(where: { $0.date == date }), week!.days[d].tasks.map(\.id) == after.map(\.id) {
+                    let now = week!.days[d].tasks
+                    week!.days[d].tasks = before.compactMap { task in now.first { $0.id == task.id } }
+                }
+            }
+            ordersSaving -= 1
+            if ordersSaving == 0 { await settle() }
+        }
+        saving = save
+        return save
+    }
+
+    private var saving: Task<Void, Never>?
+    private var ordersSaving = 0
 
     func add(_ text: String) async {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -235,6 +279,11 @@ public final class DaybookModel {
         } catch {
             self.error = error.localizedDescription
         }
+        await settle()
+    }
+
+    /// A fresh read after an edit, and the Frame told.
+    private func settle() async {
         await refresh()
         if frameSyncOn, session?.frame == true, session?.frameAutoSync != true {
             // The server syncs by itself when FRAME_AUTO_SYNC is on; otherwise do it now.
