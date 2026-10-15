@@ -226,7 +226,7 @@ const en = {
   // Week
   weekOf: 'The week of {date}',
   plannedTotal: '{h} planned',
-  dropOn: 'Drop to plan it {day}',
+  dropToBacklog: 'Drop here to take it off its day',
   someday: 'Someday',
   // Shutdown
   stillOpen: 'Still open',
@@ -497,7 +497,7 @@ const es: typeof en = {
   // Week
   weekOf: 'La semana del {date}',
   plannedTotal: '{h} planeadas',
-  dropOn: 'Suelta para planearla el {day}',
+  dropToBacklog: 'Suéltala aquí para quitarla de su día',
   someday: 'Algún día',
   // Shutdown
   stillOpen: 'Pendiente',
