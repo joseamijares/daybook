@@ -211,19 +211,37 @@ struct WebView: NSViewRepresentable {
             if view.url != nil { view.evaluateJavaScript(js) }
         }
 
-        /// The page's Update and Check now, and "ready" once it has signed in and
-        /// painted (components/mac.ts). Only the Daybook's own page in the main
-        /// frame can ask, and only for the update window or the launch scene.
+        /// The page's Update and Check now, "ready" once it has signed in and
+        /// painted, and "haptic" as a dragged task lifts, finds a new place and
+        /// lands (components/mac.ts). Only the Daybook's own page in the main
+        /// frame can ask, and only for the update window, the launch scene or a
+        /// tick on the trackpad.
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             guard message.name == "daybookMac", message.frameInfo.isMainFrame, let home = loaded,
                   let body = message.body as? [String: Any], let action = body["action"] as? String,
-                  action == "check" || action == "install" || action == "ready" else { return }
+                  ["check", "install", "ready", "haptic"].contains(action) else { return }
             let from = message.frameInfo.securityOrigin
             let fromPort = from.port == 0 ? Self.defaultPort(from.protocol) : from.port
             guard from.protocol == home.scheme, from.host.lowercased() == home.host?.lowercased(), fromPort == Self.port(home) else { return }
-            guard action == "ready" else { return check() }
-            // A page the window hasn't shown yet (the one before the sign-in) can't end the scene.
-            if shown { ready() } else { saidReady = true }
+            switch action {
+            case "haptic":
+                Self.feel(body["kind"] as? String)
+            case "ready":
+                // A page the window hasn't shown yet (the one before the sign-in) can't end the scene.
+                if shown { ready() } else { saidReady = true }
+            default:
+                check()
+            }
+        }
+
+        /// A tick under the finger on a Force Touch trackpad (nothing with a mouse).
+        private static func feel(_ kind: String?) {
+            let pattern: NSHapticFeedbackManager.FeedbackPattern = switch kind {
+            case "alignment": .alignment
+            case "levelChange": .levelChange
+            default: .generic
+            }
+            NSHapticFeedbackManager.defaultPerformer.perform(pattern, performanceTime: .now)
         }
 
         /// A new page: what the last one said about being ready no longer counts.

@@ -47,7 +47,8 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
   column, the day you're building in the middle, and only tasks on the right,
   from the backlog or from Linear. Write new ones (into the day or the
   backlog), edit or delete them without leaving the plan, and reorder by
-  dragging: the other rows step aside to show where a task will land.
+  dragging: the task lifts and follows the pointer, and the other rows part
+  to show where it will land (hold it a moment on a touchscreen).
 - **Week.** One card with a column per day, Sunsama style. Drag backlog items
   onto a day, and each day turns amber when it's over capacity.
 - **Shut down.** The same painting at dusk. You see what got done, choose

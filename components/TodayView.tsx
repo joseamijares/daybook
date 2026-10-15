@@ -136,7 +136,6 @@ export function TodayView() {
               onDelete={() => ops.remove(task.id)}
               moves={isToday ? ['tomorrow', 'backlog'] : ['today', 'backlog']}
               sort={sort.rowProps(task.id)}
-              dragging={sort.dragging === task.id}
             />
           ))}
           <AddRow placeholder={`${t.addTask} · ${t.addHint}`} onAdd={(text) => ops.add({ text, date })} />

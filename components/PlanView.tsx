@@ -229,7 +229,6 @@ export function PlanView() {
                 task={task}
                 fresh={fresh.includes(task.id)}
                 sort={sort.rowProps(task.id)}
-                dragging={sort.dragging === task.id}
                 onUndo={() => undo(task)}
                 onRemove={() => thenForget(task.id, ops.patch(task.id, { date: null }))}
                 moves={moves}
@@ -309,7 +308,6 @@ function DayLine({
   task,
   fresh,
   sort,
-  dragging,
   onUndo,
   onRemove,
   moves,
@@ -320,7 +318,6 @@ function DayLine({
   task: Task;
   fresh: boolean;
   sort: SortRow;
-  dragging: boolean;
   onUndo: () => void;
   onRemove: () => void;
   moves: Move[];
@@ -334,11 +331,7 @@ function DayLine({
   const [open, setOpen] = useState(false);
   return (
     <>
-      <div
-        className={['line-row', fresh && 'is-new', dragging && 'dragging'].filter(Boolean).join(' ')}
-        draggable={!open}
-        {...sort}
-      >
+      <div className={['line-row', fresh && 'is-new'].filter(Boolean).join(' ')} {...sort}>
         <span className="handle">
           <Handle />
         </span>
