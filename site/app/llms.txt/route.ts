@@ -23,8 +23,8 @@ export function GET() {
 - Clients: Claude, ChatGPT, Cursor, Codex, Grok, Gemini CLI, VS Code, Windsurf and any MCP client.
 
 ## Install
-- [Download Daybook for Mac](${MAC_DOWNLOAD_URL}): a 2 MB disk image for macOS 14 or later (Apple silicon and Intel), signed with a Developer ID and notarized by Apple. Drag it to Applications, open it, then enter your Daybook's address and key.
-- In a browser: open Daybook, choose "On this device", then install it as an app (Chrome/Edge install icon, Safari File → Add to Dock, iPhone Share → Add to Home Screen).
+- [Download Daybook for Mac](${MAC_DOWNLOAD_URL}): a 4 MB disk image for macOS 14 or later (Apple silicon and Intel), signed with a Developer ID and notarized by Apple. Drag it to Applications, open it, then enter your Daybook's address and key. It updates itself from then on.
+- In a browser: open Daybook and press Start (your days stay in that browser), then install it as an app (Chrome/Edge install icon, Safari File → Add to Dock, iPhone Share → Add to Home Screen).
 
 ## Products
 - [Deploy your own on Vercel](${DEPLOY_URL}): free plans of Vercel and Upstash are enough.

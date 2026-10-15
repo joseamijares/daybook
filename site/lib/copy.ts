@@ -100,8 +100,8 @@ const en = {
   mac: {
     label: 'Daybook for Mac',
     title: 'Today, one click away in the menu bar.',
-    body: 'The full app in a window, and today in the menu bar: the focus line, your meetings, the to-dos you can tick or push to tomorrow, and the week. A reminder at 6 pm opens Shut down.',
-    link: 'Build it from the repo, macOS 14 or later',
+    body: 'The full app in a window, and today in the menu bar: the focus line, your meetings, the to-dos you can tick or push to tomorrow, and the week. A reminder at 6 pm opens Shut down. It opens with the wall of paintings and keeps itself up to date.',
+    link: 'Download for Mac, macOS 14 or later',
     chip: 'Team standup · in 12m',
     clock: 'Tue 9:18',
     alt: 'The Daybook menu bar popover: today, the schedule, four to-dos and the week',
@@ -120,19 +120,19 @@ const en = {
     lede: 'Three ways to hang it: the Mac app, any browser, or your own cloud. All free.',
     mac: {
       title: 'Daybook for Mac',
-      meta: 'macOS 14 or later · Apple silicon and Intel · 2 MB',
+      meta: 'macOS 14 or later · Apple silicon and Intel · 4 MB',
       steps: [
         'Download Daybook.dmg and open it.',
         'Drag Daybook into Applications, then open it.',
         'Paste your Daybook’s address and key. Today appears in the menu bar.',
       ],
-      note: 'Needs a Daybook in the cloud: see Your own cloud. Signed with a Developer ID and notarized by Apple.',
+      note: 'Needs a Daybook in the cloud: see Your own cloud. Signed with a Developer ID and notarized by Apple, and it updates itself from then on.',
     },
     web: {
       title: 'In any browser',
       meta: 'Mac, Windows, iPhone, iPad, Android · no account',
       steps: [
-        'Open Daybook and choose On this device. Your days stay in that browser.',
+        'Open Daybook and press Start. Your days stay in that browser.',
         'Chrome or Edge: click the install icon in the address bar.',
         'Safari on a Mac: File → Add to Dock.',
         'iPhone or iPad: Share → Add to Home Screen.',
@@ -144,7 +144,7 @@ const en = {
       steps: [
         'Deploy with Vercel and add Upstash for Redis to the project.',
         'Set DAYBOOK_KEY (openssl rand -hex 24) and deploy again.',
-        'Open it, choose In the cloud, and enter the key once per browser.',
+        'Open it, choose “Open it with your key” under Start, and enter the key once per browser.',
         'In Settings, connect the Mac app, your agents, Linear and the Frame.',
       ],
     },
@@ -296,8 +296,8 @@ const es: Copy = {
   mac: {
     label: 'Daybook para Mac',
     title: 'Hoy, a un clic en la barra de menús.',
-    body: 'La app completa en una ventana, y el día en la barra de menús: el enfoque, tus reuniones, las tareas que marcas o mandas a mañana, y la semana. Un recordatorio a las 6 pm abre el cierre del día.',
-    link: 'Compílala desde el repo, macOS 14 o posterior',
+    body: 'La app completa en una ventana, y el día en la barra de menús: el enfoque, tus reuniones, las tareas que marcas o mandas a mañana, y la semana. Un recordatorio a las 6 pm abre el cierre del día. Abre con el muro de pinturas y se mantiene al día sola.',
+    link: 'Descárgala para Mac, macOS 14 o posterior',
     chip: 'Junta diaria · en 12m',
     clock: 'mar 9:18',
     alt: 'El panel de Daybook en la barra de menús: hoy, la agenda, cuatro tareas y la semana',
@@ -317,19 +317,19 @@ const es: Copy = {
     lede: 'Tres maneras de colgarlo: la app de Mac, cualquier navegador o tu propia nube. Todas gratis.',
     mac: {
       title: 'Daybook para Mac',
-      meta: 'macOS 14 o posterior · Apple silicon e Intel · 2 MB',
+      meta: 'macOS 14 o posterior · Apple silicon e Intel · 4 MB',
       steps: [
         'Descarga Daybook.dmg y ábrelo.',
         'Arrastra Daybook a Aplicaciones y ábrelo.',
         'Pega la dirección y la llave de tu Daybook. El día aparece en la barra de menús.',
       ],
-      note: 'Necesita un Daybook en la nube: ve Tu propia nube. Firmada con Developer ID y notarizada por Apple.',
+      note: 'Necesita un Daybook en la nube: ve Tu propia nube. Firmada con Developer ID y notarizada por Apple, y desde ahí se actualiza sola.',
     },
     web: {
       title: 'En cualquier navegador',
       meta: 'Mac, Windows, iPhone, iPad, Android · sin cuenta',
       steps: [
-        'Abre Daybook y elige En este dispositivo. Tus días se quedan en ese navegador.',
+        'Abre Daybook y toca Empezar. Tus días se quedan en ese navegador.',
         'Chrome o Edge: el ícono de instalar en la barra de direcciones.',
         'Safari en Mac: Archivo → Agregar al Dock.',
         'iPhone o iPad: Compartir → Agregar a inicio.',
@@ -341,7 +341,7 @@ const es: Copy = {
       steps: [
         'Despliega en Vercel y agrega Upstash for Redis al proyecto.',
         'Define DAYBOOK_KEY (openssl rand -hex 24) y despliega de nuevo.',
-        'Ábrelo, elige En la nube y escribe la llave una vez por navegador.',
+        'Ábrelo, elige “Ábrelo con tu llave” bajo Empezar y escribe la llave una vez por navegador.',
         'En Ajustes, conecta la app de Mac, tus agentes, Linear y la Frame.',
       ],
     },

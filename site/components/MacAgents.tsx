@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import type { Copy } from '@site/lib/copy';
 import { src, work } from '@site/lib/art';
-import { MAC_URL } from '@site/lib/site';
+import { MAC_DOWNLOAD_URL } from '@site/lib/site';
 
 const TOOLS = [
   'get_today',
@@ -53,9 +53,9 @@ export function MacAgents({ c }: { c: Copy }) {
           />
         </div>
         <p className="also__body">{c.mac.body}</p>
-        <a className="link-gilt" href={MAC_URL}>
+        <a className="link-gilt" href={MAC_DOWNLOAD_URL}>
           <Image src="/img/mac-icon.webp" alt="" width={28} height={28} aria-hidden="true" />
-          {c.mac.link} <span aria-hidden="true">↗</span>
+          {c.mac.link} <span aria-hidden="true">↓</span>
         </a>
       </div>
 
