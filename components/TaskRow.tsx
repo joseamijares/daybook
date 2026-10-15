@@ -47,9 +47,8 @@ interface Props {
   moves?: Move[];
   /** Tags used elsewhere, offered when tagging. */
   tags?: string[];
-  /** From useSortable: makes the row draggable within its list. */
+  /** From useSortable: lets the row be dragged within its list. */
   sort?: SortRow;
-  dragging?: boolean;
 }
 
 // "45m", "1h30", "1.5h", "90" → minutes; "" → no estimate; anything else → undefined.
@@ -77,7 +76,7 @@ export function useTaskNotes(task: Task, short = false) {
   return { carried, linearState };
 }
 
-export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow', 'backlog'], tags = [], sort, dragging }: Props) {
+export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow', 'backlog'], tags = [], sort }: Props) {
   const [open, setOpen] = useState(false);
   const { carried, linearState } = useTaskNotes(task);
 
@@ -104,11 +103,7 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
 
   return (
     <>
-      <div
-        className={['row', 'hoverable', task.done && 'is-done', dragging && 'dragging'].filter(Boolean).join(' ')}
-        draggable={Boolean(sort) && !open}
-        {...sort}
-      >
+      <div className={['row', 'hoverable', task.done && 'is-done'].filter(Boolean).join(' ')} {...sort}>
         <Check on={task.done} onClick={onToggle} label={task.title} />
         <div className="body" role="button" tabIndex={0} aria-expanded={open} onClick={toggleOpen} onKeyDown={onKey}>
           <span className="line">

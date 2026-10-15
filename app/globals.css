@@ -51,6 +51,7 @@ html[data-palette="salon"] {
   --radius-card: 4px;
   --radius-control: 999px;
   --placard-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+  --lift-shadow: 0 18px 36px -14px rgba(17, 22, 19, 0.42), 0 3px 8px -2px rgba(17, 22, 19, 0.14); /* a task held up while dragged */
 }
 
 html[data-palette="modern"] {
@@ -79,6 +80,7 @@ html[data-palette="modern"] {
   --radius-card: 2px;
   --radius-control: 2px;
   --placard-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+  --lift-shadow: 0 16px 32px -14px rgba(17, 17, 17, 0.3), 0 2px 6px -1px rgba(17, 17, 17, 0.1); /* a task held up while dragged */
 }
 
 html[data-palette="nocturne"] {
@@ -107,6 +109,7 @@ html[data-palette="nocturne"] {
   --radius-card: 4px;
   --radius-control: 999px;
   --placard-shadow: 0 0 0 1px #2a2f37, 0 30px 80px rgba(0, 0, 0, 0.6);
+  --lift-shadow: 0 0 0 1px #3a404a, 0 18px 40px -12px rgba(0, 0, 0, 0.7); /* a task held up while dragged */
 }
 
 /* ---- Designs -------------------------------------------------------------- */
@@ -125,6 +128,10 @@ html[data-style="notebook"] {
 :root {
   --ease-gallery: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* A spring (damping 0.8, a 1.5% overshoot), for things that move under your
+     hand: rows parting for a dragged task, the task settling. A curve close to
+     it where linear() isn't known (Safari before 17.2). */
+  --ease-spring: cubic-bezier(0.25, 1.1, 0.4, 1);
   --accent: var(--color-cobalt);
   --sheet: var(--color-paper);
   --rule: var(--color-rule-ink);
@@ -732,7 +739,10 @@ textarea {
   background: var(--tint);
   opacity: 0;
   z-index: -1;
-  transition: opacity 0.18s var(--ease-gallery);
+  /* The background crossfades too: a dragged task lands from raised paper. */
+  transition:
+    opacity 0.18s var(--ease-gallery),
+    background-color 0.25s var(--ease-gallery);
 }
 .row.hoverable:hover::before,
 .row.is-new::before {
@@ -740,12 +750,6 @@ textarea {
 }
 .row.is-new::before {
   background: var(--tint-accent);
-}
-.row.dragging {
-  opacity: 0.4;
-}
-.row.dragging::before {
-  opacity: 1;
 }
 .check {
   flex-shrink: 0;
@@ -2413,7 +2417,10 @@ textarea {
   background: var(--tint);
   opacity: 0;
   z-index: -1;
-  transition: opacity 0.18s var(--ease-gallery);
+  /* The background crossfades too: a dragged task lands from raised paper. */
+  transition:
+    opacity 0.18s var(--ease-gallery),
+    background-color 0.25s var(--ease-gallery);
 }
 .line-row:hover::before {
   opacity: 1;
@@ -2421,12 +2428,6 @@ textarea {
 .line-row.is-new::before {
   opacity: 1;
   background: var(--tint-accent);
-}
-.line-row.dragging {
-  opacity: 0.4;
-}
-.line-row.dragging::before {
-  opacity: 1;
 }
 .line-row .name {
   flex: 1;
@@ -3306,10 +3307,17 @@ textarea {
 .rows > .row:nth-child(6) { animation-delay: 0.2s; }
 .rows > .row:nth-child(n + 7) { animation-delay: 0.24s; }
 
-/* Dragging to reorder (components/sortable.ts): the rows step aside to show
-   where the task lands, and slide back if the drag is let go elsewhere. Once a
-   list has been reordered its rows don't slide in again: a row moved in the
-   page would otherwise replay its entrance. */
+/* Dragging to reorder (components/sortable.ts). The task you hold lifts off
+   the page, on raised paper with a soft shadow, and follows the pointer (its
+   `translate`, set as it moves); the other rows part with a little spring to
+   show where it lands, and it settles there when let go. Once a list has been
+   reordered its rows don't slide in again: a row moved in the page would
+   otherwise replay its entrance. */
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --ease-spring: linear(0, 0.003 0.9%, 0.021 2.4%, 0.064 4.4%, 0.135 6.8%, 0.23 9.5%, 0.344 12.5%, 0.465 15.8%, 0.586 19.2%, 0.696 23%, 0.792 26.9%, 0.869 31%, 0.927 35.4%, 0.968 39.9%, 0.994 44.6%, 1.008 49.4%, 1.014 54.4%, 1.015 59.6%, 1.013 65%, 1.01 70.4%, 1.007 76.1%, 1.004 81.8%, 1.002 87.8%, 1.001 93.8%, 1);
+  }
+}
 .rows[data-sorted] > .row,
 .list[data-sorted] > .line-row {
   animation: none;
@@ -3317,11 +3325,53 @@ textarea {
 [data-sort-id],
 [data-sort-id] + .editor {
   transition:
-    transform 0.28s var(--ease-gallery),
+    transform 0.5s var(--ease-spring),
     opacity 0.2s var(--ease-gallery);
 }
+[data-sort-id] {
+  -webkit-touch-callout: none;
+}
+@media (pointer: coarse) {
+  [data-sort-id] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+[data-sort-id][data-lift] {
+  z-index: 2;
+  scale: 1.015;
+  transition: scale 0.25s var(--ease-gallery);
+}
+[data-sort-id][data-lift='settle'] {
+  scale: 1;
+  transition:
+    translate 0.45s var(--ease-spring),
+    scale 0.35s var(--ease-gallery);
+}
+[data-sort-id][data-lift]::before {
+  opacity: 1;
+  background: var(--color-paper-raised);
+  box-shadow: var(--lift-shadow);
+  transition:
+    opacity 0.18s var(--ease-gallery),
+    box-shadow 0.25s var(--ease-gallery);
+}
+[data-sort-id][data-lift='settle']::before {
+  box-shadow: 0 0 0 transparent;
+  transition:
+    opacity 0.18s var(--ease-gallery),
+    box-shadow 0.45s var(--ease-gallery);
+}
+html.is-sorting,
+html.is-sorting * {
+  cursor: grabbing !important;
+}
+html.is-sorting {
+  -webkit-user-select: none;
+  user-select: none;
+}
 .list[data-sorted] {
-  transition: padding-bottom 0.28s var(--ease-gallery);
+  transition: padding-bottom 0.5s var(--ease-spring);
 }
 /* Where a task from elsewhere will land. */
 .sort-slot {
@@ -3334,7 +3384,7 @@ textarea {
   border-radius: 6px;
   background: var(--tint-accent);
   pointer-events: none;
-  transition: transform 0.28s var(--ease-gallery);
+  transition: transform 0.5s var(--ease-spring);
   animation: slot-in 0.2s var(--ease-gallery) both;
 }
 @keyframes slot-in {
