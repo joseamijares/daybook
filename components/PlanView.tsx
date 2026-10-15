@@ -18,6 +18,7 @@ import { useLook, useResource, useSession } from './client';
 import { capitalize, useMeetings } from './day';
 import { DraftText } from './DraftText';
 import { useOps } from './ops';
+import { arranged, type SortRow, TASK_TYPE, useSortable } from './sortable';
 import { AddRow, Editor, Handle, type Move, type Patch, PlusIcon, useTaskNotes } from './TaskRow';
 
 type Source = 'backlog' | 'linear';
@@ -52,15 +53,13 @@ export function PlanView() {
   // /plan?date=YYYY-MM-DD plans another day; no date plans today.
   const urlDate = useSearchParams().get('date');
   const date = urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate) ? urlDate : session.today;
-  const { data: week, reload } = useResource<WeekView & { events?: Record<string, FrameEvent[]> }>(`/api/week?date=${date}`);
+  const { data: week, reload, setData } = useResource<WeekView & { events?: Record<string, FrameEvent[]> }>(`/api/week?date=${date}`);
   const ops = useOps(reload);
   const [source, setSource] = useState<Source>('backlog');
   const [query, setQuery] = useState('');
   const [text, setText] = useState('');
   const [fresh, setFresh] = useState<string[]>([]); // added in this sitting, for Undo
   const [added, setAdded] = useState<Task[]>([]); // what moved from the right to the day
-  const [dragId, setDragId] = useState<string | null>(null);
-  const [dropAt, setDropAt] = useState<number | null>(null);
   const { list: meetings, minutes: booked } = useMeetings(week?.events?.[date] || []);
 
   const day = week?.days.find((d) => d.date === date);
@@ -71,6 +70,26 @@ export function PlanView() {
   const matches = (x: Task) => !q || `${x.title} ${x.tag || ''} ${x.source?.key || ''}`.toLowerCase().includes(q);
   const candidates = (source === 'linear' ? linear : own).filter(matches);
   const tags = [...(week?.days.flatMap((d) => d.tasks) || []), ...pool].map((x) => x.tag).filter((x): x is string => Boolean(x));
+  const ids = (day?.tasks || []).map((x) => x.id);
+
+  // Moved from the right column onto the day: shown as just added, with Undo.
+  const take = (task: Task) => {
+    setFresh((f) => [...f, task.id]);
+    setAdded((a) => [task, ...a.filter((x) => x.id !== task.id)]);
+  };
+  // Drag to reorder the day, or drag a task in from the right column onto a
+  // line. The new order shows at once and saves behind.
+  const sort = useSortable({
+    ids,
+    accepts: (id) => pool.some((x) => x.id === id),
+    onMove: (id, index) => {
+      const next = placeAt(ids, id, index);
+      const incoming = pool.find((x) => x.id === id);
+      if (incoming) take(incoming);
+      setData((w) => w && arranged(w, date, next));
+      ops.arrange(date, next);
+    },
+  });
   const ghosts = added.filter((x) => (source === 'linear') === Boolean(x.source) && !pool.some((p) => p.id === x.id) && matches(x));
 
   if (!week || !day) {
@@ -92,12 +111,11 @@ export function PlanView() {
   // Moves offered when you open a task on the day: never to the day itself.
   const moves = (['today', 'tomorrow', 'backlog'] as Move[]).filter((m) => m === 'backlog' || (m === 'today' ? session.today : addDays(session.today, 1)) !== date);
 
-  // From the right column onto the day: at the end, or on the drop line.
-  const addTask = async (task: Task, at?: number) => {
-    setFresh((f) => [...f, task.id]);
-    setAdded((a) => [task, ...a.filter((x) => x.id !== task.id)]);
-    if (at === undefined) await ops.patch(task.id, { date });
-    else await ops.arrange(date, placeAt(day.tasks.map((x) => x.id), task.id, at));
+  // From the right column onto the end of the day.
+  const addTask = (task: Task) => {
+    take(task);
+    setData((w) => w && arranged(w, date, [...ids, task.id]));
+    ops.patch(task.id, { date });
   };
   const undo = async (task: Task) => {
     setFresh((f) => f.filter((x) => x !== task.id));
@@ -111,13 +129,6 @@ export function PlanView() {
     const created = await ops.add({ text: value, date });
     const task = (created as { task?: Task } | undefined)?.task;
     if (task) setFresh((f) => [...f, task.id]);
-  };
-  const dropInto = (index: number) => {
-    const id = dragId;
-    setDropAt(null);
-    setDragId(null);
-    if (!id) return;
-    ops.arrange(date, placeAt(day.tasks.map((x) => x.id), id, index));
   };
 
   return (
@@ -201,34 +212,15 @@ export function PlanView() {
               <span className="kbd">{t.enterKey}</span>
             )}
           </form>
-          <div
-            className="list"
-            onDragOver={(e) => e.preventDefault()}
-            onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setDropAt(null)}
-            onDrop={(e) => {
-              e.preventDefault();
-              const id = e.dataTransfer.getData('text/plain');
-              const fromPool = pool.find((x) => x.id === id);
-              if (fromPool) {
-                setDropAt(null);
-                addTask(fromPool, dropAt ?? undefined);
-              } else dropInto(dropAt ?? day.tasks.length);
-            }}
-          >
+          <div className="list" {...sort.listProps}>
             {!day.tasks.length && <p className="empty">{t.emptyDay}</p>}
-            {day.tasks.map((task, i) => (
+            {day.tasks.map((task) => (
               <DayLine
                 key={task.id}
                 task={task}
                 fresh={fresh.includes(task.id)}
-                dropBefore={dropAt === i && dragId !== task.id}
-                dragging={dragId === task.id}
-                onDragStart={() => setDragId(task.id)}
-                onDragEnd={() => {
-                  setDragId(null);
-                  setDropAt(null);
-                }}
-                onDragOver={() => setDropAt(i)}
+                sort={sort.rowProps(task.id)}
+                dragging={sort.dragging === task.id}
                 onUndo={() => undo(task)}
                 onRemove={() => ops.patch(task.id, { date: null })}
                 moves={moves}
@@ -237,6 +229,7 @@ export function PlanView() {
                 onDelete={() => ops.remove(task.id)}
               />
             ))}
+            {sort.slot && <div className="sort-slot" aria-hidden style={{ transform: `translate3d(0, ${sort.slot.top}px, 0)`, height: sort.slot.height }} />}
           </div>
           <div className="col-foot">
             <span>{t.orderNote}</span>
@@ -305,11 +298,8 @@ export function PlanView() {
 function DayLine({
   task,
   fresh,
-  dropBefore,
+  sort,
   dragging,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
   onUndo,
   onRemove,
   moves,
@@ -319,11 +309,8 @@ function DayLine({
 }: {
   task: Task;
   fresh: boolean;
-  dropBefore: boolean;
+  sort: SortRow;
   dragging: boolean;
-  onDragStart: () => void;
-  onDragEnd: () => void;
-  onDragOver: () => void;
   onUndo: () => void;
   onRemove: () => void;
   moves: Move[];
@@ -338,17 +325,9 @@ function DayLine({
   return (
     <>
       <div
-        className={['line-row', fresh && 'is-new', dropBefore && 'drop-before', dragging && 'dragging'].filter(Boolean).join(' ')}
+        className={['line-row', fresh && 'is-new', dragging && 'dragging'].filter(Boolean).join(' ')}
         draggable={!open}
-        onDragStart={(e) => {
-          e.dataTransfer.setData('text/plain', task.id);
-          onDragStart();
-        }}
-        onDragEnd={onDragEnd}
-        onDragOver={(e) => {
-          e.preventDefault();
-          onDragOver();
-        }}
+        {...sort}
       >
         <span className="handle">
           <Handle />
@@ -414,7 +393,11 @@ function PickLine({
       <div
         className={['line-row', added ? 'is-added' : asking ? 'is-asking' : 'can-add'].join(' ')}
         draggable={!added && !open && !asking}
-        onDragStart={(e) => e.dataTransfer.setData('text/plain', task.id)}
+        onDragStart={(e) => {
+          e.dataTransfer.setData('text/plain', task.id);
+          e.dataTransfer.setData(TASK_TYPE, task.id);
+          e.dataTransfer.effectAllowed = 'move';
+        }}
       >
         {added ? (
           <span className="add-circle" aria-hidden>

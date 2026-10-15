@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { type DragEvent, useRef, useState } from 'react';
 import type { DayView, WeekView as Week } from '@/lib/daybook';
 import { dayNum, dow, fill, fmtDate, monthDay, weekdayName } from '@/lib/i18n';
 import { addDays, minutesLabel, mondayOf } from '@/lib/time';
@@ -10,6 +10,7 @@ import { capitalize } from './day';
 import { DraftText } from './DraftText';
 import { Masthead } from './Masthead';
 import { useOps } from './ops';
+import { arranged } from './sortable';
 import { Check } from './TaskRow';
 
 const Chevron = ({ back }: { back?: boolean }) => (
@@ -29,9 +30,26 @@ export function WeekView() {
     setSeenMonday(thisMonday);
     if (anchor === seenMonday) setAnchor(thisMonday);
   }
-  const { data: week, reload } = useResource<Week>(`/api/week?date=${anchor}`);
+  const { data: week, reload, setData } = useResource<Week>(`/api/week?date=${anchor}`);
   const ops = useOps(reload);
   const [over, setOver] = useState<string | null>(null);
+  // The task being dragged, faded where it was (set after the browser has
+  // taken its picture of it, so the picture isn't faded).
+  const [lifted, setLifted] = useState<string | null>(null);
+  const lifting = useRef<string | null>(null);
+  const lift = (id: string) => ({
+    draggable: true,
+    onDragStart: (e: DragEvent) => {
+      e.dataTransfer.setData('text/plain', id);
+      e.dataTransfer.effectAllowed = 'move';
+      lifting.current = id;
+      setTimeout(() => lifting.current === id && setLifted(id));
+    },
+    onDragEnd: () => {
+      lifting.current = null;
+      setLifted(null);
+    },
+  });
 
   if (!week) {
     return (
@@ -51,11 +69,15 @@ export function WeekView() {
   // Only tasks we know about move (not text dragged in from a field), and only
   // onto today or later: a past day would roll them straight back to today.
   const known = new Set([...week.days.flatMap((d) => d.tasks), ...week.backlog].map((x) => x.id));
+  // The task moves at once; the save follows.
   const drop = (date: string, e: React.DragEvent) => {
     e.preventDefault();
     setOver(null);
     const id = e.dataTransfer.getData('text/plain');
-    if (known.has(id) && date >= session.today) ops.patch(id, { date });
+    const onto = week.days.find((d) => d.date === date)?.tasks.map((x) => x.id) || [];
+    if (!known.has(id) || date < session.today || onto.includes(id)) return;
+    setData((w) => w && arranged(w, date, [...onto, id]));
+    ops.patch(id, { date });
   };
 
   const title = style === 'notebook' ? fill(t.weekOf, { date: monthDay(week.weekOf, session.locale) }) : current ? t.thisWeek : range;
@@ -116,6 +138,8 @@ export function WeekView() {
             onDragLeave={() => setOver((o) => (o === d.date ? null : o))}
             onDrop={(e) => drop(d.date, e)}
             ops={ops}
+            lifted={lifted}
+            lift={lift}
           />
         ))}
       </div>
@@ -140,7 +164,7 @@ export function WeekView() {
         <div className="chips">
           {!week.backlog.length && <span className="meta">{t.emptyBacklog}</span>}
           {week.backlog.slice(0, 10).map((task) => (
-            <div key={task.id} className="chip" draggable onDragStart={(e) => e.dataTransfer.setData('text/plain', task.id)}>
+            <div key={task.id} className={`chip${lifted === task.id ? ' dragging' : ''}`} {...lift(task.id)}>
               {task.source && <span className="key">{task.source.key}</span>}
               <span>{task.title}</span>
               {task.estimate ? <span className="est">{minutesLabel(task.estimate)}</span> : null}
@@ -160,6 +184,8 @@ function Column({
   onDragLeave,
   onDrop,
   ops,
+  lifted,
+  lift,
 }: {
   day: DayView;
   past: boolean;
@@ -168,6 +194,8 @@ function Column({
   onDragLeave: () => void;
   onDrop: (e: React.DragEvent) => void;
   ops: ReturnType<typeof useOps>;
+  lifted: string | null;
+  lift: (id: string) => { draggable: boolean; onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
 }) {
   const { session, t } = useSession();
   const { style } = useLook();
@@ -183,7 +211,11 @@ function Column({
         e.preventDefault();
         onDragOver();
       }}
-      onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && onDragLeave()}
+      onDragLeave={(e) => {
+        // WebKit often leaves relatedTarget empty: ask where the pointer is.
+        const r = e.currentTarget.getBoundingClientRect();
+        if (e.clientX <= r.left || e.clientX >= r.right || e.clientY <= r.top || e.clientY >= r.bottom) onDragLeave();
+      }}
       onDrop={onDrop}
     >
       <Link className="col-head" href={`/?date=${day.date}`}>
@@ -214,10 +246,9 @@ function Column({
           return (
             <div
               key={task.id}
-              className={['item', task.done && 'done', !task.done && ends[i] > day.capacity && 'past-cap'].filter(Boolean).join(' ')}
+              className={['item', task.done && 'done', !task.done && ends[i] > day.capacity && 'past-cap', lifted === task.id && 'dragging'].filter(Boolean).join(' ')}
               style={{ '--h': height } as React.CSSProperties}
-              draggable
-              onDragStart={(e) => e.dataTransfer.setData('text/plain', task.id)}
+              {...lift(task.id)}
             >
               <span style={{ transform: 'scale(0.8)', transformOrigin: 'left top' }}>
                 <Check on={task.done} onClick={() => ops.toggle(task)} label={task.title} />
