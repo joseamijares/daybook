@@ -3,11 +3,35 @@
 A super simple daily planner with a painting of the day. Plan the morning,
 shut down in the evening, and let your AI agents do the typing.
 
-Use it **on this device** (free, private, nothing to set up: your days stay in
-your browser) or **in the cloud** (your own deployment with a key: every
-device, the Mac app, AI agents, Linear and Frame).
+[daybooksalon.vercel.app](https://daybooksalon.vercel.app) ·
+[Watch it in 50 seconds](https://daybooksalon.vercel.app/film/daybook-film.mp4) ·
+[Download for Mac](https://github.com/joseamijares/daybook/releases/latest/download/Daybook.dmg)
 
 ![Today: the painting of the day beside a museum placard with your day](docs/img/today.jpg)
+
+## Get started
+
+Daybook opens on one button. Press **Start** and your days stay in that
+browser: free, private, no account, no setup. When you want the same days on
+every device, the Mac app, AI agents, Linear or your Frame, run your own
+Daybook in the cloud and open it with its key.
+
+- **In a browser.** Deploy Daybook with no settings at all
+  ([one click on Vercel](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjoseamijares%2Fdaybook)),
+  or [run it on your computer](#run-it). Open it and press **Start**. To keep
+  it as an app: the install icon in Chrome or Edge, File → Add to Dock in
+  Safari, Share → Add to Home Screen on an iPhone or iPad.
+- **In your own cloud.** Vercel and Upstash on their free plans, and a key you
+  make: see [Deploy your own](#deploy-your-own). Then choose **Open it with
+  your key** under Start.
+- **On a Mac.** [Download Daybook.dmg](https://github.com/joseamijares/daybook/releases/latest/download/Daybook.dmg),
+  drag it into Applications and open it. It asks once for your cloud
+  Daybook's address and key, and updates itself from then on.
+- **With your AI agents.** In a cloud Daybook, Settings → AI agents makes a
+  token and the exact setup for Claude, ChatGPT, Cursor, Codex and more. See
+  [Connect your agents](#connect-your-agents).
+
+## What's in it
 
 Daybook is a small, open-source take on [Sunsama](https://www.sunsama.com/)'s
 rituals. It shares its look and its 44 public-domain paintings with
@@ -21,7 +45,9 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
   Click a task to rename it, tag it, time it or move it.
 - **Plan the day.** Planning takes the whole window: your meetings in a narrow
   column, the day you're building in the middle, and only tasks on the right,
-  from the backlog or from Linear. Write new ones, reorder by dragging.
+  from the backlog or from Linear. Write new ones (into the day or the
+  backlog), edit or delete them without leaving the plan, and reorder by
+  dragging: the other rows step aside to show where a task will land.
 - **Week.** One card with a column per day, Sunsama style. Drag backlog items
   onto a day, and each day turns amber when it's over capacity.
 - **Shut down.** The same painting at dusk. You see what got done, choose
@@ -47,8 +73,8 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
   cobalt), Modern (white and one red dot) or Nocturne (blue-black and gilt).
   Settings → Appearance, with an option to turn to Nocturne after shutdown.
 - **Mac app.** The full Daybook in a window, a glance at today in the menu
-  bar, a shutdown reminder, and Frame sync every two minutes. It updates
-  itself. Signed and notarized: [download Daybook.dmg](https://github.com/joseamijares/daybook/releases/latest/download/Daybook.dmg)
+  bar, a shutdown reminder, and Frame sync every two minutes. It opens on a
+  wall of paintings and updates itself. Signed and notarized: [download Daybook.dmg](https://github.com/joseamijares/daybook/releases/latest/download/Daybook.dmg)
   (macOS 14+, Apple silicon and Intel). See [mac/README.md](mac/README.md).
 
 | Plan the day (Timetable, Modern) | Week (Notebook) |
@@ -106,6 +132,9 @@ app, agents, Linear and Frame:
 4. Deploy, open the site, choose **Open it with your key** under Start, and
    enter your key once in each browser you use.
 5. In the Mac app, set the URL to your deployment and paste the same key.
+
+When you deploy a new version, pages that are already open show a small
+**Update** mark beside the Settings gear; a click reloads them.
 
 ### How it fits together
 
@@ -194,6 +223,7 @@ pnpm verify     # lint, typecheck, tests, production build
 | `lib/backup.ts` | Export and import a whole Daybook as one JSON file |
 | `cli/daybook.mjs` | The CLI and stdio relay (no dependencies) |
 | `mac/` | Daybook for Mac (SwiftUI): window + menu bar |
+| `site/` | The landing page, its own Next.js app and Vercel project |
 
 The design was drawn in Paper (the maintainer's file, not public); you don't
 need it to contribute. Colours, type and spacing live in `app/globals.css` as

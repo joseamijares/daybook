@@ -42,7 +42,9 @@ optimizer made a cold first visit wait seconds for the wall.
 
 `public/film/` holds web encodes of the Daybook showcase (49.5 s, silent), made in
 `jamak-launch-videos` (JAM-4347): `DaybookShowcase16x9` and `DaybookShowcase9x16`.
-Re-encode from those renders when the video changes:
+The current cut is v3 (2026-10-15): it shows the one-Start welcome and ends on
+this page. Re-encode from those renders when the video changes, and move
+`FILM.published` in `lib/site.ts` to the new date:
 
 ```bash
 ffmpeg -i daybook-16x9.mp4 -an -c:v libx264 -preset slow -tune animation -crf 23 \

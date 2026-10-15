@@ -21,7 +21,7 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || nu
 export const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || null;
 export const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID || null;
 
-// The 50-second video (made in jamak-launch-videos, JAM-4347): silent, so it
+// The 50-second video (made in jamak-launch-videos, JAM-4347; v3 2026-10-15): silent, so it
 // can play muted inline. Phones in portrait get the 9:16 cut.
 export const FILM = {
   landscape: '/film/daybook-film.mp4',
@@ -30,5 +30,5 @@ export const FILM = {
   posterPortrait: '/film/poster-9x16.webp',
   portraitMedia: '(max-width: 700px) and (orientation: portrait)',
   duration: 'PT50S',
-  published: '2026-10-13T12:00:00-06:00',
+  published: '2026-10-15T12:00:00-06:00',
 };

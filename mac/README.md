@@ -27,6 +27,9 @@ signed with Developer ID and notarized, macOS 14 or later.
   with its notes; Install Update installs it and reopens Daybook. Daybook →
   Check for Updates… (or Settings → Updates → Check now) checks right away,
   and Settings turns the daily check off. See [Updates](#updates).
+- **Opening:** a cold launch plays the salon hang (the lamp, the paintings,
+  Daybook's mark and today's date) while the window signs in, then fades into
+  Today. See [Opening](#opening).
 - The key is stored in the login Keychain. The app is sandboxed, with network
   access only.
 
