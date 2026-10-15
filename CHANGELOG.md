@@ -15,6 +15,13 @@
 
 ### The app
 
+- Plan the day handles the backlog itself: edit a task on the day (rename,
+  tag, time, move or delete), delete backlog tasks, and write straight into
+  the backlog. Open the backlog from the plan and **Back to planning** returns
+  to it. (#21)
+- Smoother drag and drop on Today, Plan and Week: the other rows step aside to
+  show where a task will land, and the new order shows at once, with no jump.
+  (#21)
 - A small "Update" mark beside the Settings gear when a newer deploy is live
   (a click reloads) or when the Mac app has found a new version (a click
   installs it). (#24)

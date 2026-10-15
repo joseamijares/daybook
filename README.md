@@ -45,7 +45,9 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
   Click a task to rename it, tag it, time it or move it.
 - **Plan the day.** Planning takes the whole window: your meetings in a narrow
   column, the day you're building in the middle, and only tasks on the right,
-  from the backlog or from Linear. Write new ones, reorder by dragging.
+  from the backlog or from Linear. Write new ones (into the day or the
+  backlog), edit or delete them without leaving the plan, and reorder by
+  dragging: the other rows step aside to show where a task will land.
 - **Week.** One card with a column per day, Sunsama style. Drag backlog items
   onto a day, and each day turns amber when it's over capacity.
 - **Shut down.** The same painting at dusk. You see what got done, choose
