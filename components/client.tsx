@@ -6,6 +6,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { Appearance, Palette, Style } from '@/lib/appearance';
 import type { Artwork } from '@/lib/art';
+import { COPY_EVERY } from '@/lib/copyReminder';
 import { type Locale, type Strings, strings } from '@/lib/i18n';
 
 export interface Session {
@@ -69,8 +70,77 @@ let device: Promise<typeof import('@/lib/localApi')> | null = null;
 const onDevice = () =>
   (device ??= import('@/lib/localApi').then(async (m) => {
     await m.startLocal(window.localStorage, { locale: navigator.language });
+    if (!readTime(SINCE)) writeTime(SINCE, Date.now()); // a browser on this device from before the reminder starts its week now
     return m;
   }));
+
+// Keeping a copy on this device: when this browser started, its last copy, and
+// "not now". Conveniences of this browser, like the mode, outside the days.
+const SINCE = 'daybook.since';
+const COPIED = 'daybook.copiedAt';
+const LATER = 'daybook.copyLater';
+const readTime = (key: string) => {
+  try {
+    const n = Number(localStorage.getItem(key));
+    return n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+};
+const writeTime = (key: string, at: number) => {
+  try {
+    localStorage.setItem(key, String(at));
+  } catch {
+    // storage refused: the reminder just asks again
+  }
+};
+
+export const copyTimes = () => ({ copiedAt: readTime(COPIED), since: readTime(SINCE), later: readTime(LATER) });
+export const copyLater = () => writeTime(LATER, Date.now() + COPY_EVERY);
+/** Erased: the copy clock starts again from now. */
+export function forgetCopies() {
+  try {
+    localStorage.removeItem(COPIED);
+    localStorage.removeItem(LATER);
+  } catch {
+    // storage refused
+  }
+  writeTime(SINCE, Date.now());
+}
+
+/**
+ * Ask the browser to keep this site's storage when it runs short of space or
+ * clears sites you haven't visited lately. Best effort, and only from a click:
+ * some browsers ask you first, and a browser that says no still works.
+ */
+export function keepOnDevice() {
+  try {
+    navigator.storage?.persist?.().catch(() => undefined);
+  } catch {
+    // no Storage API here
+  }
+}
+
+/** Start a Daybook on this device: the mode, its first day, and a request to keep it. */
+export function startOnDevice() {
+  setMode('local');
+  if (!readTime(SINCE)) writeTime(SINCE, Date.now());
+  keepOnDevice();
+}
+
+/** Download every task, day and week as one file, and remember the copy on this device. */
+export async function downloadCopy(today: string) {
+  const data = await api('/api/export');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+  a.download = `daybook-${today}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  if (getMode() === 'local') {
+    writeTime(COPIED, Date.now());
+    keepOnDevice();
+  }
+}
 
 export async function api<T = unknown>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   if (getMode() === 'local') {

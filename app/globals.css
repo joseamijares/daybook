@@ -616,6 +616,10 @@ textarea {
   color: var(--accent);
   text-decoration: none;
 }
+.link-btn.quiet {
+  font-weight: 400;
+  color: var(--color-card-ink-3);
+}
 .icon-btn {
   display: inline-grid;
   place-items: center;
@@ -1338,9 +1342,10 @@ textarea {
 }
 .foot {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
   font-size: 13px;
   color: var(--color-card-ink-2);
 }
@@ -3021,62 +3026,63 @@ textarea {
   }
 }
 
-/* ---- Welcome: on this device or in the cloud ------------------------------ */
+/* ---- Welcome: start on this device, or open your own Daybook ---------------- */
 
 .placard.welcome {
-  gap: 22px;
+  gap: 30px;
 }
-.choice-card {
+.welcome-start {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.welcome-start .lead {
+  margin: 0;
+  font-size: 17px;
+  line-height: 26px;
+  color: var(--color-card-ink-2);
+}
+[data-style='notebook'] .welcome-start .lead {
+  font-size: 18px;
+  line-height: 27px;
+}
+.pill.big {
+  height: 44px;
+  padding: 0 28px;
+  font-size: 16px;
+}
+.welcome-own {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 22px 22px 20px;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-card);
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  font-size: 14px;
+  line-height: 20px;
 }
-.choice-card.raised {
-  background: var(--color-paper-raised);
-}
-.choice-card h2 {
-  margin: 0;
-  font-size: 22px;
-  line-height: 28px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--color-card-ink);
-}
-[data-style='timetable'] .choice-card h2 {
-  font-size: 20px;
-  font-stretch: 112%;
-  font-variation-settings: 'wdth' 112;
-}
-[data-style='notebook'] .choice-card h2 {
-  font-size: 23px;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-.choice-card .lead {
-  margin: 0;
+[data-style='notebook'] .welcome-own {
   font-size: 15px;
   line-height: 22px;
-  color: var(--color-card-ink-2);
 }
-[data-style='notebook'] .choice-card .lead {
-  font-size: 17px;
-  line-height: 25px;
-}
-.choice-card .note {
+.welcome-own p {
   margin: 0;
-  font-size: 13px;
-  line-height: 19px;
+}
+.welcome-own .ask {
   color: var(--color-card-ink-3);
 }
-.choice-card .note a {
-  color: var(--accent);
+.welcome-own a,
+.welcome-own .link-btn {
+  font-size: inherit;
+  line-height: inherit;
   font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
 }
-.choice-card .keyform input {
+.welcome-own .keyform input {
   font-size: 15px;
+}
+.welcome-own .key-where {
+  margin-top: 4px;
 }
 
 /* Settings → Your data */

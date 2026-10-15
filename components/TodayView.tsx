@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useMemo, useReducer, useState } from 'react';
+import { copyReminder } from '@/lib/copyReminder';
 import type { WeekView } from '@/lib/daybook';
 import type { FrameEvent } from '@/lib/frame';
-import { dayNum, dow, fmtDate, longDate, monthDay, weekdayName } from '@/lib/i18n';
+import { dayNum, dow, fill, fmtDate, longDate, monthDay, weekdayName } from '@/lib/i18n';
 import { placeAt } from '@/lib/order';
 import { minutesLabel } from '@/lib/time';
-import { timeIn, useLook, useResource, useSession } from './client';
+import { copyLater, copyTimes, downloadCopy, timeIn, useLook, useResource, useSession } from './client';
 import { capitalize, Schedule, Workload } from './day';
 import { DraftText } from './DraftText';
 import { Masthead } from './Masthead';
@@ -25,8 +26,9 @@ export const FrameIcon = () => (
 const validDate = (d: string | null) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null);
 
 export function TodayView() {
-  const { session, t } = useSession();
+  const { session, t, run } = useSession();
   const { style } = useLook();
+  const [, recheck] = useReducer((n: number) => n + 1, 0);
   // /?date=YYYY-MM-DD opens another day (the week view links here). No date
   // means today, and today moves on by itself when the day changes.
   const urlDate = useSearchParams().get('date');
@@ -71,6 +73,16 @@ export function TodayView() {
   const planHref = isToday ? '/plan' : `/plan?date=${date}`;
   const linearAt = timeIn(session.linearSyncedAt, session.tz, session.locale);
   const frameAt = timeIn(session.frameSentAt, session.tz, session.locale);
+  // On this device the foot says where your days live, and once a week asks
+  // for a copy (there are no agents or syncs to report here).
+  const local = Boolean(session.local);
+  // eslint-disable-next-line react-hooks/purity -- a clock read; screens refresh every minute anyway
+  const copy = local ? copyReminder(copyTimes(), Date.now()) : null;
+  const keepCopy = () => run(() => downloadCopy(session.today), recheck);
+  const putOff = () => {
+    copyLater();
+    recheck();
+  };
 
   return (
     <section className="placard" aria-label={weekday}>
@@ -162,14 +174,30 @@ export function TodayView() {
         </div>
         <div className="foot">
           <span className="with-icon">
-            {session.frame && <FrameIcon />}
-            {[frameAt && `${t.frameUpdated} ${frameAt}`, linearAt && `${t.linearSynced} ${linearAt}`].filter(Boolean).join(' · ') || t.agentsHint}
+            {(session.frame || local) && <FrameIcon />}
+            {copy
+              ? copy.due
+                ? copy.days === null
+                  ? t.copyNone
+                  : fill(t.copyAgo, { days: copy.days })
+                : t.dataOnDevice
+              : [frameAt && `${t.frameUpdated} ${frameAt}`, linearAt && `${t.linearSynced} ${linearAt}`].filter(Boolean).join(' · ') || t.agentsHint}
           </span>
           <span style={{ display: 'flex', gap: 14 }}>
             {!isToday && (
               <button type="button" className="link-btn" onClick={() => setDate(session.today)}>
                 {t.backToToday}
               </button>
+            )}
+            {copy?.due && (
+              <>
+                <button type="button" className="link-btn quiet" onClick={putOff}>
+                  {t.notNow}
+                </button>
+                <button type="button" className="link-btn" onClick={keepCopy}>
+                  {t.keepCopy}
+                </button>
+              </>
             )}
             {session.frame && (
               <button type="button" className="link-btn" onClick={() => ops.sendToFrame(date)}>
