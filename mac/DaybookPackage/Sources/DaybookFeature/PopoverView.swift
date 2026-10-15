@@ -427,6 +427,7 @@ struct TaskRow: View {
                     Image(systemName: "checkmark").font(.system(size: 8, weight: .bold)).foregroundStyle(Salon.paper)
                         .scaleEffect(task.done ? 1 : 0.4)
                         .opacity(task.done ? 1 : 0)
+                        .symbolEffect(.bounce, value: task.done)
                 }
                 .frame(width: 16, height: 16)
                 .scaleEffect(hover ? 1.1 : 1)
@@ -440,6 +441,8 @@ struct TaskRow: View {
             }
             .buttonStyle(.plain)
             .help(task.done ? "Mark not done" : "Mark done")
+            // A tick on a Force Touch trackpad as a task is done.
+            .sensoryFeedback(.levelChange, trigger: task.done) { _, done in done }
 
             Text(task.title)
                 .font(Salon.text(14))
@@ -456,14 +459,21 @@ struct TaskRow: View {
                 }
                 .animation(.easeOut(duration: 0.45), value: task.done)
             Spacer(minLength: 6)
-            if hover && !task.done {
-                Button("Tomorrow") { Task { await model.moveToTomorrow(task) } }
-                    .buttonStyle(PillStyle(small: true))
-            } else if let key = task.source?.key {
-                Text(key).font(Salon.label()).tracking(0.6).foregroundStyle(Salon.cobalt)
-            } else if let tag = task.tag {
-                Text(tag.uppercased()).font(Salon.label()).tracking(1.2).foregroundStyle(Salon.ink2).lineLimit(1)
+            // Hovering swaps the tag for "Tomorrow", which grows in from the right.
+            Group {
+                if hover && !task.done {
+                    Button("Tomorrow") { Task { await model.moveToTomorrow(task) } }
+                        .buttonStyle(PillStyle(small: true))
+                        .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .trailing)))
+                } else if let key = task.source?.key {
+                    Text(key).font(Salon.label()).tracking(0.6).foregroundStyle(Salon.cobalt)
+                        .transition(.opacity)
+                } else if let tag = task.tag {
+                    Text(tag.uppercased()).font(Salon.label()).tracking(1.2).foregroundStyle(Salon.ink2).lineLimit(1)
+                        .transition(.opacity)
+                }
             }
+            .animation(.snappy(duration: 0.22), value: hover)
             Text(task.estimate.map(minutesLabel) ?? "")
                 .font(Salon.text(12.5)).monospacedDigit()
                 .foregroundStyle(task.done ? Salon.done : Salon.ink)

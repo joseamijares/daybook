@@ -94,7 +94,11 @@ struct SectionHead: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(title.uppercased()).font(Salon.label()).tracking(1.4).foregroundStyle(Salon.ink)
                 Spacer()
-                if let trailing { Text(trailing).font(Salon.text(11.5)).foregroundStyle(trailingColor) }
+                if let trailing {
+                    // Counts roll to their new value as tasks are done or added.
+                    Text(trailing).font(Salon.text(11.5)).foregroundStyle(trailingColor)
+                        .contentTransition(.numericText())
+                }
             }
             Rectangle().fill(Salon.ink).frame(height: 1)
         }

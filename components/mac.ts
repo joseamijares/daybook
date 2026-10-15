@@ -3,8 +3,8 @@
 // The Mac app's window (mac/, DaybookWindow.swift) tells the page it's there:
 // it sets window.daybookMac on your Daybook's pages, replaces it and fires a
 // "daybookmac" event when something changes (an update was found), and takes
-// "check" and "install" back through a WebKit message handler. In a browser
-// there's no window.daybookMac and nothing here shows.
+// "check", "install", "ready" and "haptic" back through a WebKit message
+// handler. In a browser there's no window.daybookMac and nothing here shows.
 
 import { useSyncExternalStore } from 'react';
 
@@ -64,4 +64,13 @@ export function useDaybookMac() {
  */
 export function askMac(action: 'check' | 'install' | 'ready') {
   window.webkit?.messageHandlers?.daybookMac?.postMessage({ action });
+}
+
+/**
+ * A tick on a Force Touch trackpad, through the Mac app: "generic" as a task
+ * lifts, "alignment" as it finds a new place, "levelChange" as it's dropped
+ * there (components/sortable.ts). Nothing in a browser.
+ */
+export function feel(kind: 'generic' | 'alignment' | 'levelChange') {
+  window.webkit?.messageHandlers?.daybookMac?.postMessage({ action: 'haptic', kind });
 }

@@ -22,6 +22,11 @@
 - Smoother drag and drop on Today, Plan and Week: the other rows step aside to
   show where a task will land, and the new order shows at once, with no jump.
   (#21)
+- Reordering on Today and Plan feels like picking up a card: the task lifts off
+  the page on raised paper and follows the pointer, the other rows part with a
+  little spring, and it glides into its place when let go. Escape puts it
+  back, the list scrolls when you hold a task near its edge, and on a
+  touchscreen you hold a task a moment to lift it.
 - A small "Update" mark beside the Settings gear when a newer deploy is live
   (a click reloads) or when the Mac app has found a new version (a click
   installs it). (#24)
@@ -50,6 +55,10 @@
   each place, and the order is saved as you let go (the old one comes back if
   the save fails).
 - After sleep the window and the menu bar show the new day. (#10)
+- A Force Touch trackpad ticks as a dragged task lifts, finds each new place
+  and lands. In the menu bar, ticking a task off bounces its check (with a tick
+  under your finger), the counts roll to their new numbers, and "Tomorrow"
+  grows in on hover.
 
 ### The landing page
 
