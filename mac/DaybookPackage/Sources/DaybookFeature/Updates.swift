@@ -47,6 +47,9 @@ public final class Updates: NSObject {
         version = info["CFBundleShortVersionString"] as? String ?? ""
         super.init()
         guard isEnabled else { return }
+        // To see the "available" state before there's a newer release:
+        // `-DaybookPreviewUpdate 0.9.9` (this launch only; a check replaces it).
+        available = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)["DaybookPreviewUpdate"] as? String
         let controller = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
         self.controller = controller
         observation = controller.updater.observe(\.canCheckForUpdates, options: [.initial, .new]) { [weak self] updater, _ in

@@ -3,7 +3,8 @@ import WebKit
 
 /// The full Daybook (Today, Week, Backlog, Shut down) in a window: the web
 /// app itself, so it always matches the server. The page's own key form signs
-/// the window in once; WebKit keeps the session cookie after that.
+/// the window in once; WebKit keeps the session cookie after that. The page
+/// also learns the app's version and updates, for its Settings screen.
 public struct DaybookWindow: View {
     @Bindable var model: DaybookModel
 
@@ -13,7 +14,7 @@ public struct DaybookWindow: View {
         ZStack {
             Salon.wall.ignoresSafeArea()
             if model.isConfigured, let url = model.webURL(model.windowPath) {
-                WebView(url: url, key: model.key)
+                WebView(url: url, key: model.key, mac: macState, check: { model.updates?.check() })
                     .ignoresSafeArea() // the painting runs under the title bar
                     .transition(.opacity)
             } else {
@@ -31,23 +32,42 @@ public struct DaybookWindow: View {
         .frame(minWidth: 900, minHeight: 640)
         .task { await model.refresh() }
     }
+
+    /// Read here, so the page hears when a check finds an update. Nothing for a
+    /// build that doesn't update itself.
+    private var macState: MacState? {
+        guard let updates = model.updates, updates.isEnabled else { return nil }
+        return MacState(version: updates.version, available: updates.available, canCheck: updates.canCheck)
+    }
+}
+
+/// What the page knows about the app: window.daybookMac (components/mac.ts).
+struct MacState: Equatable, Encodable {
+    var version: String
+    var available: String?
+    var canCheck: Bool
 }
 
 struct WebView: NSViewRepresentable {
     let url: URL
     let key: String
+    var mac: MacState?
+    var check: () -> Void = {}
 
     func makeCoordinator() -> Coordinator { Coordinator(key: key) }
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .default()
+        config.userContentController.add(context.coordinator, name: "daybookMac")
         let view = WKWebView(frame: .zero, configuration: config)
         view.navigationDelegate = context.coordinator
         view.uiDelegate = context.coordinator // JavaScript confirm()/alert() as sheets
         view.setValue(false, forKey: "drawsBackground")
         view.allowsBackForwardNavigationGestures = true
         view.alphaValue = 0 // fades up once the first page has painted
+        context.coordinator.check = check
+        context.coordinator.tell(view, mac: mac, home: url)
         view.load(URLRequest(url: url))
         context.coordinator.loaded = url
         context.coordinator.watch(view)
@@ -56,10 +76,13 @@ struct WebView: NSViewRepresentable {
 
     static func dismantleNSView(_ view: WKWebView, coordinator: Coordinator) {
         coordinator.stopWatching()
+        view.configuration.userContentController.removeScriptMessageHandler(forName: "daybookMac")
     }
 
     func updateNSView(_ view: WKWebView, context: Context) {
         context.coordinator.key = key
+        context.coordinator.check = check
+        context.coordinator.tell(view, mac: mac, home: url)
         guard context.coordinator.loaded != url else { return }
         let previous = context.coordinator.loaded
         context.coordinator.loaded = url
@@ -77,9 +100,11 @@ struct WebView: NSViewRepresentable {
     }
 
     @MainActor
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
         var key: String
         var loaded: URL?
+        var check: () -> Void = {}
+        private var told: (mac: MacState?, origin: String?)?
         private var triedSignIn = false
         private weak var webView: WKWebView?
         private var observers: [(NotificationCenter, NSObjectProtocol)] = []
@@ -122,7 +147,53 @@ struct WebView: NSViewRepresentable {
 
         /// The port, with the scheme's default filled in (https://x and https://x:443 are one origin).
         private static func port(_ url: URL) -> Int? {
-            url.port ?? (url.scheme == "https" ? 443 : url.scheme == "http" ? 80 : nil)
+            url.port ?? defaultPort(url.scheme)
+        }
+
+        private static func defaultPort(_ scheme: String?) -> Int? {
+            scheme == "https" ? 443 : scheme == "http" ? 80 : nil
+        }
+
+        /// The Daybook's origin as the page writes it (location.origin): no default port.
+        private static func origin(_ url: URL) -> String? {
+            guard let scheme = url.scheme?.lowercased(), let host = url.host?.lowercased() else { return nil }
+            let port = url.port.flatMap { $0 == defaultPort(scheme) ? nil : $0 }
+            return "\(scheme)://\(host)" + (port.map { ":\($0)" } ?? "")
+        }
+
+        /// Sets window.daybookMac on the Daybook's own pages (as each one starts
+        /// loading, and on the one showing now) and fires "daybookmac", so its
+        /// Settings can show the version and Update. Nothing for other sites.
+        func tell(_ view: WKWebView, mac: MacState?, home: URL) {
+            let origin = Self.origin(home)
+            if let told, told.mac == mac, told.origin == origin { return }
+            told = (mac, origin)
+            let content = view.configuration.userContentController
+            content.removeAllUserScripts()
+            guard let origin else { return }
+            let state = mac.flatMap { try? String(data: JSONEncoder().encode($0), encoding: .utf8) } ?? "undefined"
+            let quoted = (try? String(data: JSONEncoder().encode(origin), encoding: .utf8)) ?? "\"\""
+            let js = """
+            (() => {
+              if (location.origin !== \(quoted)) return;
+              window.daybookMac = \(state);
+              window.dispatchEvent(new Event('daybookmac'));
+            })();
+            """
+            content.addUserScript(WKUserScript(source: js, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+            if view.url != nil { view.evaluateJavaScript(js) }
+        }
+
+        /// The page's Update and Check now (components/mac.ts). Only the Daybook's
+        /// own page in the main frame can ask, and only for the update window.
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == "daybookMac", message.frameInfo.isMainFrame, let home = loaded,
+                  let body = message.body as? [String: Any], let action = body["action"] as? String,
+                  action == "check" || action == "install" else { return }
+            let from = message.frameInfo.securityOrigin
+            let fromPort = from.port == 0 ? Self.defaultPort(from.protocol) : from.port
+            guard from.protocol == home.scheme, from.host.lowercased() == home.host?.lowercased(), fromPort == Self.port(home) else { return }
+            check()
         }
 
         // WebKit may end the page's process while the Mac sleeps; load it again
