@@ -9,8 +9,8 @@
 PRODUCT_NAME = Daybook
 PRODUCT_DISPLAY_NAME = Daybook
 PRODUCT_BUNDLE_IDENTIFIER = dev.daybook.mac
-MARKETING_VERSION = 0.1.3
-CURRENT_PROJECT_VERSION = 4
+MARKETING_VERSION = 0.1.4
+CURRENT_PROJECT_VERSION = 5
 
 // ==========================================
 // Platform Configuration
