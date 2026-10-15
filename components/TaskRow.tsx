@@ -36,7 +36,7 @@ export const Handle = () => (
 );
 
 export type Move = 'today' | 'tomorrow' | 'backlog';
-type Patch = { title?: string; date?: string | null; tag?: string | null; estimate?: number | null };
+export type Patch = { title?: string; date?: string | null; tag?: string | null; estimate?: number | null };
 
 interface Props {
   task: Task;
@@ -145,7 +145,7 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
 
 // An open task, in place: rename it, tag it, time it, move it or delete it.
 // Enter saves, Escape closes without saving.
-function Editor({
+export function Editor({
   task,
   tags,
   moves,

@@ -2188,7 +2188,7 @@ textarea {
 }
 .plan-top .focus-inline {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   min-width: 0;
   flex: 1;
@@ -2197,10 +2197,13 @@ textarea {
 }
 .plan-top .focus-inline .label {
   flex-shrink: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
   color: var(--color-card-ink-2);
 }
 .plan-top .focus-inline .focus {
-  font-size: 17px;
+  font-size: 18px;
   line-height: 24px;
 }
 .plan-top .right {
@@ -2505,6 +2508,45 @@ textarea {
 .line-row.can-add:hover .add-circle .cross {
   stroke: var(--sheet);
 }
+/* A title that opens the editor under its row. */
+.line-row .name.opens {
+  cursor: pointer;
+}
+.line-row .name.opens:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+.line-row .ask {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.line-row .ask .note {
+  padding-right: 4px;
+  color: var(--color-card-ink);
+  font-weight: 600;
+}
+.line-row .ask .btn {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+/* Write straight into the backlog, as the first line of the list. */
+.plan-col .add-row {
+  gap: 12px;
+  min-height: 44px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 15px;
+}
+.plan-col .add-row input {
+  font-size: 15px;
+}
+.plan-col .editor {
+  margin: 8px -10px 10px;
+}
 [data-style="notebook"] .line-row {
   font-size: 17px;
   line-height: 24px;
@@ -2513,6 +2555,14 @@ textarea {
 }
 [data-style="notebook"] .line-row .note.tagged {
   color: var(--accent);
+}
+[data-style="notebook"] .plan-col .add-row {
+  border-bottom-style: dotted;
+  border-bottom-color: var(--color-rule-strong);
+}
+[data-style="notebook"] .plan-col .add-row input,
+[data-style="notebook"] .plan-col .add-row input::placeholder {
+  font-size: 17px;
 }
 
 /* ---- Shutdown ------------------------------------------------------------------ */
