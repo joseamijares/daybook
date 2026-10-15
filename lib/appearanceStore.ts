@@ -8,7 +8,7 @@ export async function getAppearance(): Promise<Appearance> {
   const saved = await store().get<Record<string, unknown>>('meta', 'appearance');
   // A value written by an older or newer Daybook falls back field by field.
   let look = DEFAULT_APPEARANCE;
-  for (const key of ['style', 'palette', 'eveningNocturne'] as const) {
+  for (const key of ['style', 'palette', 'eveningNocturne', 'doneToBottom'] as const) {
     try {
       look = mergeAppearance(look, { [key]: saved?.[key] });
     } catch {

@@ -1,10 +1,10 @@
 'use client';
 
-// The first screen in a browser no Daybook has let in yet: one Start, and your
-// days live on this device (free, private, in this browser). Below a rule, a
-// quiet way into your own cloud Daybook with its key, or, when this server has
-// no cloud set up, how to make one. Settings → "Use a cloud Daybook instead"
-// comes back here with the key form open (/?own).
+// The first screen in a browser no Daybook has let in yet: one button, and your
+// days live on this device (free, private, in this browser). Nothing else to
+// press: a small footnote says how to set up your own Daybook (sync, the TV)
+// and, on a server that keeps one, opens it with its key. Settings → "Use a
+// cloud Daybook instead" comes back here with the key form open (/?own).
 
 import { useState } from 'react';
 import { api, type Session, setMode, startOnDevice, stringsFor, useLook } from './client';
@@ -57,42 +57,43 @@ export function Welcome({ session, onDone }: { session: Session; onDone: () => P
         </div>
       </div>
 
-      <div className="welcome-own">
-        {!session.cloud ? (
+      {session.cloud && own ? (
+        <div className="welcome-own">
+          <p className="ask">{t.ownHave}</p>
+          <form className="keyform" onSubmit={signIn}>
+            <input type="password" autoComplete="current-password" autoFocus value={key} placeholder={t.keyTitle} onChange={(e) => setKey(e.target.value)} aria-label={t.keyTitle} />
+            <button className="pill" type="submit">
+              {t.open}
+            </button>
+          </form>
+          {error && <p className="warn-text">{error}</p>}
+          <details className="key-where">
+            <summary className="label">{t.keyWhere}</summary>
+            <ol className="meta">
+              {t.keyWhereSteps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          </details>
+        </div>
+      ) : (
+        <div className="welcome-foot">
           <p>
-            <span className="ask">{t.ownNone}</span>{' '}
+            {t.ownNone}{' '}
             <a href={SETUP_URL} target="_blank" rel="noreferrer">
-              {t.ownSetup} →
+              {t.ownSetup}
             </a>
           </p>
-        ) : !own ? (
-          <p>
-            <span className="ask">{t.ownHave}</span>{' '}
-            <button type="button" className="link-btn" onClick={() => setOwn(true)}>
-              {t.ownOpen}
-            </button>
-          </p>
-        ) : (
-          <>
-            <p className="ask">{t.ownHave}</p>
-            <form className="keyform" onSubmit={signIn}>
-              <input type="password" autoComplete="current-password" autoFocus value={key} placeholder={t.keyTitle} onChange={(e) => setKey(e.target.value)} aria-label={t.keyTitle} />
-              <button className="pill" type="submit">
-                {t.open}
+          {session.cloud && (
+            <p>
+              {t.ownHave}{' '}
+              <button type="button" className="link-btn" onClick={() => setOwn(true)}>
+                {t.ownOpen}
               </button>
-            </form>
-            {error && <p className="warn-text">{error}</p>}
-            <details className="key-where">
-              <summary className="label">{t.keyWhere}</summary>
-              <ol className="meta">
-                {t.keyWhereSteps.map((step) => (
-                  <li key={step}>{step}</li>
-                ))}
-              </ol>
-            </details>
-          </>
-        )}
-      </div>
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }

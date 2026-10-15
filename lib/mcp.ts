@@ -170,7 +170,7 @@ export const tools: Tool[] = [
   {
     name: 'complete_task',
     title: 'Complete a task',
-    description: 'Mark a task done (or not done with done=false). Completing a task linked to Linear also completes the issue in Linear.',
+    description: 'Mark a task done (or not done with done=false). A finished task moves to the bottom of its day unless the owner turned that off in Settings. Completing a task linked to Linear also completes the issue in Linear.',
     inputSchema: { type: 'object', properties: { id: { type: 'string' }, done: { type: 'boolean', default: true } }, required: ['id'] },
     annotations: { ...WRITE, openWorldHint: true },
     run: async ({ id, done }) => {

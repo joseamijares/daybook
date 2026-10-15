@@ -42,7 +42,8 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
 - **Today.** One focus line, a short list of tasks with time estimates, and
   how much you've planned against your capacity (6 hours by default).
   Unfinished tasks roll over to the next day and remember where they started.
-  Click a task to rename it, tag it, time it or move it.
+  Click a task to rename it, tag it, time it or move it. Tick one and it moves
+  under the ones still to do (Settings → Appearance can keep it in place).
 - **Plan the day.** Planning takes the whole window: your meetings in a narrow
   column, the day you're building in the middle, and only tasks on the right,
   from the backlog or from Linear. Write new ones (into the day or the
@@ -66,11 +67,12 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
   added or removed there come back to Daybook, Daybook's week goes to the TV,
   and the TV's meetings show up on Today. Pick the TV's design (painting by
   day, salon, or painting always) from the Week screen, the Mac app or an agent.
-- **On this device, or in your own cloud.** The first screen has one Start:
-  your days stay in the browser, with no account and no backend. Once a week
-  Today asks you to keep a copy, and Settings → Your data exports one, imports
-  one, or erases everything. The same file moves you to a cloud Daybook later;
-  "Have your own Daybook? Open it with your key" under Start opens one.
+- **On this device, or in your own cloud.** The first screen has one button,
+  Start my day: your days stay in the browser, with no account and no backend.
+  Once a week Today asks you to keep a copy, and Settings → Your data exports
+  one, imports one, or erases everything. The same file moves you to a cloud
+  Daybook later; the small line at the bottom of the first screen, "Already
+  have one here? Open it with your key", opens one.
 - **Three designs, three palettes.** A museum wall label, a timetable with wide
   numerals and blocks of time, or a written notebook; in Salon (bone and
   cobalt), Modern (white and one red dot) or Nocturne (blue-black and gilt).
@@ -132,8 +134,8 @@ app, agents, Linear and Frame:
 3. Set `CRON_SECRET` too. Vercel Cron then calls `/api/cron/sync` once a
    day (see `vercel.json`) to sync Linear and the Frame. On a Pro plan you
    can make it every 10 minutes (`*/10 * * * *`).
-4. Deploy, open the site, choose **Open it with your key** under Start, and
-   enter your key once in each browser you use.
+4. Deploy, open the site, choose **Open it with your key** at the bottom of
+   the first screen, and enter your key once in each browser you use.
 5. In the Mac app, set the URL to your deployment and paste the same key.
 
 When you deploy a new version, pages that are already open show a small

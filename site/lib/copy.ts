@@ -144,7 +144,7 @@ const en = {
       steps: [
         'Deploy with Vercel and add Upstash for Redis to the project.',
         'Set DAYBOOK_KEY (openssl rand -hex 24) and deploy again.',
-        'Open it, choose “Open it with your key” under Start, and enter the key once per browser.',
+        'Open it, choose “Open it with your key” at the bottom, and enter the key once per browser.',
         'In Settings, connect the Mac app, your agents, Linear and the Frame.',
       ],
     },
@@ -341,7 +341,7 @@ const es: Copy = {
       steps: [
         'Despliega en Vercel y agrega Upstash for Redis al proyecto.',
         'Define DAYBOOK_KEY (openssl rand -hex 24) y despliega de nuevo.',
-        'Ábrelo, elige “Ábrelo con tu llave” bajo Empezar y escribe la llave una vez por navegador.',
+        'Ábrelo, elige “Ábrelo con tu llave” abajo y escribe la llave una vez por navegador.',
         'En Ajustes, conecta la app de Mac, tus agentes, Linear y la Frame.',
       ],
     },

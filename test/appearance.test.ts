@@ -10,20 +10,22 @@ beforeEach(() => setStore(fileStore(path.join(mkdtempSync(path.join(tmpdir(), 'd
 afterEach(() => setStore(null));
 
 describe('appearance', () => {
-  it('starts as the Salon wall label', async () => {
+  it('starts as the Salon wall label, finished tasks to the bottom', async () => {
     expect(await getAppearance()).toEqual(DEFAULT_APPEARANCE);
   });
 
   it('saves a patch and keeps the rest', async () => {
     await setAppearance({ palette: 'nocturne' });
-    expect(await setAppearance({ style: 'notebook', eveningNocturne: true })).toEqual({ style: 'notebook', palette: 'nocturne', eveningNocturne: true });
-    expect(await getAppearance()).toEqual({ style: 'notebook', palette: 'nocturne', eveningNocturne: true });
+    const saved = { style: 'notebook', palette: 'nocturne', eveningNocturne: true, doneToBottom: false };
+    expect(await setAppearance({ style: 'notebook', eveningNocturne: true, doneToBottom: false })).toEqual(saved);
+    expect(await getAppearance()).toEqual(saved);
   });
 
   it('refuses values it does not know', () => {
     expect(() => mergeAppearance(DEFAULT_APPEARANCE, { style: 'brutal' })).toThrow(/style must be/);
     expect(() => mergeAppearance(DEFAULT_APPEARANCE, { palette: 'neon' })).toThrow(/palette must be/);
     expect(() => mergeAppearance(DEFAULT_APPEARANCE, { eveningNocturne: 'yes' })).toThrow(/must be true or false/);
+    expect(() => mergeAppearance(DEFAULT_APPEARANCE, { doneToBottom: 1 })).toThrow(/doneToBottom must be true or false/);
   });
 
   it('falls back field by field when the stored value is from another version', async () => {

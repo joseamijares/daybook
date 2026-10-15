@@ -201,27 +201,30 @@ export function Salon({ children }: { children: ReactNode }) {
         <Link className="mark" href="/">
           <Image src="/brand/daybook-lockup-dark.svg" alt="Daybook" width={91} height={23} priority />
         </Link>
-        <div className="links">
-          {(
-            [
-              ['today', '/', t.today],
-              ['week', '/week', t.week],
-              ['backlog', '/backlog', t.backlog],
-              ['shutdown', '/shutdown', t.shutDown],
-            ] as const
-          ).map(([id, href, label]) => (
-            <Link key={id} className="link" href={href} aria-current={view === id ? 'page' : undefined}>
-              {label}
+        {/* The first screen has one thing to press, Start: no links until a Daybook lets this browser in. */}
+        {(!session || session.authorized) && (
+          <div className="links">
+            {(
+              [
+                ['today', '/', t.today],
+                ['week', '/week', t.week],
+                ['backlog', '/backlog', t.backlog],
+                ['shutdown', '/shutdown', t.shutDown],
+              ] as const
+            ).map(([id, href, label]) => (
+              <Link key={id} className="link" href={href} aria-current={view === id ? 'page' : undefined}>
+                {label}
+              </Link>
+            ))}
+            <Link className="link gear" href="/settings" aria-current={view === 'settings' ? 'page' : undefined} aria-label={t.settings} title={t.settings}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
+                <circle cx="12" cy="12" r="3.2" />
+                <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+              </svg>
             </Link>
-          ))}
-          <Link className="link gear" href="/settings" aria-current={view === 'settings' ? 'page' : undefined} aria-label={t.settings} title={t.settings}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
-              <circle cx="12" cy="12" r="3.2" />
-              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
-            </svg>
-          </Link>
-          <UpdateMark t={t} />
-        </div>
+            <UpdateMark t={t} />
+          </div>
+        )}
       </nav>
       {!session ? (
         <section className="placard">

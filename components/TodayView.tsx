@@ -12,6 +12,7 @@ import { minutesLabel } from '@/lib/time';
 import { copyLater, copyTimes, downloadCopy, timeIn, useLook, useResource, useSession } from './client';
 import { capitalize, Schedule, Workload } from './day';
 import { DraftText } from './DraftText';
+import { useGlide } from './glide';
 import { Masthead } from './Masthead';
 import { useOps } from './ops';
 import { arranged, useSortable } from './sortable';
@@ -43,6 +44,8 @@ export function TodayView() {
   const setDate = (d: string) => setPicked(d === session.today ? null : d);
   const { data: week, reload, setData } = useResource<WeekView & { events?: Record<string, FrameEvent[]> }>(`/api/week?date=${date}`);
   const ops = useOps(reload);
+  // A ticked task glides to its new place (the bottom, unless Settings keeps it).
+  const { attach: glideRows, before: noteRows } = useGlide<HTMLDivElement>(week);
   const day = week?.days.find((d) => d.date === date);
   const ids = (day?.tasks || []).map((x) => x.id);
   // Drag to reorder: the new order shows at once and saves behind.
@@ -111,7 +114,7 @@ export function TodayView() {
 
       <Schedule events={week.events?.[date] || []} />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div ref={glideRows} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {tasks.length > 0 && <Workload day={day} />}
         <div className="rows" {...sort.listProps}>
           {!tasks.length && (
@@ -131,7 +134,10 @@ export function TodayView() {
               key={task.id}
               task={task}
               tags={tags}
-              onToggle={() => ops.toggle(task)}
+              onToggle={() => {
+                noteRows();
+                ops.toggle(task);
+              }}
               onPatch={(p) => ops.patch(task.id, p)}
               onDelete={() => ops.remove(task.id)}
               moves={isToday ? ['tomorrow', 'backlog'] : ['today', 'backlog']}

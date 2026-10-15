@@ -4,6 +4,12 @@
 
 ### Getting started
 
+- Even simpler first screen: what Daybook does in one line and one button,
+  **Start my day**, that keeps your days in this browser. Everything else is a
+  small footnote: "Want it on your TV or on all your devices? Set up your own
+  Daybook", and, on a server that keeps a cloud Daybook, "Already have one
+  here? Open it with your key". The links along the top (Today, Week,
+  Settings…) wait until you've started.
 - One Start. The first screen says what Daybook is and has one button: your
   days stay in this browser, free, with no account and no setup. Under it,
   "Have your own Daybook? Open it with your key" opens the key form in place
@@ -14,6 +20,12 @@
   keep its storage. (#22)
 
 ### The app
+
+- Tick a task and it moves to the bottom of the day, under the ones still to
+  do, so the next thing is always on top. On Today the list glides into its
+  new order; the Mac menu bar does the same. Settings → Appearance → "Move
+  finished tasks to the bottom" turns it off (a finished task then stays where
+  it was), for the browser, the Mac app and agents alike.
 
 - Plan the day handles the backlog itself: edit a task on the day (rename,
   tag, time, move or delete), delete backlog tasks, and write straight into

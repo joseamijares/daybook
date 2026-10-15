@@ -90,6 +90,8 @@ public struct DBAppearance: Codable, Sendable, Equatable {
     public var style: String // wall, timetable, notebook
     public var palette: String // salon, modern, nocturne
     public var eveningNocturne: Bool
+    /// A task marked done moves under the ones still to do. Missing from older servers (they keep it in place).
+    public var doneToBottom: Bool?
 }
 
 public struct FrameSyncResult: Codable, Sendable {

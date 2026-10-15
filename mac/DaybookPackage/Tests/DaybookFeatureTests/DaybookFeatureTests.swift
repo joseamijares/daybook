@@ -119,6 +119,18 @@ import Testing
         #expect(model.error != nil)
     }
 
+    @Test func putsAFinishedTaskLastWhenTheServerDoes() async {
+        URLProtocol.registerClass(StubServer.self)
+        defer { URLProtocol.unregisterClass(StubServer.self) }
+        let task = model.shownDay!.tasks[1]
+        await model.toggle(task) // an older server: no doneToBottom, so it stays put
+        #expect(shown == ["1", "2", "3", "4"])
+        model.session?.appearance = DBAppearance(style: "wall", palette: "salon", eveningNocturne: false, doneToBottom: true)
+        await model.toggle(model.shownDay!.tasks[0])
+        #expect(shown == ["2", "3", "4", "1"])
+        #expect(model.shownDay?.tasks.last?.done == true)
+    }
+
     @Test func ignoresAnOrderThatChangesNothing() {
         #expect(model.reorder(["1", "2", "3", "4"]) == nil)
         #expect(model.reorder(["1", "2", "3"]) == nil) // a task left out: not this day's order
