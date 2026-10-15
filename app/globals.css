@@ -44,6 +44,7 @@ html[data-palette="salon"] {
   --tint: #e2daca;
   --tint-accent: color-mix(in srgb, #34507f 9%, transparent);
   --veil: rgba(17, 22, 19, 0.42);
+  --color-mark: #c8a45c; /* the update mark on the wall */
   --toast-bg: rgba(17, 22, 19, 0.88);
   --toast-ink: #ece6d8;
   --fill-filter: blur(48px) brightness(0.86) saturate(1.25);
@@ -71,6 +72,7 @@ html[data-palette="modern"] {
   --tint: #f0efeb;
   --tint-accent: color-mix(in srgb, #c2331b 7%, transparent);
   --veil: rgba(17, 17, 17, 0.36);
+  --color-mark: #e8553b; /* the update mark on the wall */
   --toast-bg: rgba(17, 17, 17, 0.9);
   --toast-ink: #fbfaf7;
   --fill-filter: blur(56px) brightness(1.04) saturate(0.85);
@@ -98,6 +100,7 @@ html[data-palette="nocturne"] {
   --tint: #252a33;
   --tint-accent: color-mix(in srgb, #c9a55e 10%, transparent);
   --veil: rgba(8, 9, 12, 0.5);
+  --color-mark: #c9a55e; /* the update mark on the wall */
   --toast-bg: rgba(236, 230, 216, 0.94);
   --toast-ink: #14171c;
   --fill-filter: blur(48px) brightness(0.5) saturate(1.05);
@@ -1813,6 +1816,36 @@ textarea {
   align-items: center;
   margin-left: 4px;
 }
+/* A newer Daybook (components/updates.tsx): a small lit dot and one word. */
+.update-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 22px;
+  padding: 0 10px 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-mark) 16%, transparent);
+  color: var(--color-bone);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  animation: rise 0.6s var(--ease-gallery) both;
+  transition: background-color 0.3s var(--ease-gallery);
+}
+.update-mark:hover {
+  background: color-mix(in srgb, var(--color-mark) 28%, transparent);
+}
+.update-mark:focus-visible {
+  outline: 2px solid var(--color-mark);
+  outline-offset: 2px;
+}
+.update-mark i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-mark);
+}
 .settings .lead {
   margin: 10px 0 0;
   font-size: 15px;
@@ -2906,6 +2939,18 @@ textarea {
   }
   .nav a.link {
     font-size: 13px;
+  }
+  .update-mark {
+    width: 22px;
+    padding: 0;
+    justify-content: center;
+  }
+  .update-mark i {
+    width: 7px;
+    height: 7px;
+  }
+  .update-mark span {
+    display: none;
   }
   .placard,
   .placard.wide {
