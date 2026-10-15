@@ -2847,8 +2847,9 @@ textarea {
 }
 
 /* Between phone and desktop the placard would cover the end of the nav: hang
-   it below the nav, and keep the credit clear of it. */
-@media (max-width: 1120px) {
+   it below the nav, and keep the credit clear of it. Not on phones: there the
+   placard is in the flow, and an offset would push its foot under the nav. */
+@media (min-width: 861px) and (max-width: 1120px) {
   .placard:not(.wide):not(.full) {
     top: 112px;
   }
