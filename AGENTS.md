@@ -31,7 +31,8 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
 - `mac/` is the SwiftUI Mac app (window = the web app in a WKWebView; menu bar popover = native, reading
   `/api/session` and `/api/week`). Mirror API shape changes in `mac/DaybookPackage/Sources/DaybookFeature/Models.swift`
   and run `swift test --package-path mac/DaybookPackage`. The window tells the page the app's version and updates
-  (`window.daybookMac`, `components/mac.ts`), and only your Daybook's own page can ask it to check.
+  (`window.daybookMac`, `components/mac.ts`), and only your Daybook's own page can ask it to check, or say
+  it's `ready` (signed in and painted) so the window's launch scene (`LaunchScene.swift`) gives way to it.
 - `components/updates.tsx` is the small "Update" mark by the Settings gear: a newer Mac app (from the window),
   or a newer deploy than the open page (its build commit, `NEXT_PUBLIC_DAYBOOK_SHA`, vs `/api/health`'s).
 - Motion lives in `app/globals.css` (section "Motion") and must respect `prefers-reduced-motion`.

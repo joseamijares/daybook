@@ -7,6 +7,10 @@ import WebKit
 /// also learns the app's version and updates, for its Settings screen.
 public struct DaybookWindow: View {
     @Bindable var model: DaybookModel
+    /// The launch scene plays over the window once per launch, while the page signs in.
+    @State private var scene = !LaunchScene.hasPlayed
+    /// The page has signed in and painted (components/mac.ts "ready"), or gave up.
+    @State private var pageReady = false
 
     public init(model: DaybookModel) { self.model = model }
 
@@ -14,9 +18,16 @@ public struct DaybookWindow: View {
         ZStack {
             Salon.wall.ignoresSafeArea()
             if model.isConfigured, let url = model.webURL(model.windowPath) {
-                WebView(url: url, key: model.key, mac: macState, check: { model.updates?.check() })
+                WebView(url: url, key: model.key, mac: macState, check: { model.updates?.check() }, ready: { pageReady = true })
                     .ignoresSafeArea() // the painting runs under the title bar
                     .transition(.opacity)
+                if scene {
+                    LaunchScene(ready: pageReady) {
+                        withAnimation(LaunchScene.gallery(0.8)) { scene = false }
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 1.03)))
+                    .onAppear { LaunchScene.hasPlayed = true }
+                }
             } else {
                 // Not connected yet: the welcome screen.
                 OnboardingView(model: model)
@@ -53,6 +64,7 @@ struct WebView: NSViewRepresentable {
     let key: String
     var mac: MacState?
     var check: () -> Void = {}
+    var ready: () -> Void = {}
 
     func makeCoordinator() -> Coordinator { Coordinator(key: key) }
 
@@ -67,6 +79,7 @@ struct WebView: NSViewRepresentable {
         view.allowsBackForwardNavigationGestures = true
         view.alphaValue = 0 // fades up once the first page has painted
         context.coordinator.check = check
+        context.coordinator.ready = ready
         context.coordinator.tell(view, mac: mac, home: url)
         view.load(URLRequest(url: url))
         context.coordinator.loaded = url
@@ -82,6 +95,7 @@ struct WebView: NSViewRepresentable {
     func updateNSView(_ view: WKWebView, context: Context) {
         context.coordinator.key = key
         context.coordinator.check = check
+        context.coordinator.ready = ready
         context.coordinator.tell(view, mac: mac, home: url)
         guard context.coordinator.loaded != url else { return }
         let previous = context.coordinator.loaded
@@ -104,6 +118,10 @@ struct WebView: NSViewRepresentable {
         var key: String
         var loaded: URL?
         var check: () -> Void = {}
+        var ready: () -> Void = {}
+        /// The page in view said it's ready ("ready" from components/mac.ts) before the window showed it.
+        private var saidReady = false
+        private var shown = false
         private var told: (mac: MacState?, origin: String?)?
         private var triedSignIn = false
         private weak var webView: WKWebView?
@@ -184,16 +202,24 @@ struct WebView: NSViewRepresentable {
             if view.url != nil { view.evaluateJavaScript(js) }
         }
 
-        /// The page's Update and Check now (components/mac.ts). Only the Daybook's
-        /// own page in the main frame can ask, and only for the update window.
+        /// The page's Update and Check now, and "ready" once it has signed in and
+        /// painted (components/mac.ts). Only the Daybook's own page in the main
+        /// frame can ask, and only for the update window or the launch scene.
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             guard message.name == "daybookMac", message.frameInfo.isMainFrame, let home = loaded,
                   let body = message.body as? [String: Any], let action = body["action"] as? String,
-                  action == "check" || action == "install" else { return }
+                  action == "check" || action == "install" || action == "ready" else { return }
             let from = message.frameInfo.securityOrigin
             let fromPort = from.port == 0 ? Self.defaultPort(from.protocol) : from.port
             guard from.protocol == home.scheme, from.host.lowercased() == home.host?.lowercased(), fromPort == Self.port(home) else { return }
-            check()
+            guard action == "ready" else { return check() }
+            // A page the window hasn't shown yet (the one before the sign-in) can't end the scene.
+            if shown { ready() } else { saidReady = true }
+        }
+
+        /// A new page: what the last one said about being ready no longer counts.
+        func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+            saidReady = false
         }
 
         // WebKit may end the page's process while the Mac sleeps; load it again
@@ -245,6 +271,16 @@ struct WebView: NSViewRepresentable {
 
         /// Fades the page up the first time it's ready to be seen.
         private func show(_ webView: WKWebView) {
+            shown = true
+            if saidReady {
+                ready()
+            } else {
+                // A Daybook from before "ready" never says it: give its page a moment to paint.
+                Task { @MainActor [weak self] in
+                    try? await Task.sleep(for: .seconds(1.5))
+                    self?.ready()
+                }
+            }
             guard webView.alphaValue < 1 else { return }
             NSAnimationContext.runAnimationGroup { ctx in
                 ctx.duration = 1.2
@@ -255,6 +291,8 @@ struct WebView: NSViewRepresentable {
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             webView.alphaValue = 1
+            shown = true
+            ready() // no page to wait for
         }
 
         // WebKit ignores confirm() and alert() unless the app shows them; without
