@@ -45,6 +45,18 @@ import Testing
     #expect(s.frameSentAt != nil)
 }
 
+/// A Mac set up before never sees the setup screen while its Daybook is out of
+/// reach: only an answer ends the wait, and one the key doesn't open asks again.
+@Test func waitsForTheDaybookRatherThanAskingAgain() {
+    let home = URL(string: "https://daybook.example.com")
+    let rejected = DBSession(authorized: false, needsKey: true, locale: "en", today: "2026-10-16", tz: "UTC", capacity: 360,
+                             linear: false, frame: false, art: nil)
+    #expect(DaybookModel.waiting(setUp: true, address: home, answer: nil)) // offline, or the first try failed
+    #expect(!DaybookModel.waiting(setUp: true, address: home, answer: rejected)) // the key no longer opens it
+    #expect(!DaybookModel.waiting(setUp: false, address: home, answer: nil)) // first launch: setup at once
+    #expect(!DaybookModel.waiting(setUp: true, address: nil, answer: nil)) // an address it can't ask
+}
+
 /// A dragged task swaps with a row once the pointer passes that row's middle,
 /// and holds still in between.
 @Test func placesADraggedTaskByThePointer() {

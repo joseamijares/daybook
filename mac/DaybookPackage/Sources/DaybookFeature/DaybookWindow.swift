@@ -7,15 +7,15 @@ import WebKit
 /// also learns the app's version and updates, for its Settings screen.
 public struct DaybookWindow: View {
     @Bindable var model: DaybookModel
-    /// The launch scene plays over the window once per launch while the app checks
-    /// its key and the page signs in; a Mac with no key saved goes straight to setup.
+    /// The launch scene plays over the window once per launch while the app reaches
+    /// its Daybook and the page signs in; a Mac not set up yet goes straight to setup.
     @State private var scene: Bool
     /// The page has signed in and painted (components/mac.ts "ready"), or gave up.
     @State private var pageReady = false
 
     public init(model: DaybookModel) {
         self.model = model
-        _scene = State(initialValue: !LaunchScene.hasPlayed && model.hasKey)
+        _scene = State(initialValue: !LaunchScene.hasPlayed && (model.isChecking || model.isConfigured))
     }
 
     public var body: some View {
@@ -25,9 +25,13 @@ public struct DaybookWindow: View {
                 WebView(url: url, key: model.key, mac: macState, check: { model.updates?.check() }, ready: { pageReady = true })
                     .ignoresSafeArea() // the painting runs under the title bar
                     .transition(.opacity)
-            } else if !model.isChecking {
-                // Not connected yet: the welcome screen. Never while the saved key is
-                // still being checked, or it flashes by before the app opens.
+            } else if model.isChecking {
+                // Still reaching the Daybook (offline, or a server slow to wake): the
+                // hung wall stays as the scene leaves it, never the setup screen.
+                LaunchScene(ready: false, hung: true) {}
+                    .transition(.opacity)
+            } else {
+                // Not set up yet, or the saved key no longer opens it: the welcome screen.
                 OnboardingView(model: model)
                     .transition(.opacity)
             }
@@ -49,6 +53,7 @@ public struct DaybookWindow: View {
             WindowDragArea().frame(height: 40).ignoresSafeArea()
         }
         .animation(.smooth(duration: 0.8), value: model.isConfigured)
+        .animation(.smooth(duration: 0.8), value: model.isChecking)
         .frame(minWidth: 900, minHeight: 640)
         .task { await model.refresh() }
     }
