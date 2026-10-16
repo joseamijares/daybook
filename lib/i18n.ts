@@ -247,6 +247,11 @@ const en = {
   tomorrowOnFrame: 'Tomorrow is already on your Frame',
   finished: 'You finished {n} of {total}.',
   andMore: 'and {n} more',
+  // A day closed the morning after
+  lateNote: '{day} was never closed, so its open work is already on today.',
+  closeInstead: 'Close {day} instead',
+  dayClosed: '{day} is closed.',
+  carriedToday: 'On today',
   // Appearance
   appearance: 'Appearance',
   design: 'Design',
@@ -520,6 +525,10 @@ const es: typeof en = {
   tomorrowOnFrame: 'Mañana ya está en tu Frame',
   finished: 'Terminaste {n} de {total}.',
   andMore: 'y {n} más',
+  lateNote: 'El {day} quedó sin cerrar; lo pendiente ya está en hoy.',
+  closeInstead: 'Mejor cerrar el {day}',
+  dayClosed: 'El {day} quedó cerrado.',
+  carriedToday: 'Ya en hoy',
   // Appearance
   appearance: 'Apariencia',
   design: 'Diseño',

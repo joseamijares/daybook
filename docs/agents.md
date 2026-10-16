@@ -119,7 +119,7 @@ If the client only speaks stdio, run `node cli/daybook.mjs mcp` with
 
 | Tool | What it does |
 | --- | --- |
-| `get_today` | A day (default today): focus, tasks, planned vs capacity, meetings (from Frame), journal, shut down or not |
+| `get_today` | A day (default today): focus, tasks, planned vs capacity, meetings (from Frame), journal, shut down or not, and `previous_day` (the latest earlier day with work on it) |
 | `get_week` | The week: its focus, every day, and the backlog |
 | `list_backlog` | Unscheduled tasks, including Linear issues |
 | `add_task` | Add to a day or the backlog. The title can use quick-add: `"Draft deck 45m #client"` |
@@ -128,7 +128,7 @@ If the client only speaks stdio, run `node cli/daybook.mjs mcp` with
 | `delete_task` | Delete a task (agents are told to ask first) |
 | `set_focus` | The focus line for a day, or for the week with `scope: "week"` |
 | `plan_day` | Put these task ids on the day in this order and set the focus. Warns when the day is over capacity |
-| `shutdown_day` | Unfinished tasks go to tomorrow, the backlog, or stay; saves the journal line; returns a one-line recap |
+| `shutdown_day` | Unfinished tasks go to tomorrow, the backlog, or stay; saves the journal line; returns a one-line recap. A past `date` closes that day late (the morning after): its unfinished work has already rolled onto today and stays there unless carried to the backlog |
 | `sync_linear` | Pull open assigned Linear issues into the backlog. Listed only when Linear is connected (`LINEAR_API_KEY` or Settings) |
 | `send_to_frame` | Two-way sync with Frame Dashboard: pull what changed there, merge, push. Listed only when the Frame settings are set |
 | `frame_design` | Listed only when the Frame is connected. Get the TV's design, or switch it: `bleed` (painting by day, salon at night), `salon` (framed on the wall all day), `painting` (full screen day and night) |
@@ -144,7 +144,8 @@ in clients that support prompts.
 - `plan_my_day`: review what rolled over, sync Linear, propose a focus and
   tasks that fit capacity, then plan once you say yes.
 - `shut_down`: read back the day, decide where each unfinished task goes,
-  write one journal line, then shut down.
+  write one journal line, then shut down. Run the morning after, it closes the
+  day you never closed instead of today.
 - `plan_my_week`: set a week focus, then a focus and tasks for each weekday,
   and offer to send the week to the Frame.
 
@@ -152,7 +153,7 @@ in clients that support prompts.
 
 | Method and path | Body / query |
 | --- | --- |
-| `GET /api/day?date=` | The day. Unfinished tasks from past days roll into today |
+| `GET /api/day?date=` | The day. Unfinished tasks from past days roll into today. `previous` is the latest earlier day with work on it |
 | `PUT /api/day` | `{ date, focus?, note? }` |
 | `GET /api/week?date=` | The week containing `date`, with the backlog and, when Frame is connected, `events` by day |
 | `PUT /api/week` | `{ date, focus }` |
@@ -160,7 +161,7 @@ in clients that support prompts.
 | `POST /api/tasks` | `{ text }` (quick-add) or `{ title, date?, estimate?, tag?, notes? }` |
 | `PATCH /api/tasks/:id` | `{ title?, date?, estimate?, tag?, notes?, done?, order? }`. `done: true` without `order` moves the task to the bottom of its day when the appearance's `doneToBottom` is on (the default) |
 | `DELETE /api/tasks/:id` | Deletes the task |
-| `POST /api/shutdown` | `{ date?, note?, carry?: { [id]: "tomorrow" \| "backlog" \| "keep" } }` |
+| `POST /api/shutdown` | `{ date?, note?, carry?: { [id]: "tomorrow" \| "backlog" \| "keep" } }`. A past `date` closes that day late: its unfinished work, already rolled onto today, stays there (`"tomorrow"`) or goes to the backlog, and today stays open |
 | `DELETE /api/shutdown?date=` | Reopen a closed day (tasks already moved stay where they went) |
 | `POST /api/linear` | Sync Linear |
 | `GET /api/frame?date=` / `POST /api/frame` | Preview the Frame Dashboard plan, or run a two-way sync |

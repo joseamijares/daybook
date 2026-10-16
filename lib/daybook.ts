@@ -4,7 +4,7 @@
 
 import { getAppearance } from './appearanceStore';
 import { parseQuickAdd } from './quickadd';
-import { wrapLine } from './recap';
+import { lateWork, wrapLine } from './recap';
 import { store } from './storage';
 import { addDays, isYmd, minutesLabel, mondayOf, resolveDate, today, weekDays } from './time';
 
@@ -219,6 +219,18 @@ export interface DayView extends Day {
   doneCount: number;
   capacity: number;
   over: number; // minutes over capacity, 0 if fine
+  previous: string | null; // the latest earlier day with work on it
+}
+
+// The latest earlier day with work on it: a task dated then, or a task on this
+// day that rolled over from then. The Shutdown screen offers to close it the
+// morning after.
+function previousDay(date: string, tasks: Task[]): string | null {
+  let prev: string | null = null;
+  for (const x of tasks) {
+    for (const d of [x.date, x.date === date ? x.rolledFrom : null]) if (d && d < date && (!prev || d > prev)) prev = d;
+  }
+  return prev;
 }
 
 function dayView(meta: Day, tasks: Task[], t: string): DayView {
@@ -234,6 +246,7 @@ function dayView(meta: Day, tasks: Task[], t: string): DayView {
     doneCount: list.filter((x) => x.done).length,
     capacity: capacity(),
     over: Math.max(0, planned - capacity()),
+    previous: previousDay(meta.date, tasks),
   };
 }
 
@@ -284,30 +297,38 @@ export async function planDay(date: string | undefined, taskIds: string[], focus
 export type Carry = 'tomorrow' | 'backlog' | 'keep';
 
 // The shutdown ritual: review, decide where unfinished work goes, one line
-// for the journal. Unfinished tasks default to tomorrow.
+// for the journal. Unfinished tasks default to the next day. A day closed late
+// (the morning after) has already rolled its unfinished work onto today: that
+// work is reviewed with it, and moving on means staying on today, never going
+// back into the past.
 export async function shutdown(date: string | undefined, opts: { note?: string | null; carry?: Record<string, Carry> } = {}) {
   const d = resolveDate(date ?? 'today') || today();
-  const before = await getDay(d);
   for (const to of Object.values(opts.carry || {})) {
     if (!['tomorrow', 'backlog', 'keep'].includes(to)) throw new Error('carry must be tomorrow, backlog or keep');
   }
+  const t = today();
+  // Reading today first rolls every earlier unfinished task onto it.
+  const rolled = d < t ? lateWork((await getDay(t)).tasks, d) : [];
+  const before = await getDay(d);
+  const target = d < t ? t : addDays(d, 1);
   let moved = 0;
-  for (const t of before.tasks.filter((x) => !x.done)) {
-    const to = opts.carry?.[t.id] || 'tomorrow';
+  for (const x of [...before.tasks.filter((y) => !y.done), ...rolled]) {
+    const to = opts.carry?.[x.id] || 'tomorrow';
     if (to === 'keep') continue;
-    await store().put('tasks', t.id, {
-      ...t,
-      date: to === 'backlog' ? null : addDays(d, 1),
-      rolledFrom: to === 'backlog' ? null : t.rolledFrom || d,
+    moved++;
+    if (to === 'tomorrow' && x.date === target) continue; // already there, in its place
+    await store().put('tasks', x.id, {
+      ...x,
+      date: to === 'backlog' ? null : target,
+      rolledFrom: to === 'backlog' ? null : x.rolledFrom || d,
       order: nextOrder(),
       updatedAt: now(),
     });
-    moved++;
   }
   const meta = await getDayMeta(d);
   const next: Day = { ...meta, shutdownAt: now(), ...(opts.note !== undefined && { note: clean(opts.note, 'note', 1000) }) };
   await store().put('days', d, next);
-  return { date: d, summary: wrapLine(before.tasks, moved), moved, day: await getDay(d) };
+  return { date: d, summary: wrapLine([...before.tasks, ...rolled], moved), moved, day: await getDay(d) };
 }
 
 // Undo a shutdown: the day is open again (tasks already moved stay where they went).

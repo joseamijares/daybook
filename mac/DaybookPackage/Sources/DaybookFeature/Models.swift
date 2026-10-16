@@ -30,6 +30,7 @@ public struct DBDay: Codable, Hashable, Sendable, Identifiable {
     public var doneCount: Int
     public var capacity: Int
     public var over: Int
+    public var previous: String? = nil // the latest earlier day with work on it
 
     public var id: String { date }
     public var openCount: Int { tasks.filter { !$0.done }.count }

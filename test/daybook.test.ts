@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setAppearance } from '@/lib/appearanceStore';
-import { addTask, backlog, getDay, getWeek, parseQuickAdd, planDay, rollover, setDay, shutdown, updateTask } from '@/lib/daybook';
+import { addTask, backlog, getDay, getTask, getWeek, parseQuickAdd, planDay, rollover, setDay, shutdown, updateTask } from '@/lib/daybook';
 import { toFramePlan } from '@/lib/frame';
 import { fileStore, setStore } from '@/lib/store';
 import { mondayOf, resolveDate } from '@/lib/time';
@@ -121,6 +121,36 @@ describe('days', () => {
     expect((await getDay('2026-10-13')).tasks.map((x) => x.id)).toEqual([b.id]);
     expect((await backlog()).map((x) => x.id)).toEqual([c.id]);
     expect((await getDay()).note).toBe('Good day');
+  });
+
+  it('closes a day late (the morning after) without skipping today', async () => {
+    const shipped = await addTask({ text: 'Shipped 1h', date: '2026-10-09' });
+    await updateTask(shipped.id, { done: true });
+    const stay = await addTask({ title: 'Stay', date: '2026-10-09' });
+    const shelve = await addTask({ title: 'Shelve', date: '2026-10-09' });
+    const { order } = (await getDay()).tasks.find((x) => x.id === stay.id)!; // Monday: Friday's work rolls over
+    const r = await shutdown('2026-10-09', { note: 'Closed late', carry: { [shelve.id]: 'backlog' } });
+    expect(r.summary).toBe('1 of 3 done, about 1h of work. 2 move on.');
+    expect((await getDay('2026-10-09')).shutdownAt).not.toBeNull();
+    const monday = await getDay();
+    expect(monday.shutdownAt).toBeNull();
+    expect(monday.tasks.map((x) => [x.id, x.order])).toEqual([[stay.id, order]]);
+    expect((await backlog()).map((x) => x.id)).toEqual([shelve.id]);
+    for (const date of ['2026-10-10', '2026-10-11', '2026-10-13']) expect((await getDay(date)).tasks).toEqual([]);
+  });
+
+  it('carries a day closed late onto today, never into the past, even before anything rolled over', async () => {
+    const open = await addTask({ title: 'Open', date: '2026-10-09' });
+    expect((await shutdown('2026-10-09')).moved).toBe(1);
+    expect(await getTask(open.id)).toMatchObject({ date: '2026-10-12', rolledFrom: '2026-10-09' });
+  });
+
+  it('knows the latest earlier day with work, even one whose tasks all rolled over', async () => {
+    await addTask({ title: 'Wednesday', date: '2026-10-07' }).then((x) => updateTask(x.id, { done: true }));
+    expect((await getDay()).previous).toBe('2026-10-07');
+    await addTask({ title: 'Friday', date: '2026-10-09' });
+    expect((await getDay()).previous).toBe('2026-10-09');
+    expect((await getDay('2026-10-07')).previous).toBeNull();
   });
 });
 

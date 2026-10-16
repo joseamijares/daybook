@@ -68,6 +68,7 @@ async function dayBrief(date?: string) {
     meetings: meetings.map((e) => ({ title: e.title, all_day: e.allDay, start: e.start, end: e.end, location: e.location })),
     journal: d.note,
     shut_down: Boolean(d.shutdownAt),
+    previous_day: d.previous,
   };
 }
 
@@ -227,7 +228,8 @@ export const tools: Tool[] = [
   {
     name: 'shutdown_day',
     title: 'Shut down the day',
-    description: 'The evening ritual: unfinished tasks move to tomorrow unless carry says "backlog" or "keep"; saves a one-line journal note; returns a one-line recap.',
+    description:
+      'The evening ritual: unfinished tasks move to tomorrow unless carry says "backlog" or "keep"; saves a one-line journal note; returns a one-line recap. A past date closes that day late (the morning after): its unfinished work has already rolled onto today and stays there unless carry says "backlog".',
     inputSchema: {
       type: 'object',
       properties: {
@@ -294,7 +296,7 @@ const prompts = [
     title: 'Shut down the day',
     description: 'Evening ritual: review what got done, decide where unfinished work goes, one journal line.',
     text: `Shut down my day in Daybook.
-1. Call get_today and read back what got done in one sentence.
+1. Call get_today and read back what got done in one sentence. If it is still morning, nothing is done today and previous_day isn't shut down (get_today with that date), I mean to close that day: use its date from here on, and "tomorrow" means it stays on today.
 2. For each unfinished task, ask: tomorrow, backlog, or keep? (Default tomorrow.)
 3. Ask for one line for the journal.
 4. Call shutdown_day with the carry map and note, then tell me the recap.`,
