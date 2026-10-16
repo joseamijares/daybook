@@ -7,6 +7,12 @@ interface Countable {
   estimate: number | null;
 }
 
+// A day closed late (the morning after) has already rolled its unfinished work
+// onto today: the open tasks on today that rolled from that day or before.
+export function lateWork<T extends { done: boolean; rolledFrom: string | null }>(todays: T[], day: string): T[] {
+  return todays.filter((t) => !t.done && t.rolledFrom != null && t.rolledFrom <= day);
+}
+
 // "4 of 6 done, about 4h 15m of work. 2 move on."
 export function wrapLine(tasks: Countable[], moved: number, locale: 'en' | 'es' = 'en') {
   if (!tasks.length) return locale === 'es' ? 'Un día sin tareas.' : 'A day with nothing on it.';

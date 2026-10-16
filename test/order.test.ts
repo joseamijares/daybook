@@ -28,7 +28,7 @@ describe('arranged', () => {
     createdAt: '',
     updatedAt: '',
   });
-  const day = (date: string, tasks: Task[]): DayView => ({ date, focus: null, note: null, shutdownAt: null, isToday: false, tasks, planned: 0, remaining: 0, doneCount: 0, capacity: 480, over: 0 });
+  const day = (date: string, tasks: Task[]): DayView => ({ date, focus: null, note: null, shutdownAt: null, isToday: false, tasks, planned: 0, remaining: 0, doneCount: 0, capacity: 480, over: 0, previous: null });
   const week = {
     weekOf: '2026-10-12',
     focus: null,

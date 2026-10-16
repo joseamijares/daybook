@@ -1,9 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { Carry, DayView } from '@/lib/daybook';
 import { dayNum, fill, hoursSaid, longDate, weekdayName } from '@/lib/i18n';
-import { wrapLine } from '@/lib/recap';
+import { lateWork, wrapLine } from '@/lib/recap';
 import { addDays, minutesLabel } from '@/lib/time';
 import { api, timeIn, useLook, useResource, useSession } from './client';
 import { capitalize } from './day';
@@ -19,29 +20,52 @@ const Tick = () => (
   </span>
 );
 
+const hourIn = (tz: string) =>
+  Number(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).formatToParts(new Date()).find((p) => p.type === 'hour')?.value) % 24;
+
 export function ShutdownView() {
   const { session, t } = useSession();
-  const { data: day, reload } = useResource<DayView>(`/api/day?date=${session.today}`);
+  const { data: today, reload: reloadToday } = useResource<DayView>(`/api/day?date=${session.today}`);
   const { data: tomorrow, reload: reloadTomorrow } = useResource<DayView>(`/api/day?date=${addDays(session.today, 1)}`);
+  // The day this screen closes, once chosen or closed. Pinned so closing the
+  // day before doesn't turn the screen into today's form.
+  const [pinned, setPinned] = useState<string | null>(null);
+  // The last day with work before today, if it was this week or so: the morning
+  // after, it may never have been closed.
+  const prevDate = pinned && pinned !== session.today ? pinned : today?.previous && today.previous >= addDays(session.today, -7) ? today.previous : null;
+  const { data: prev, reload: reloadPrev } = useResource<DayView>(prevDate ? `/api/day?date=${prevDate}` : null);
   // Kept here, outside the keyed form, so the tally survives the reload after closing.
   const [moved, setMoved] = useState<Moved | null>(null);
-  if (!day) {
+  if (!today || (prevDate && prev?.date !== prevDate)) {
     return (
       <section className="placard night">
         <p className="meta">{t.loading}</p>
       </section>
     );
   }
+  // The day before still open: before noon, with nothing done yet today,
+  // pressing Shut down means closing that day, not sending today's work to tomorrow.
+  const before = prevDate ? prev : null;
+  const either = Boolean(before && !before.shutdownAt && !today.shutdownAt);
+  const morning = today.doneCount === 0 && hourIn(session.tz) < 12;
+  const date = pinned && (pinned === today.date || pinned === before?.date) ? pinned : either && before && morning ? before.date : today.date;
+  const late = before !== null && date === before.date;
+  const day = late ? before : today;
+  const other = late ? today : either ? before : null;
   // Keyed so a shutdown made elsewhere (an agent, another tab) resets the form.
   return (
     <Wrap
-      key={`${day.shutdownAt}:${day.note}`}
+      key={`${day.date}:${day.shutdownAt}:${day.note}`}
       day={day}
-      tomorrow={tomorrow}
+      late={late}
+      next={late ? today : tomorrow}
+      rolled={late ? lateWork(today.tasks, day.date) : []}
+      other={other && { date: other.date, pick: () => setPinned(other.date) }}
+      pin={() => setPinned(day.date)}
       moved={moved}
       setMoved={setMoved}
       reload={async () => {
-        await Promise.all([reload(), reloadTomorrow()]);
+        await Promise.all([reloadToday(), reloadTomorrow(), reloadPrev()]);
       }}
     />
   );
@@ -65,13 +89,21 @@ const clockNow = (locale: string, tz: string) =>
 
 function Wrap({
   day,
-  tomorrow,
+  late,
+  next,
+  rolled,
+  other,
+  pin,
   moved,
   setMoved,
   reload,
 }: {
   day: DayView;
-  tomorrow: DayView | null;
+  late: boolean; // closed the morning after
+  next: DayView | null; // where unfinished work goes: tomorrow, or today for a day closed late
+  rolled: DayView['tasks']; // a day closed late: its open work, already on today
+  other: { date: string; pick: () => void } | null; // the other day this screen could close
+  pin: () => void;
   moved: Moved | null;
   setMoved: (m: Moved | null) => void;
   reload: () => Promise<void>;
@@ -83,23 +115,34 @@ function Wrap({
   const [closed, setClosed] = useState(Boolean(day.shutdownAt));
   const now = useClock(session.locale, session.tz);
 
-  const done = day.tasks.filter((x) => x.done);
-  const open = day.tasks.filter((x) => !x.done);
+  const all = [...day.tasks, ...rolled];
+  const done = all.filter((x) => x.done);
+  const open = all.filter((x) => !x.done);
   const where = (id: string): Carry => carry[id] || 'tomorrow';
   const moving = open.filter((x) => where(x.id) !== 'keep').length;
   const worked = done.reduce((s, x) => s + (x.estimate || 0), 0);
   const weekday = capitalize(weekdayName(day.date, session.locale));
-  const choices: Carry[] = ['tomorrow', 'backlog', 'keep'];
+  // Closed late, the work is already on today: it stays there or goes to the backlog.
+  const choices: Carry[] = late ? ['tomorrow', 'backlog'] : ['tomorrow', 'backlog', 'keep'];
   const label = (c: Carry) => {
-    const word = c === 'tomorrow' ? t.tomorrow : c === 'backlog' ? t.backlog : style === 'notebook' ? t.keepToday : t.keep;
+    const word = c === 'tomorrow' ? (late ? t.today : t.tomorrow) : c === 'backlog' ? t.backlog : style === 'notebook' ? t.keepToday : t.keep;
     return style === 'notebook' ? word.toLowerCase() : word;
   };
+  const switchLine = other && (
+    <p className="meta" style={{ margin: 0 }}>
+      {late && `${fill(t.lateNote, { day: weekdayName(day.date, session.locale) })} `}
+      <button type="button" className="link-btn" onClick={other.pick}>
+        {fill(t.closeInstead, { day: weekdayName(other.date, session.locale) })}
+      </button>
+    </p>
+  );
 
   const close = () =>
     run(async () => {
       await api('/api/shutdown', { method: 'POST', body: { date: day.date, note, carry } });
       setMoved({ tomorrow: open.filter((x) => where(x.id) === 'tomorrow').length, backlog: open.filter((x) => where(x.id) === 'backlog').length });
-      toast(wrapLine(day.tasks, moving, session.locale));
+      toast(wrapLine(all, moving, session.locale));
+      pin();
       setClosed(true);
       await refreshSession(); // the room may turn to Nocturne
     }, reload);
@@ -112,7 +155,16 @@ function Wrap({
       await refreshSession();
     }, reload);
 
-  const frameNote = session.frame ? (
+  // Closed late, the next step is today, not tonight's Frame.
+  const frameNote = late ? (
+    closed ? (
+      <Link className="link-btn" href="/plan">
+        {t.planTheDay}
+      </Link>
+    ) : (
+      <span />
+    )
+  ) : session.frame ? (
     <span className="meta with-icon" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
       <FrameIcon />
       {closed ? t.tomorrowOnFrame : t.frameNote}
@@ -123,10 +175,17 @@ function Wrap({
 
   if (closed) {
     const closedAt = timeIn(day.shutdownAt, session.tz, session.locale) || now;
-    const waiting = tomorrow?.tasks.filter((x) => !x.done) || [];
+    const waiting = next?.tasks.filter((x) => !x.done) || [];
+    const nextDay = next?.date ?? addDays(day.date, 1);
     return (
       <section className="placard night" aria-label={t.shutDown}>
-        {style === 'notebook' ? (
+        {late ? (
+          style === 'timetable' ? (
+            <Masthead numeral={t.doneShort} title={fill(t.dayClosed, { day: weekdayName(day.date, session.locale) })} sub={fill(t.closedAt, { time: closedAt })} />
+          ) : (
+            <Masthead title={fill(t.dayClosed, { day: weekdayName(day.date, session.locale) })} sub={fill(t.closedAt, { time: closedAt })} />
+          )
+        ) : style === 'notebook' ? (
           <Masthead title={t.goodNight} sub={`${t.doneDay} ${t.stepAway}`} />
         ) : style === 'timetable' ? (
           <Masthead numeral={t.doneShort} title={t.stepAway} sub={fill(t.closedAt, { time: closedAt })} />
@@ -135,7 +194,7 @@ function Wrap({
         )}
 
         {style === 'notebook' ? (
-          <p className="sentence">{wrapLine(day.tasks, moved ? moved.tomorrow + moved.backlog : 0, session.locale)}</p>
+          <p className="sentence">{wrapLine(all, moved ? moved.tomorrow + moved.backlog : 0, session.locale)}</p>
         ) : (
           <div className="tally">
             <div>
@@ -145,7 +204,7 @@ function Wrap({
               </strong>
             </div>
             <div>
-              <span>{t.waitingTomorrow}</span>
+              <span>{late ? t.carriedToday : t.waitingTomorrow}</span>
               <strong>{waiting.length}</strong>
             </div>
             {moved && moved.backlog > 0 && (
@@ -154,7 +213,7 @@ function Wrap({
                 <strong>{moved.backlog}</strong>
               </div>
             )}
-            {open.length > 0 && (
+            {!late && open.length > 0 && (
               <div>
                 <span>{t.keptToday}</span>
                 <strong>{open.length}</strong>
@@ -166,8 +225,8 @@ function Wrap({
         {style === 'timetable' && waiting.length > 0 && (
           <div>
             <div className="section-head">
-              <span className="label">{t.waitingTomorrow}</span>
-              <span className="meta">{capitalize(weekdayName(addDays(day.date, 1), session.locale))}</span>
+              <span className="label">{late ? t.carriedToday : t.waitingTomorrow}</span>
+              <span className="meta">{capitalize(weekdayName(nextDay, session.locale))}</span>
             </div>
             {waiting.slice(0, 4).map((x) => (
               <div key={x.id} className="done-row">
@@ -201,7 +260,7 @@ function Wrap({
     );
   }
 
-  const recap = style === 'notebook' && worked ? `${fill(t.finished, { n: done.length, total: day.tasks.length })} ${capitalize(hoursSaid(worked, session.locale))}.` : wrapLine(day.tasks, closed ? 0 : moving, session.locale);
+  const recap = style === 'notebook' && worked ? `${fill(t.finished, { n: done.length, total: all.length })} ${capitalize(hoursSaid(worked, session.locale))}.` : wrapLine(all, closed ? 0 : moving, session.locale);
 
   return (
     <section className="placard night" aria-label={t.shutDown}>
@@ -213,12 +272,14 @@ function Wrap({
         <Masthead title={t.wrapped} sub={`${capitalize(longDate(day.date, session.locale))} · ${now}`} />
       )}
 
+      {switchLine}
+
       <p className="recap">{recap}</p>
 
-      {style === 'timetable' && day.tasks.some((x) => x.estimate) && (
+      {style === 'timetable' && all.some((x) => x.estimate) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div className="day-blocks" aria-hidden>
-            {day.tasks
+            {all
               .filter((x) => x.estimate)
               .map((x) => (
                 <i key={x.id} className={x.done ? '' : 'open'} style={{ flex: x.estimate || 1 }} />
