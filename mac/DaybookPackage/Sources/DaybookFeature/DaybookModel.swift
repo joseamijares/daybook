@@ -32,6 +32,8 @@ public final class DaybookModel {
     var reminderOn: Bool { didSet { UserDefaults.standard.set(reminderOn, forKey: "reminderOn"); scheduleReminder() } }
     var reminderMinutes: Int { didSet { UserDefaults.standard.set(reminderMinutes, forKey: "reminderMinutes"); scheduleReminder() } }
     private(set) var hasKey: Bool
+    /// Set up on an earlier launch: a key saved, or an address (a Daybook that needs no key).
+    private let setUpBefore: Bool
 
     /// Set by the app shell: opens the Daybook window at a path ("/", "/week", "/shutdown").
     public var openWindow: ((String) -> Void)?
@@ -47,7 +49,9 @@ public final class DaybookModel {
         frameSyncOn = defaults.object(forKey: "frameSync") as? Bool ?? true
         reminderOn = defaults.object(forKey: "reminderOn") as? Bool ?? true
         reminderMinutes = defaults.object(forKey: "reminderMinutes") as? Int ?? 18 * 60
-        hasKey = Keychain.read() != nil
+        let saved = Keychain.read() != nil
+        hasKey = saved
+        setUpBefore = saved || defaults.string(forKey: "baseURL") != nil
         startLoops()
         scheduleReminder()
     }
@@ -60,6 +64,7 @@ public final class DaybookModel {
         reminderOn = true
         reminderMinutes = 18 * 60
         hasKey = true
+        setUpBefore = false
         isPreview = true
         self.week = week
         self.session = session
@@ -69,19 +74,31 @@ public final class DaybookModel {
 
     private var isPreview = false
 
-    var api: DaybookAPI? {
+    /// The Daybook's address, if it's one the app can ask.
+    private var address: URL? {
         guard let url = URL(string: baseURL.trimmingCharacters(in: .whitespaces)),
               url.scheme?.hasPrefix("http") == true else { return nil }
+        return url
+    }
+
+    var api: DaybookAPI? {
         // Previews and tests never read the Keychain (it would ask for the app's key).
-        return DaybookAPI(baseURL: url, key: isPreview ? "" : Keychain.read() ?? "")
+        address.map { DaybookAPI(baseURL: $0, key: isPreview ? "" : Keychain.read() ?? "") }
     }
 
     /// Configured once a server answered and let us in.
     public var isConfigured: Bool { isPreview || session?.authorized == true }
 
-    /// A key is saved and the first answer hasn't come back yet: not the time
-    /// to ask for an address and key (the window shows its launch scene).
-    var isChecking: Bool { !isPreview && hasKey && session == nil && error == nil }
+    /// Set up before and the Daybook hasn't answered yet: not the time to ask for
+    /// an address and key (the window shows its launch scene).
+    var isChecking: Bool { Self.waiting(setUp: setUpBefore, address: address, answer: session) }
+
+    /// A try that failed (offline, a server slow to wake) isn't an answer: the app
+    /// keeps waiting and trying. Only a session ends the wait, and one the key
+    /// doesn't open asks for it again.
+    nonisolated static func waiting(setUp: Bool, address: URL?, answer: DBSession?) -> Bool {
+        setUp && address != nil && answer == nil
+    }
 
     var timeZone: TimeZone { session.flatMap { TimeZone(identifier: $0.tz) } ?? .current }
     var locale: String { session?.locale ?? "en" }
@@ -137,7 +154,8 @@ public final class DaybookModel {
         Task { [weak self] in
             while let self {
                 await self.refresh()
-                try? await Task.sleep(for: .seconds(60))
+                // Every minute; every few seconds while the first answer is still missing.
+                try? await Task.sleep(for: .seconds(self.isChecking ? 5 : 60))
             }
         }
         // Back from sleep: re-read now (once the network is back) rather than
