@@ -525,10 +525,10 @@ const es: typeof en = {
   tomorrowOnFrame: 'Mañana ya está en tu Frame',
   finished: 'Terminaste {n} de {total}.',
   andMore: 'y {n} más',
-  lateNote: 'El {day} quedó sin cerrar; lo pendiente ya está en hoy.',
+  lateNote: 'El {day} quedó sin cerrar; lo pendiente ya pasó a hoy.',
   closeInstead: 'Mejor cerrar el {day}',
   dayClosed: 'El {day} quedó cerrado.',
-  carriedToday: 'Ya en hoy',
+  carriedToday: 'Quedan para hoy',
   // Appearance
   appearance: 'Apariencia',
   design: 'Diseño',

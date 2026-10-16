@@ -27,15 +27,15 @@ export function ShutdownView() {
   const { session, t } = useSession();
   const { data: today, reload: reloadToday } = useResource<DayView>(`/api/day?date=${session.today}`);
   const { data: tomorrow, reload: reloadTomorrow } = useResource<DayView>(`/api/day?date=${addDays(session.today, 1)}`);
-  // The last day with work before today, if it was this week or so: the morning
-  // after, it may never have been closed.
-  const prevDate = today?.previous && today.previous >= addDays(session.today, -7) ? today.previous : null;
-  const { data: prev, reload: reloadPrev } = useResource<DayView>(prevDate ? `/api/day?date=${prevDate}` : null);
-  // Kept here, outside the keyed form, so the tally survives the reload after closing.
-  const [moved, setMoved] = useState<Moved | null>(null);
   // The day this screen closes, once chosen or closed. Pinned so closing the
   // day before doesn't turn the screen into today's form.
   const [pinned, setPinned] = useState<string | null>(null);
+  // The last day with work before today, if it was this week or so: the morning
+  // after, it may never have been closed.
+  const prevDate = pinned && pinned !== session.today ? pinned : today?.previous && today.previous >= addDays(session.today, -7) ? today.previous : null;
+  const { data: prev, reload: reloadPrev } = useResource<DayView>(prevDate ? `/api/day?date=${prevDate}` : null);
+  // Kept here, outside the keyed form, so the tally survives the reload after closing.
+  const [moved, setMoved] = useState<Moved | null>(null);
   if (!today || (prevDate && prev?.date !== prevDate)) {
     return (
       <section className="placard night">
@@ -43,11 +43,12 @@ export function ShutdownView() {
       </section>
     );
   }
-  // Nothing done today and the day before still open: before noon, pressing
-  // Shut down means closing that day, not sending today's work to tomorrow.
+  // The day before still open: before noon, with nothing done yet today,
+  // pressing Shut down means closing that day, not sending today's work to tomorrow.
   const before = prevDate ? prev : null;
-  const either = Boolean(before && !before.shutdownAt && !today.shutdownAt && today.doneCount === 0);
-  const date = pinned && (pinned === today.date || pinned === before?.date) ? pinned : either && before && hourIn(session.tz) < 12 ? before.date : today.date;
+  const either = Boolean(before && !before.shutdownAt && !today.shutdownAt);
+  const morning = today.doneCount === 0 && hourIn(session.tz) < 12;
+  const date = pinned && (pinned === today.date || pinned === before?.date) ? pinned : either && before && morning ? before.date : today.date;
   const late = before !== null && date === before.date;
   const day = late ? before : today;
   const other = late ? today : either ? before : null;
