@@ -4,6 +4,15 @@
 
 ### Getting started
 
+- First-run polish from first-time-user tests: the evening ritual is **Wrap up**
+  (it said "Shut down", which sounded like closing the app); "Keep" is **Keep
+  today**; an empty day has one **Start planning** button and says "Write your
+  first task below"; the focus line asks about tomorrow, or the day you're
+  looking at, instead of always "today"; the week strip shows "2 tasks" on a
+  day whose tasks have no time; and **Erase everything** has its own row at the
+  end of Settings, away from Export and Import. In the Mac menu bar, Wrap up
+  waits until you've started, and connecting a cloud Daybook never asks the
+  Keychain for a key this Mac didn't save.
 - The Mac app starts on the Mac (0.2.0). A new install no longer asks for a
   Daybook's address and key: it opens on the same one-button first screen,
   **Start my day**, and keeps your days on that Mac. The app carries its own
