@@ -32,3 +32,12 @@ export const FILM = {
   duration: 'PT50S',
   published: '2026-10-15T12:00:00-06:00',
 };
+
+// The how-to walkthrough (jamak-launch-videos daybook-howto, JAM-4363): 16:9, with a voice (English) and burned-in
+// captions. The app streams this same file from the site (components/Walkthrough.tsx).
+export const HOWTO = {
+  src: '/film/daybook-howto.mp4',
+  poster: '/film/howto-poster.webp',
+  duration: 'PT2M29S',
+  published: '2026-10-20T12:00:00-06:00',
+};

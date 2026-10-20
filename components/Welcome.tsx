@@ -6,17 +6,20 @@
 // and, on a server that keeps one, opens it with its key. Settings → "Use a
 // cloud Daybook instead" comes back here with the key form open (/?own).
 // In the Mac app's own copy (DEVICE) it's the button alone: a cloud Daybook is
-// the app's Settings, never a first step.
+// the app's Settings, never a first step. Under Start, "Watch how it works"
+// opens the walkthrough (components/Walkthrough.tsx).
 
 import { useState } from 'react';
 import { api, DEVICE, ON_PC, type Session, setMode, startOnDevice, stringsFor, useLook } from './client';
 import { Masthead } from './Masthead';
+import { useWalkthrough } from './Walkthrough';
 
 const SETUP_URL = 'https://github.com/joseamijares/daybook#deploy-your-own';
 
 export function Welcome({ session, onDone }: { session: Session; onDone: () => Promise<void> }) {
   const t = stringsFor(session.locale);
   const { style } = useLook();
+  const walkthrough = useWalkthrough();
   const [own, setOwn] = useState(() => new URLSearchParams(window.location.search).has('own'));
   const [key, setKey] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +60,9 @@ export function Welcome({ session, onDone }: { session: Session; onDone: () => P
             {t.start}
           </button>
         </div>
+        <button type="button" className="link-btn howto-btn" onClick={walkthrough.open}>
+          {t.howtoWatch}
+        </button>
       </div>
 
       {DEVICE ? null : session.cloud && own ? (
