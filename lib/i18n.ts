@@ -1,5 +1,7 @@
 // UI strings in English and Spanish (DAYBOOK_LOCALE=en|es).
 
+import { addDays } from './time';
+
 const en = {
   settings: 'Settings',
   addTag: '+ tag',
@@ -46,11 +48,13 @@ const en = {
   today: 'Today',
   week: 'Week',
   backlog: 'Backlog',
-  shutDown: 'Shut down',
+  shutDown: 'Wrap up',
   thisWeek: 'This week',
   planTheDay: 'Plan the day',
   donePlanning: 'Done planning',
   focusPlaceholder: 'What would make today a good day?',
+  focusPlaceholderTomorrow: 'What would make tomorrow a good day?',
+  focusPlaceholderDay: 'What would make {day} a good day?',
   weekFocusPlaceholder: 'What is this week about?',
   dayFocusPlaceholder: 'Focus',
   toDo: 'To do',
@@ -87,12 +91,12 @@ const en = {
   emptyDay: 'Nothing planned yet. Add a task, or pull one in from the backlog.',
   emptyBacklog: 'The backlog is empty.',
   dragHint: 'Drag onto a day',
-  wrapped: 'Wrapped',
+  wrapped: 'Wrap up',
   closeTheDay: 'Close the day',
   carryOver: 'Carry over',
   tapToChange: 'tap to change',
   tomorrow: 'Tomorrow',
-  keep: 'Keep',
+  keep: 'Keep today',
   journal: 'One line for the journal',
   journalPlaceholder: 'What went well, what got in the way…',
   frameNote: 'Your Frame turns to tomorrow at 7 pm.',
@@ -118,6 +122,7 @@ const en = {
   startPlanning: 'Start planning',
   nothingPlanned: 'Nothing planned yet',
   nothingPlannedLead: 'Pick tasks from your backlog or Linear, or write new ones.',
+  nothingPlannedAdd: 'Write your first task below.',
   planDay: 'Plan {day}',
   close: 'Close',
   meetingsHead: 'Meetings',
@@ -184,6 +189,8 @@ const en = {
   exportBtn: 'Export a copy',
   importBtn: 'Import',
   eraseBtn: 'Erase everything',
+  eraseLead: 'Every task, day and note here, for good. Export a copy first.',
+  eraseShort: 'Erase…',
   eraseConfirm: 'Erase every task, day and note on this device? This can’t be undone.',
   importConfirm: 'Add the tasks and days in this file? Ones that match are updated.',
   imported: 'Imported {tasks} tasks and {days} days.',
@@ -338,6 +345,8 @@ const es: typeof en = {
   planTheDay: 'Planear el día',
   donePlanning: 'Listo',
   focusPlaceholder: '¿Qué haría de hoy un buen día?',
+  focusPlaceholderTomorrow: '¿Qué haría de mañana un buen día?',
+  focusPlaceholderDay: '¿Qué haría del {day} un buen día?',
   weekFocusPlaceholder: '¿De qué se trata esta semana?',
   dayFocusPlaceholder: 'Enfoque',
   toDo: 'Por hacer',
@@ -374,12 +383,12 @@ const es: typeof en = {
   emptyDay: 'Nada planeado todavía. Agrega una tarea o trae una de pendientes.',
   emptyBacklog: 'No hay pendientes.',
   dragHint: 'Arrastra a un día',
-  wrapped: 'Cerrado',
+  wrapped: 'Cierre',
   closeTheDay: 'Cerrar el día',
   carryOver: 'Lo que sigue',
   tapToChange: 'toca para cambiar',
   tomorrow: 'Mañana',
-  keep: 'Dejar',
+  keep: 'Dejar hoy',
   journal: 'Una línea para el diario',
   journalPlaceholder: 'Qué salió bien, qué se atravesó…',
   frameNote: 'Tu Frame pasa a mañana a las 7 pm.',
@@ -405,6 +414,7 @@ const es: typeof en = {
   startPlanning: 'Empezar a planear',
   nothingPlanned: 'Nada planeado todavía',
   nothingPlannedLead: 'Elige tareas de pendientes o de Linear, o escribe nuevas.',
+  nothingPlannedAdd: 'Escribe tu primera tarea abajo.',
   planDay: 'Planear el {day}',
   close: 'Cerrar',
   meetingsHead: 'Reuniones',
@@ -471,6 +481,8 @@ const es: typeof en = {
   exportBtn: 'Exportar una copia',
   importBtn: 'Importar',
   eraseBtn: 'Borrar todo',
+  eraseLead: 'Todas las tareas, días y notas de aquí, para siempre. Exporta una copia antes.',
+  eraseShort: 'Borrar…',
   eraseConfirm: '¿Borrar todas las tareas, días y notas de este dispositivo? No se puede deshacer.',
   importConfirm: '¿Agregar las tareas y días de este archivo? Las que coincidan se actualizan.',
   imported: 'Importadas {tasks} tareas y {days} días.',
@@ -605,4 +617,11 @@ export function hoursSaid(minutes: number, l: Locale) {
   if (part === undefined) return es ? `${(minutes / 60).toFixed(1)} horas` : `${(minutes / 60).toFixed(1)} hours`;
   if (whole === 1 && !part) return es ? 'una hora' : 'one hour';
   return es ? `${whole || ''}${part} horas` : `${whole || ''}${part} hours`;
+}
+
+/** The focus line's question for a day: today, tomorrow, or its weekday. */
+export function focusPrompt(t: Strings, ymd: string, today: string, l: Locale) {
+  if (ymd === today) return t.focusPlaceholder;
+  if (ymd === addDays(today, 1)) return t.focusPlaceholderTomorrow;
+  return fill(t.focusPlaceholderDay, { day: weekdayName(ymd, l) });
 }

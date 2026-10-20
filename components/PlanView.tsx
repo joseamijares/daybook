@@ -10,7 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { type KeyboardEvent, useMemo, useState } from 'react';
 import type { Task, WeekView } from '@/lib/daybook';
 import type { FrameEvent } from '@/lib/frame';
-import { fill, hoursSaid, monthDay, weekdayName } from '@/lib/i18n';
+import { fill, focusPrompt, hoursSaid, monthDay, weekdayName } from '@/lib/i18n';
 import { parseQuickAdd } from '@/lib/quickadd';
 import { placeAt } from '@/lib/order';
 import { addDays, minutesLabel } from '@/lib/time';
@@ -151,7 +151,7 @@ export function PlanView() {
             <DraftText
               key={`${date}:${day.focus || ''}`}
               value={day.focus || ''}
-              placeholder={t.focusPlaceholder}
+              placeholder={focusPrompt(t, date, session.today, session.locale)}
               label={t.focusPlaceholder}
               onCommit={(next) => ops.setFocus(date, next)}
             />

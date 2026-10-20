@@ -25,7 +25,7 @@ struct DaybookApp: App {
                 Button("Today") { delegate.model.open("/") }.keyboardShortcut("1")
                 Button("Week") { delegate.model.open("/week") }.keyboardShortcut("2")
                 Button("Backlog") { delegate.model.open("/backlog") }.keyboardShortcut("3")
-                Button("Shut down") { delegate.model.open("/shutdown") }.keyboardShortcut("4")
+                Button("Wrap Up") { delegate.model.open("/shutdown") }.keyboardShortcut("4")
             }
         }
 

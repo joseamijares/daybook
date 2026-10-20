@@ -164,11 +164,6 @@ function DataSettings() {
             if (chosen) importCopy(chosen);
           }}
         />
-        {local && (
-          <button type="button" className="link-btn danger" onClick={erase}>
-            {t.eraseBtn}
-          </button>
-        )}
       </div>
       {local && (
         <div className="switch-row">
@@ -204,6 +199,18 @@ function DataSettings() {
           </span>
           <button type="button" className="link-btn" onClick={leave}>
             {t.switchBtn}
+          </button>
+        </div>
+      )}
+      {local && (
+        // Last and on its own, away from Export and Import, so it's never a slip.
+        <div className="switch-row">
+          <span>
+            <strong>{t.eraseBtn}</strong>
+            <span className="meta">{t.eraseLead}</span>
+          </span>
+          <button type="button" className="link-btn danger" onClick={erase}>
+            {t.eraseShort}
           </button>
         </div>
       )}
