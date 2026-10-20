@@ -19,6 +19,8 @@ on:
       - 'components/**'
       - 'lib/**'
       - 'next.config.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
       - '.github/workflows/mac-release.yml'
 
 permissions:

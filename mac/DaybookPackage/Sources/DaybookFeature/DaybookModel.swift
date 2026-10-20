@@ -285,7 +285,9 @@ public final class DaybookModel {
         if !given.isEmpty { Keychain.write(given) }
         hasKey = Keychain.read() != nil
         baseURL = trimmed
-        session = nil
+        // The answer that let us in, so the window goes straight to the cloud pages
+        // (never the key screen while the first refresh is on its way).
+        session = answer
         week = nil
         place = .cloud
         await refresh()
