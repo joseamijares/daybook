@@ -22,8 +22,9 @@ $tool = Join-Path $env:CODE_SIGN_TOOL_PATH 'CodeSignTool.bat'
   "-totp_secret=$env:ESIGNER_TOTP_SECRET" `
   "-input_file_path=$File" `
   -override
+if ($LASTEXITCODE -ne 0) { throw "CodeSignTool failed with exit code $LASTEXITCODE for $File." }
 
-# CodeSignTool can exit 0 after an error, so ask Windows whether the file is signed.
+# CodeSignTool can also exit 0 after an error, so ask Windows whether the file is signed.
 $signature = Get-AuthenticodeSignature -FilePath $File
 if ($signature.Status -ne 'Valid') {
   throw "$File isn't signed after CodeSignTool ran: $($signature.Status) $($signature.StatusMessage)"
