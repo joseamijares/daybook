@@ -10,6 +10,7 @@ import { dayNum, dow, fill, fmtDate, focusPrompt, longDate, monthDay, weekdayNam
 import { placeAt } from '@/lib/order';
 import { minutesLabel } from '@/lib/time';
 import { copyLater, copyTimes, DEVICE, downloadCopy, ON_PC, timeIn, useLook, useResource, useSession } from './client';
+import { useWalkthrough } from './Walkthrough';
 import { capitalize, Schedule, Workload } from './day';
 import { DraftText } from './DraftText';
 import { useGlide } from './glide';
@@ -30,6 +31,7 @@ const validDate = (d: string | null) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d 
 export function TodayView() {
   const { session, t, run } = useSession();
   const { style } = useLook();
+  const walkthrough = useWalkthrough();
   const [, recheck] = useReducer((n: number) => n + 1, 0);
   // /?date=YYYY-MM-DD opens another day (the week view links here). No date
   // means today, and today moves on by itself when the day changes.
@@ -83,6 +85,8 @@ export function TodayView() {
   // eslint-disable-next-line react-hooks/purity -- a clock read; screens refresh every minute anyway
   const copy = local ? copyReminder(copyTimes(), Date.now()) : null;
   const keepCopy = () => run(() => downloadCopy(session.today), recheck);
+  // Once, until it's watched or put off: a quiet line in the foot, after the copy reminder.
+  const newHere = !walkthrough.seen && !copy?.due;
   const putOff = () => {
     copyLater();
     recheck();
@@ -173,7 +177,9 @@ export function TodayView() {
         <div className="foot">
           <span className="with-icon">
             {(session.frame || local) && <FrameIcon />}
-            {copy
+            {newHere
+              ? t.howtoNew
+              : copy
               ? copy.due
                 ? copy.days === null
                   ? ON_PC
@@ -194,6 +200,16 @@ export function TodayView() {
               <button type="button" className="link-btn" onClick={() => setDate(session.today)}>
                 {t.backToToday}
               </button>
+            )}
+            {newHere && (
+              <>
+                <button type="button" className="link-btn quiet" onClick={walkthrough.dismiss}>
+                  {t.notNow}
+                </button>
+                <button type="button" className="link-btn" onClick={walkthrough.open}>
+                  {t.howtoWatchShort}
+                </button>
+              </>
             )}
             {copy?.due && (
               <>

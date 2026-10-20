@@ -1,5 +1,6 @@
 import type { Copy } from '@site/lib/copy';
 import { APP_URL, DEPLOY_URL, MAC_DOWNLOAD_URL, REPO_URL } from '@site/lib/site';
+import { HowtoLink } from './Film';
 
 // Three wall labels: the Mac app (download and install), any browser
 // (install as an app), and your own cloud.
@@ -27,6 +28,7 @@ export function Install({ c }: { c: Copy }) {
             {c.cta.download}
           </a>
           <p className="install__note">{i.mac.note}</p>
+          <HowtoLink c={c} className="install__howto" />
         </article>
 
         <article className="install__label" data-reveal="">
