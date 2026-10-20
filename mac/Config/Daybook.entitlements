@@ -7,6 +7,9 @@
 	<!-- Talks to your Daybook (and loads it in the window), and downloads updates. -->
 	<key>com.apple.security.network.client</key>
 	<true/>
+	<!-- Keep a copy and Import: the file you pick in the save and open panels. -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
 	<!-- Sparkle's installer and its status service, which install updates from outside the sandbox. -->
 	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
 	<array>

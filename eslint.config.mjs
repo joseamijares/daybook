@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The Mac app's copy of the pages (mac/scripts/build-web.sh).
+    ".next-device/**",
+    "mac/DaybookPackage/Sources/DaybookFeature/Web/**",
+    "mac/build/**",
     // The landing page builds on its own (site/).
     "site/.next/**",
     "site/next-env.d.ts",

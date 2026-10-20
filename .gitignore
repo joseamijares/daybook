@@ -16,6 +16,10 @@
 # next.js
 /.next/
 /out/
+# the Mac app's copy of the pages (mac/scripts/build-web.sh)
+/.next-device/
+/mac/DaybookPackage/Sources/DaybookFeature/Web/*
+!/mac/DaybookPackage/Sources/DaybookFeature/Web/README.md
 
 # production
 /build

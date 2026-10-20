@@ -16,7 +16,8 @@ let package = Package(
         .target(
             name: "DaybookFeature",
             dependencies: [.product(name: "Sparkle", package: "Sparkle")],
-            resources: [.process("Fonts"), .process("Art")]
+            // Web: the app's own copy of the pages (mac/scripts/build-web.sh), served as daybook://app/.
+            resources: [.process("Fonts"), .process("Art"), .copy("Web")]
         ),
         .testTarget(name: "DaybookFeatureTests", dependencies: ["DaybookFeature"]),
     ]

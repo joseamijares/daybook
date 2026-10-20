@@ -15,6 +15,10 @@ on:
   pull_request:
     paths:
       - 'mac/**'
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'next.config.ts'
       - '.github/workflows/mac-release.yml'
 
 permissions:
@@ -140,6 +144,13 @@ jobs:
             echo "::error::The SPARKLE_ED_PRIVATE_KEY secret isn't set, so this release can't be signed as an update. Run mac/scripts/signing-secrets.sh (see Updates in mac/README.md), then re-run this workflow."
             exit 1
           fi
+
+      # package-dmg.sh builds the app's own copy of the pages (mac/scripts/build-web.sh).
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
 
       - name: Build the disk image
         id: dmg

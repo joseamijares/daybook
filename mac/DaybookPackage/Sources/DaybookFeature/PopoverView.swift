@@ -22,6 +22,20 @@ public struct PopoverView: View {
         VStack(spacing: 0) {
             if showSettings || !model.isConfigured {
                 SettingsView(model: model) { showSettings = false }
+            } else if model.place == .mac, model.session != nil, !model.isStarted {
+                // A new Mac, before Start in the window: one way in.
+                Hero(model: model)
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Your days are kept on this Mac.").font(Salon.italic(22)).foregroundStyle(Salon.ink)
+                    Text("Open Daybook and start your day. Nothing to set up, no account.")
+                        .font(Salon.text(12.5)).foregroundStyle(Salon.ink2)
+                    HStack {
+                        Spacer()
+                        Button("Open Daybook") { model.open("/") }.buttonStyle(PillStyle(solid: true))
+                    }
+                }
+                .padding(22)
+                .background(Salon.paper)
             } else {
                 Hero(model: model)
                 VStack(alignment: .leading, spacing: 18) {
@@ -110,8 +124,9 @@ public struct PopoverView: View {
     }
 
     private var status: String {
-        guard let last = model.lastSync else { return "Connecting…" }
+        guard let last = model.lastSync else { return model.place == .mac ? "Opening…" : "Connecting…" }
         let t = Dates.time(last, .current)
+        if model.place == .mac { return "On this Mac · \(t)" }
         if model.session?.frame == true, let f = model.lastFrameSync {
             return "Synced \(t) · Frame \(Dates.time(f, .current))"
         }

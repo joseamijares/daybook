@@ -45,6 +45,13 @@ export class ApiError extends Error {
 // localStorage) or "cloud" (a Daybook server). Unset until the welcome screen
 // asks, except for a browser a server already lets in.
 export type Mode = 'local' | 'cloud';
+
+/**
+ * The Mac app's own copy of the pages (DAYBOOK_DEVICE=1, next.config.ts): no
+ * server behind it, so every request is answered on this device, and the
+ * welcome screen only asks to start. A cloud Daybook is the Mac app's Settings.
+ */
+export const DEVICE = process.env.NEXT_PUBLIC_DAYBOOK_DEVICE === '1';
 const MODE_KEY = 'daybook.mode';
 
 export function getMode(): Mode | null {
@@ -142,9 +149,17 @@ export async function downloadCopy(today: string) {
   }
 }
 
+/** One request answered on this device, the way app/api would answer it. */
+async function onThisDevice(method: string, path: string, body?: unknown) {
+  const r = await (await onDevice()).handle(method, path, body);
+  // The Mac app's copy before Start: the welcome screen, as a browser shows it.
+  if (DEVICE && !getMode() && path === '/api/session' && r.status === 200) return { ...r, data: { ...(r.data as Session), authorized: false } };
+  return r;
+}
+
 export async function api<T = unknown>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
-  if (getMode() === 'local') {
-    const r = await (await onDevice()).handle(init.method || 'GET', path, init.body);
+  if (DEVICE || getMode() === 'local') {
+    const r = await onThisDevice(init.method || 'GET', path, init.body);
     if (r.status >= 400) throw new ApiError((r.data as { error?: string }).error || 'error', r.status);
     return r.data as T;
   }
@@ -256,4 +271,11 @@ export function useResource<T>(path: string | null) {
 export function timeIn(iso: string | null | undefined, tz: string, locale: Locale) {
   if (!iso) return null;
   return new Intl.DateTimeFormat(locale === 'es' ? 'es-MX' : 'en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
+}
+
+// The Mac app's menu bar reads and writes the same days through this page
+// (DeviceEngine.swift): the same routes and JSON as app/api, status included.
+if (DEVICE && typeof window !== 'undefined') {
+  (window as Window & { daybookDevice?: unknown }).daybookDevice = (method: string, path: string, body?: unknown) =>
+    onThisDevice(method, path, body).then((r) => JSON.stringify(r));
 }

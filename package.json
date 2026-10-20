@@ -5,11 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:device": "DAYBOOK_DEVICE=1 next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm site:verify",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm build:device && pnpm site:verify",
     "mcp": "node cli/daybook.mjs mcp",
     "site:dev": "pnpm --filter daybook-site dev",
     "site:verify": "pnpm --filter daybook-site typecheck && pnpm --filter daybook-site build"

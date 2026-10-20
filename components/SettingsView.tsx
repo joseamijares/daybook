@@ -6,7 +6,7 @@ import type { AgentToken } from '@/lib/tokens';
 import { fill } from '@/lib/i18n';
 import { minutesLabel } from '@/lib/time';
 import { AppearanceSettings } from './AppearanceSettings';
-import { api, ApiError, downloadCopy, forgetCopies, setMode, timeIn, useResource, useSession } from './client';
+import { api, ApiError, DEVICE, downloadCopy, forgetCopies, setMode, timeIn, useResource, useSession } from './client';
 import { FrameDesign } from './FrameDesign';
 import { askMac, useDaybookMac } from './mac';
 import { Masthead } from './Masthead';
@@ -144,7 +144,7 @@ function DataSettings() {
         <span className="meta">{local ? t.dataOnDevice : session.storage === 'upstash' ? 'Upstash Redis' : t.storageFile}</span>
       </div>
       <p className="meta" style={{ margin: 0, fontSize: 15, lineHeight: '22px' }}>
-        {local ? t.dataLead : t.dataLeadCloud}
+        {DEVICE ? t.dataLeadMac : local ? t.dataLead : t.dataLeadCloud}
       </p>
       <div className="data-actions">
         <button type="button" className="pill solid" onClick={exportCopy}>
@@ -185,15 +185,28 @@ function DataSettings() {
           </span>
         </div>
       )}
-      <div className="switch-row">
-        <span>
-          <strong>{local ? t.switchCloud : t.switchDevice}</strong>
-          <span className="meta">{local ? t.switchCloudLead : t.switchDeviceLead}</span>
-        </span>
-        <button type="button" className="link-btn" onClick={leave}>
-          {t.switchBtn}
-        </button>
-      </div>
+      {DEVICE ? (
+        // In the Mac app: its own form connects a cloud Daybook and brings these days along.
+        <div className="switch-row">
+          <span>
+            <strong>{t.connectCloud}</strong>
+            <span className="meta">{t.switchCloudLeadMac}</span>
+          </span>
+          <button type="button" className="pill" onClick={() => askMac('connect')}>
+            {t.connectBtn}
+          </button>
+        </div>
+      ) : (
+        <div className="switch-row">
+          <span>
+            <strong>{local ? t.switchCloud : t.switchDevice}</strong>
+            <span className="meta">{local ? t.switchCloudLead : t.switchDeviceLead}</span>
+          </span>
+          <button type="button" className="link-btn" onClick={leave}>
+            {t.switchBtn}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

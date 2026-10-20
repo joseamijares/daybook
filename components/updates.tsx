@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import { fill, type Strings } from '@/lib/i18n';
-import { onComeBack } from './client';
+import { DEVICE, onComeBack } from './client';
 import { askMac, useDaybookMac } from './mac';
 
 const RUNNING = process.env.NEXT_PUBLIC_DAYBOOK_SHA || 'dev';
@@ -23,7 +23,7 @@ export function newerDeploy(running: string, live: unknown) {
 function useNewerDeploy() {
   const [newer, setNewer] = useState(false);
   useEffect(() => {
-    if (RUNNING === 'dev') return;
+    if (RUNNING === 'dev' || DEVICE) return; // the Mac app's copy updates with the app
     let alive = true;
     let last = 0;
     const check = () => {

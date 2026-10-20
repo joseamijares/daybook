@@ -266,16 +266,50 @@ final class StubServer: URLProtocol, @unchecked Sendable {
     try #require(rep.representation(using: .png, properties: [:])).write(to: URL(fileURLWithPath: dir).appending(path: "settings.png"))
 }
 
-/// Renders the welcome screen to $SNAPSHOT_DIR/onboarding.png.
+/// Renders the form that connects a cloud Daybook to $SNAPSHOT_DIR/connect.png.
 @MainActor
-@Test func rendersTheOnboardingSnapshot() throws {
+@Test func rendersTheConnectSnapshot() throws {
     guard let dir = ProcessInfo.processInfo.environment["SNAPSHOT_DIR"] else { return }
     let week = DBWeek(weekOf: "2026-10-12", focus: nil, today: "2026-10-12", days: [], backlog: [], events: nil)
     let session = DBSession(authorized: false, needsKey: true, locale: "en", today: "2026-10-12", tz: "UTC", capacity: 360, linear: false, frame: false, art: nil)
     let model = DaybookModel(preview: week, session: session, now: Date())
-    let renderer = ImageRenderer(content: OnboardingView(model: model).frame(width: 1280, height: 820))
+    let renderer = ImageRenderer(content: ConnectView(model: model).frame(width: 1280, height: 820))
     renderer.scale = 1
     let image = try #require(renderer.nsImage)
     let rep = try #require(image.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:)))
-    try #require(rep.representation(using: .png, properties: [:])).write(to: URL(fileURLWithPath: dir).appending(path: "onboarding.png"))
+    try #require(rep.representation(using: .png, properties: [:])).write(to: URL(fileURLWithPath: dir).appending(path: "connect.png"))
+}
+
+/// The app's own pages answer the way a static host would: the page for a
+/// path, the files a navigation asks for, 404.html, and nothing outside them.
+@Test func servesTheMacsOwnPages() throws {
+    let root = FileManager.default.temporaryDirectory.appending(path: "daybook-pages-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+    for file in ["index.html", "index.txt", "week.html", "week.txt", "week/__next.week.__PAGE__.txt", "404.html", "art/x.webp", "_next/static/a.js"] {
+        let url = root.appending(path: file)
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(file.utf8).write(to: url)
+    }
+    let name = { (path: String) in DeviceScheme.resolve(path, in: root).map { "\($0.file.path.replacingOccurrences(of: root.standardizedFileURL.path + "/", with: "")) \($0.status)" } }
+    #expect(name("/") == "index.html 200")
+    #expect(name("/week") == "week.html 200")
+    #expect(name("/week.txt") == "week.txt 200")
+    #expect(name("/week/__next.week.__PAGE__.txt") == "week/__next.week.__PAGE__.txt 200")
+    #expect(name("/art/x.webp") == "art/x.webp 200")
+    #expect(name("/nowhere") == "404.html 404")
+    #expect(name("/../secret") == nil)
+    #expect(DeviceScheme.mimeType(root.appending(path: "week.txt")) == "text/plain")
+    #expect(DeviceScheme.url("/week") == URL(string: "daybook://app/week"))
+}
+
+/// The menu bar reads and writes the days on this Mac through the app's own
+/// pages, loaded out of sight (only when this build has them: build-web.sh).
+@MainActor
+@Test func answersTheMenuBarFromThePagesOnThisMac() async throws {
+    guard DeviceScheme.isBuilt else { return }
+    let api = DaybookAPI(device: { [engine = DeviceEngine()] method, path, body in try await engine.send(method, path, body) })
+    let session = try await api.session()
+    #expect(session.today.count == 10)
+    let week = try await api.week()
+    #expect(week.days.count == 7)
 }

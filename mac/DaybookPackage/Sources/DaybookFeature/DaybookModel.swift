@@ -3,9 +3,16 @@ import Foundation
 import Observation
 @preconcurrency import UserNotifications
 
+/// Where a Mac's days live: on this Mac (the start, with nothing to set up) or
+/// in a cloud Daybook, connected from Settings for agents, Linear and the Frame.
+public enum Place: String, Sendable {
+    case mac, cloud
+}
+
 /// Everything the menu bar popover and the window show, and every action.
-/// Edits go straight to the server (it is the source of truth for the web
-/// app, the agents and the Frame), then the week is re-read.
+/// Edits go straight to where the days live (this Mac's pages, or the server,
+/// the source of truth for the web app, the agents and the Frame), then the
+/// week is re-read.
 @MainActor
 @Observable
 public final class DaybookModel {
@@ -21,12 +28,11 @@ public final class DaybookModel {
     var lastFrameSync: Date?
     var frameSettings: FrameSettings?
 
-    // Onboarding: what a typed-in address answers before we have a key.
-    var probe: DBSession?
-    var probeURL: String?
-    var probeError: String?
-
     // Settings
+    /// Where the days live. A new Mac starts on this Mac; a cloud Daybook is Settings → Connect.
+    public private(set) var place: Place { didSet { UserDefaults.standard.set(place.rawValue, forKey: "place") } }
+    /// The window shows the form that connects a cloud Daybook (ConnectView).
+    var connecting = false
     var baseURL: String { didSet { UserDefaults.standard.set(baseURL, forKey: "baseURL") } }
     var frameSyncOn: Bool { didSet { UserDefaults.standard.set(frameSyncOn, forKey: "frameSync") } }
     var reminderOn: Bool { didSet { UserDefaults.standard.set(reminderOn, forKey: "reminderOn"); scheduleReminder() } }
@@ -49,9 +55,14 @@ public final class DaybookModel {
         frameSyncOn = defaults.object(forKey: "frameSync") as? Bool ?? true
         reminderOn = defaults.object(forKey: "reminderOn") as? Bool ?? true
         reminderMinutes = defaults.object(forKey: "reminderMinutes") as? Int ?? 18 * 60
-        let saved = Keychain.read() != nil
+        // A Mac connected before there was a choice (Settings saved an address) stays
+        // in the cloud; a new one starts here, and never asks the Keychain.
+        let connected = defaults.string(forKey: "baseURL") != nil
+        let place = defaults.string(forKey: "place").flatMap(Place.init) ?? (connected ? .cloud : .mac)
+        self.place = place
+        let saved = place == .cloud && Keychain.read() != nil
         hasKey = saved
-        setUpBefore = saved || defaults.string(forKey: "baseURL") != nil
+        setUpBefore = saved || connected
         startLoops()
         scheduleReminder()
     }
@@ -65,6 +76,7 @@ public final class DaybookModel {
         reminderMinutes = 18 * 60
         hasKey = true
         setUpBefore = false
+        place = .cloud
         isPreview = true
         self.week = week
         self.session = session
@@ -82,16 +94,27 @@ public final class DaybookModel {
     }
 
     var api: DaybookAPI? {
+        if place == .mac {
+            let engine = engine
+            return DaybookAPI(device: { method, path, body in try await engine.send(method, path, body) })
+        }
         // Previews and tests never read the Keychain (it would ask for the app's key).
-        address.map { DaybookAPI(baseURL: $0, key: isPreview ? "" : Keychain.read() ?? "") }
+        return address.map { DaybookAPI(baseURL: $0, key: isPreview ? "" : Keychain.read() ?? "") }
     }
 
-    /// Configured once a server answered and let us in.
-    public var isConfigured: Bool { isPreview || session?.authorized == true }
+    /// Daybook on this Mac, for the menu bar (the window loads the same pages).
+    private let engine = DeviceEngine()
 
-    /// Set up before and the Daybook hasn't answered yet: not the time to ask for
-    /// an address and key (the window shows its launch scene).
-    var isChecking: Bool { Self.waiting(setUp: setUpBefore, address: address, answer: session) }
+    /// The window can show the Daybook: always on this Mac, and once a cloud
+    /// Daybook answered and let us in.
+    public var isConfigured: Bool { isPreview || place == .mac || session?.authorized == true }
+
+    /// Started: past the first screen on this Mac (Start), or signed in to the cloud.
+    var isStarted: Bool { session?.authorized == true }
+
+    /// A cloud Daybook set up before that hasn't answered yet: not the time to ask
+    /// for its address and key again (the window shows its launch scene).
+    var isChecking: Bool { place == .cloud && Self.waiting(setUp: setUpBefore, address: address, answer: session) }
 
     /// A try that failed (offline, a server slow to wake) isn't an answer: the app
     /// keeps waiting and trying. Only a session ends the wait, and one the key
@@ -137,6 +160,8 @@ public final class DaybookModel {
 
     func artURL() -> URL? {
         guard let art = session?.art else { return nil }
+        // On this Mac the paintings come with the app.
+        if place == .mac { return URL(string: art.image).flatMap { $0.scheme == nil ? nil : $0 } ?? DeviceScheme.file(art.image) }
         var base = baseURL.trimmingCharacters(in: .whitespaces)
         if !base.hasSuffix("/") { base += "/" }
         return URL(string: art.image, relativeTo: URL(string: base))?.absoluteURL
@@ -185,11 +210,14 @@ public final class DaybookModel {
 
     func refresh() async {
         guard let api else { error = "Add your Daybook URL in Settings."; return }
+        let asked = place
         do {
             let s = try await api.session()
+            guard place == asked else { return } // moved to or from the cloud meanwhile
             session = s
             guard s.authorized else {
-                error = s.needsKey ? "Add your DAYBOOK_KEY in Settings." : nil
+                // On this Mac: not started yet (the window's Start); in the cloud, the key.
+                error = s.needsKey && place == .cloud ? "Add your DAYBOOK_KEY in Settings." : nil
                 return
             }
             let read = try await api.week(containing: selectedDate)
@@ -208,6 +236,70 @@ public final class DaybookModel {
         baseURL = url
         if !key.isEmpty { Keychain.write(key) }
         hasKey = Keychain.read() != nil
+        await refresh()
+    }
+
+    /// Opens the window on the form that connects a cloud Daybook.
+    public func showConnect() {
+        connecting = true
+        open(windowPath)
+    }
+
+    /// What connecting a cloud Daybook did: nil when it went as planned, else
+    /// what to tell the person (it may be connected and still say something).
+    struct Connected {
+        var connected: Bool
+        var message: String?
+    }
+
+    /// Connects a cloud Daybook: checks the key opens it, brings the days on
+    /// this Mac along (merged by id, as Import does), then switches to it.
+    func connect(url: String, key: String, bringDays: Bool) async -> Connected {
+        let trimmed = url.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "/+$", with: "", options: .regularExpression)
+        guard let base = URL(string: trimmed), base.scheme?.hasPrefix("http") == true, base.host != nil else {
+            return .init(connected: false, message: "That doesn’t look like an address. It starts with https://")
+        }
+        let given = key.trimmingCharacters(in: .whitespaces)
+        let cloud = DaybookAPI(baseURL: base, key: given.isEmpty ? (Keychain.read() ?? "") : given)
+        let answer: DBSession
+        do {
+            answer = try await cloud.session()
+        } catch {
+            return .init(connected: false, message: "Couldn’t reach a Daybook there. Check the address.")
+        }
+        guard answer.authorized else {
+            return .init(connected: false, message: answer.cloud == false
+                ? "That Daybook keeps nothing in the cloud yet (it needs Upstash and a DAYBOOK_KEY)."
+                : "That key didn’t open this Daybook. Check it and try again.")
+        }
+        var message: String?
+        if bringDays, place == .mac {
+            do {
+                try await cloud.importBackup(try await engine.send("GET", "/api/export", nil).data)
+            } catch APIError.server(403, _) {
+                message = "Connected. Your days on this Mac stayed here: only the DAYBOOK_KEY can bring them in. Export them from Settings and import them there."
+            } catch {
+                message = "Connected, but your days on this Mac didn’t come along (\(error.localizedDescription)). Export them from Settings and import them there."
+            }
+        }
+        if !given.isEmpty { Keychain.write(given) }
+        hasKey = Keychain.read() != nil
+        baseURL = trimmed
+        session = nil
+        week = nil
+        place = .cloud
+        await refresh()
+        return .init(connected: true, message: message)
+    }
+
+    /// Back to the days on this Mac. The cloud Daybook stays as it is, and its
+    /// address and key stay saved for connecting again.
+    func useThisMac() async {
+        session = nil
+        week = nil
+        selectedDate = nil
+        place = .mac
+        connecting = false
         await refresh()
     }
 
@@ -343,33 +435,6 @@ public final class DaybookModel {
         }
     }
 
-    /// Ask a Daybook at `url` who it is, without a key (/api/session is public).
-    func probe(_ url: String) async {
-        let trimmed = url.trimmingCharacters(in: .whitespaces)
-        guard let base = URL(string: trimmed), base.scheme?.hasPrefix("http") == true, base.host != nil else {
-            probe = nil
-            probeError = nil
-            return
-        }
-        do {
-            let s = try await DaybookAPI(baseURL: base, key: "").session()
-            guard trimmed == url.trimmingCharacters(in: .whitespaces) else { return }
-            probe = s
-            probeURL = trimmed
-            probeError = nil
-        } catch {
-            probe = nil
-            probeError = "Couldn’t reach a Daybook there."
-        }
-    }
-
-    /// Today's painting from the Daybook being set up, if it answered.
-    func probeArtURL() -> URL? {
-        guard let art = probe?.art, var base = probeURL else { return nil }
-        if !base.hasSuffix("/") { base += "/" }
-        return URL(string: art.image, relativeTo: URL(string: base))?.absoluteURL
-    }
-
     // MARK: Shutdown reminder
 
     /// A daily notification at the chosen time: "Time to shut down".
@@ -403,9 +468,10 @@ public final class DaybookModel {
 
     /// The URL the window loads.
     public func webURL(_ path: String) -> URL? {
-        URL(string: baseURL.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "/+$", with: "", options: .regularExpression) + path)
+        if place == .mac { return DeviceScheme.url(path) }
+        return URL(string: baseURL.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "/+$", with: "", options: .regularExpression) + path)
     }
 
     /// The key, for signing the embedded web app in once.
-    public var key: String { Keychain.read() ?? "" }
+    public var key: String { place == .mac ? "" : Keychain.read() ?? "" }
 }
