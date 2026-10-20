@@ -37,7 +37,9 @@ public final class DaybookModel {
     var frameSyncOn: Bool { didSet { UserDefaults.standard.set(frameSyncOn, forKey: "frameSync") } }
     var reminderOn: Bool { didSet { UserDefaults.standard.set(reminderOn, forKey: "reminderOn"); scheduleReminder() } }
     var reminderMinutes: Int { didSet { UserDefaults.standard.set(reminderMinutes, forKey: "reminderMinutes"); scheduleReminder() } }
-    private(set) var hasKey: Bool
+    /// This Mac saved a cloud key. Remembered apart from the Keychain, so a Mac back on
+    /// its own days knows it can connect again with that key without asking the Keychain.
+    private(set) var hasKey: Bool { didSet { UserDefaults.standard.set(hasKey, forKey: "hasKey") } }
     /// Set up on an earlier launch: a key saved, or an address (a Daybook that needs no key).
     private let setUpBefore: Bool
 
@@ -60,8 +62,9 @@ public final class DaybookModel {
         let connected = defaults.string(forKey: "baseURL") != nil
         let place = defaults.string(forKey: "place").flatMap(Place.init) ?? (connected ? .cloud : .mac)
         self.place = place
-        let saved = place == .cloud && Keychain.read() != nil
+        let saved = place == .cloud ? Keychain.read() != nil : defaults.bool(forKey: "hasKey")
         hasKey = saved
+        if place == .cloud { defaults.set(saved, forKey: "hasKey") }
         setUpBefore = saved || connected
         startLoops()
         scheduleReminder()
