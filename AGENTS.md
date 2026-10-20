@@ -39,6 +39,13 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
   and run `swift test --package-path mac/DaybookPackage`. The window tells the page the app's version and updates
   (`window.daybookMac`, `components/mac.ts`), and only your Daybook's own page can ask it to check, or say
   it's `ready` (signed in and painted) so the window's launch scene (`LaunchScene.swift`) gives way to it.
+- `windows/` is the Windows app (Tauri 2, Rust): a WebView2 window on the same static pages as the Mac app, built
+  as `pnpm build:windows` (`DAYBOOK_DEVICE=windows`, into `.next-windows/`), served from `http://tauri.localhost`.
+  That origin holds the PC's days (localStorage), so never change it (`use_https_scheme(false)` in
+  `windows/src/main.rs`). `ON_PC` in `components/client.tsx` swaps "this Mac" copy for "this PC" and hides the
+  cloud connect row (no cloud Daybook on Windows yet). A tray icon (Open, Quit); closing the window hides it. No
+  menu-bar-style glance, no code signing, no auto-update yet. `.github/workflows/windows-release.yml` builds the
+  installers on `windows-latest` (a `windows-v*` tag publishes them); Rust isn't part of `pnpm verify`.
 - `components/updates.tsx` is the small "Update" mark by the Settings gear: a newer Mac app (from the window),
   or a newer deploy than the open page (its build commit, `NEXT_PUBLIC_DAYBOOK_SHA`, vs `/api/health`'s).
 - Motion lives in `app/globals.css` (section "Motion") and must respect `prefers-reduced-motion`.

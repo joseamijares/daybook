@@ -9,7 +9,7 @@ import type { FrameEvent } from '@/lib/frame';
 import { dayNum, dow, fill, fmtDate, focusPrompt, longDate, monthDay, weekdayName } from '@/lib/i18n';
 import { placeAt } from '@/lib/order';
 import { minutesLabel } from '@/lib/time';
-import { copyLater, copyTimes, DEVICE, downloadCopy, timeIn, useLook, useResource, useSession } from './client';
+import { copyLater, copyTimes, DEVICE, downloadCopy, ON_PC, timeIn, useLook, useResource, useSession } from './client';
 import { capitalize, Schedule, Workload } from './day';
 import { DraftText } from './DraftText';
 import { useGlide } from './glide';
@@ -176,13 +176,17 @@ export function TodayView() {
             {copy
               ? copy.due
                 ? copy.days === null
-                  ? DEVICE
-                    ? t.copyNoneMac
-                    : t.copyNone
-                  : fill(DEVICE ? t.copyAgoMac : t.copyAgo, { days: copy.days })
-                : DEVICE
-                  ? t.dataOnMac
-                  : t.dataOnDevice
+                  ? ON_PC
+                    ? t.copyNonePC
+                    : DEVICE
+                      ? t.copyNoneMac
+                      : t.copyNone
+                  : fill(ON_PC ? t.copyAgoPC : DEVICE ? t.copyAgoMac : t.copyAgo, { days: copy.days })
+                : ON_PC
+                  ? t.dataOnPC
+                  : DEVICE
+                    ? t.dataOnMac
+                    : t.dataOnDevice
               : [frameAt && `${t.frameUpdated} ${frameAt}`, linearAt && `${t.linearSynced} ${linearAt}`].filter(Boolean).join(' · ') || t.agentsHint}
           </span>
           <span style={{ display: 'flex', gap: 14 }}>

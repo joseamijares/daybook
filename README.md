@@ -84,6 +84,9 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
   cloud Daybook (then Frame sync every two minutes too). It opens on a
   wall of paintings and updates itself. Signed and notarized: [download Daybook.dmg](https://github.com/joseamijares/daybook/releases/latest/download/Daybook.dmg)
   (macOS 14+, Apple silicon and Intel). See [mac/README.md](mac/README.md).
+- **Windows app (preview).** The full Daybook in a window, your days kept on
+  the PC, and a tray icon. Not code-signed yet, no cloud Daybook or menu-bar
+  glance yet. See [windows/README.md](windows/README.md).
 
 | Plan the day (Timetable, Modern) | Week (Notebook) |
 | --- | --- |
@@ -232,6 +235,7 @@ pnpm verify     # lint, typecheck, tests, production build
 | `lib/backup.ts` | Export and import a whole Daybook as one JSON file |
 | `cli/daybook.mjs` | The CLI and stdio relay (no dependencies) |
 | `mac/` | Daybook for Mac (SwiftUI): window + menu bar |
+| `windows/` | Daybook for Windows (Tauri): window + tray, a preview |
 | `site/` | The landing page, its own Next.js app and Vercel project |
 
 The design was drawn in Paper (the maintainer's file, not public); you don't

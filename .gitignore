@@ -18,6 +18,8 @@
 /out/
 # the Mac app's copy of the pages (mac/scripts/build-web.sh)
 /.next-device/
+# the Windows app's copy (pnpm build:windows)
+/.next-windows/
 /mac/DaybookPackage/Sources/DaybookFeature/Web/*
 !/mac/DaybookPackage/Sources/DaybookFeature/Web/README.md
 

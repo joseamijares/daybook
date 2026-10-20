@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:device": "DAYBOOK_DEVICE=1 next build",
+    "build:windows": "DAYBOOK_DEVICE=windows next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",

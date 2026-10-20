@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The window gets nothing from the app: every request is answered in the page (lib/localApi.ts).",
+  "windows": ["main"],
+  "permissions": []
+}

@@ -6,7 +6,7 @@ import type { AgentToken } from '@/lib/tokens';
 import { fill } from '@/lib/i18n';
 import { minutesLabel } from '@/lib/time';
 import { AppearanceSettings } from './AppearanceSettings';
-import { api, ApiError, DEVICE, downloadCopy, forgetCopies, setMode, timeIn, useResource, useSession } from './client';
+import { api, ApiError, DEVICE, downloadCopy, forgetCopies, ON_PC, setMode, timeIn, useResource, useSession } from './client';
 import { FrameDesign } from './FrameDesign';
 import { askMac, useDaybookMac } from './mac';
 import { Masthead } from './Masthead';
@@ -141,10 +141,10 @@ function DataSettings() {
     <div className="settings-block" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div className="section-head">
         <span className="label">{t.dataHead}</span>
-        <span className="meta">{local ? (DEVICE ? t.dataOnMac : t.dataOnDevice) : session.storage === 'upstash' ? 'Upstash Redis' : t.storageFile}</span>
+        <span className="meta">{local ? (ON_PC ? t.dataOnPC : DEVICE ? t.dataOnMac : t.dataOnDevice) : session.storage === 'upstash' ? 'Upstash Redis' : t.storageFile}</span>
       </div>
       <p className="meta" style={{ margin: 0, fontSize: 15, lineHeight: '22px' }}>
-        {DEVICE ? t.dataLeadMac : local ? t.dataLead : t.dataLeadCloud}
+        {ON_PC ? t.dataLeadPC : DEVICE ? t.dataLeadMac : local ? t.dataLead : t.dataLeadCloud}
       </p>
       <div className="data-actions">
         <button type="button" className="pill solid" onClick={exportCopy}>
@@ -180,8 +180,9 @@ function DataSettings() {
           </span>
         </div>
       )}
-      {DEVICE ? (
+      {ON_PC ? null : DEVICE ? (
         // In the Mac app: its own form connects a cloud Daybook and brings these days along.
+        // The Windows app has no such form yet: its days stay on that PC.
         <div className="switch-row">
           <span>
             <strong>{t.connectCloud}</strong>

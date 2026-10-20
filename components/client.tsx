@@ -51,7 +51,9 @@ export type Mode = 'local' | 'cloud';
  * server behind it, so every request is answered on this device, and the
  * welcome screen only asks to start. A cloud Daybook is the Mac app's Settings.
  */
-export const DEVICE = process.env.NEXT_PUBLIC_DAYBOOK_DEVICE === '1';
+export const DEVICE = Boolean(process.env.NEXT_PUBLIC_DAYBOOK_DEVICE);
+/** The Windows app's copy (windows/): "this PC" where the Mac's says "this Mac", and no cloud Daybook yet. */
+export const ON_PC = process.env.NEXT_PUBLIC_DAYBOOK_DEVICE === 'windows';
 const MODE_KEY = 'daybook.mode';
 
 export function getMode(): Mode | null {
