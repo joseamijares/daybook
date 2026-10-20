@@ -56,7 +56,7 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
   from the backlog or any day and put it on a line of another day, or back in
   the backlog: it lifts and follows the pointer, and the rows part where it
   will land. Each day turns amber when it's over capacity.
-- **Shut down.** The same painting at dusk. You see what got done, choose
+- **Wrap up (shutdown).** The same painting at dusk. You see what got done, choose
   where unfinished work goes (tomorrow, the backlog, or stay), and write one
   line for the journal.
 - **Agents first.** A built-in MCP server works with Claude, Cursor, Codex,
@@ -89,7 +89,7 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
 | --- | --- |
 | ![Planning in the whole window: meetings, the day, and the backlog](docs/img/plan.jpg) | ![Week: the days on one card, written like a notebook](docs/img/week.jpg) |
 
-| Shut down (Timetable) |
+| Wrap up (Timetable) |
 | --- |
 | ![Shut down: the day's painting at dusk, a recap, and where each open task goes](docs/img/shutdown.jpg) |
 

@@ -45,7 +45,7 @@ struct SettingsView: View {
             }
 
             SettingsSection(title: "Rituals") {
-                SettingRow(title: "Shut down reminder", caption: "A nudge to review the day and write one line.") {
+                SettingRow(title: "Wrap-up reminder", caption: "A nudge to review the day and write one line.") {
                     SalonToggle(isOn: $model.reminderOn)
                 }
                 if model.reminderOn {

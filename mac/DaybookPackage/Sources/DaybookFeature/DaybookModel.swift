@@ -99,7 +99,7 @@ public final class DaybookModel {
             return DaybookAPI(device: { method, path, body in try await engine.send(method, path, body) })
         }
         // Previews and tests never read the Keychain (it would ask for the app's key).
-        return address.map { DaybookAPI(baseURL: $0, key: isPreview ? "" : Keychain.read() ?? "") }
+        return address.map { DaybookAPI(baseURL: $0, key: isPreview || !hasKey ? "" : Keychain.read() ?? "") }
     }
 
     /// Daybook on this Mac, for the menu bar (the window loads the same pages).
@@ -260,7 +260,8 @@ public final class DaybookModel {
             return .init(connected: false, message: "That doesn’t look like an address. It starts with https://")
         }
         let given = key.trimmingCharacters(in: .whitespaces)
-        let cloud = DaybookAPI(baseURL: base, key: given.isEmpty ? (Keychain.read() ?? "") : given)
+        // The saved key only when this Mac saved one (Settings); a Mac on its own days never asks the Keychain.
+        let cloud = DaybookAPI(baseURL: base, key: given.isEmpty ? (hasKey ? Keychain.read() ?? "" : "") : given)
         let answer: DBSession
         do {
             answer = try await cloud.session()
@@ -282,8 +283,10 @@ public final class DaybookModel {
                 message = "Connected, but your days on this Mac didn’t come along (\(error.localizedDescription)). Export them from Settings and import them there."
             }
         }
-        if !given.isEmpty { Keychain.write(given) }
-        hasKey = Keychain.read() != nil
+        if !given.isEmpty {
+            Keychain.write(given)
+            hasKey = true
+        }
         baseURL = trimmed
         // The answer that let us in, so the window goes straight to the cloud pages
         // (never the key screen while the first refresh is on its way).
@@ -439,7 +442,7 @@ public final class DaybookModel {
 
     // MARK: Shutdown reminder
 
-    /// A daily notification at the chosen time: "Time to shut down".
+    /// A daily notification at the chosen time: "Time to wrap up".
     func scheduleReminder() {
         guard !isPreview else { return }
         let center = UNUserNotificationCenter.current()
@@ -449,7 +452,7 @@ public final class DaybookModel {
         center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
             guard granted else { return }
             let content = UNMutableNotificationContent()
-            content.title = "Time to shut down"
+            content.title = "Time to wrap up"
             content.body = "Review the day, decide what moves on, write one line."
             content.sound = .default
             content.userInfo = ["path": "/shutdown"]
@@ -475,5 +478,5 @@ public final class DaybookModel {
     }
 
     /// The key, for signing the embedded web app in once.
-    public var key: String { place == .mac ? "" : Keychain.read() ?? "" }
+    public var key: String { place == .mac || !hasKey ? "" : Keychain.read() ?? "" }
 }

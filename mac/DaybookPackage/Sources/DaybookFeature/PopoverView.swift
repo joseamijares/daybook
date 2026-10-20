@@ -169,12 +169,15 @@ struct Hero: View {
                 HStack(alignment: .top) {
                     Text("Daybook").font(Salon.display(20)).foregroundStyle(Salon.bone)
                     Spacer()
-                    Button { model.open("/shutdown") } label: {
-                        Text("Shut down").font(Salon.text(11.5, .medium)).foregroundStyle(Salon.bone)
-                            .padding(.horizontal, 10).padding(.vertical, 5)
-                            .background(Capsule().fill(.black.opacity(0.35)))
+                    // Nothing to wrap up before the day has started.
+                    if model.isStarted {
+                        Button { model.open("/shutdown") } label: {
+                            Text(model.locale == "es" ? "Cerrar el día" : "Wrap up").font(Salon.text(11.5, .medium)).foregroundStyle(Salon.bone)
+                                .padding(.horizontal, 10).padding(.vertical, 5)
+                                .background(Capsule().fill(.black.opacity(0.35)))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
                 Spacer()
                 Text(model.isShowingToday ? (model.locale == "es" ? "Hoy" : "Today") : Dates.format(model.shownDate, "EEEE", locale: model.locale))
@@ -526,7 +529,9 @@ struct WeekStrip: View {
                                             .matchedGeometryEffect(id: "selected", in: selection)
                                     }
                                 }
-                            Text(day.planned > 0 ? minutesLabel(day.planned).replacingOccurrences(of: " ", with: "") : "–")
+                            // Its planned time; tasks with no time still count, so the day doesn't look empty.
+                            Text(day.planned > 0 ? minutesLabel(day.planned).replacingOccurrences(of: " ", with: "")
+                                : day.tasks.isEmpty ? "–" : model.locale == "es" ? "\(day.tasks.count) tarea\(day.tasks.count == 1 ? "" : "s")" : "\(day.tasks.count) task\(day.tasks.count == 1 ? "" : "s")")
                                 .font(Salon.text(10))
                                 .foregroundStyle(day.over > 0 ? Salon.amber : (day.isToday ? Salon.cobalt : Salon.ink2))
                         }

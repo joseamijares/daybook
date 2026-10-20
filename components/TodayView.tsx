@@ -6,7 +6,7 @@ import { useMemo, useReducer, useState } from 'react';
 import { copyReminder } from '@/lib/copyReminder';
 import type { WeekView } from '@/lib/daybook';
 import type { FrameEvent } from '@/lib/frame';
-import { dayNum, dow, fill, fmtDate, longDate, monthDay, weekdayName } from '@/lib/i18n';
+import { dayNum, dow, fill, fmtDate, focusPrompt, longDate, monthDay, weekdayName } from '@/lib/i18n';
 import { placeAt } from '@/lib/order';
 import { minutesLabel } from '@/lib/time';
 import { copyLater, copyTimes, DEVICE, downloadCopy, timeIn, useLook, useResource, useSession } from './client';
@@ -95,9 +95,12 @@ export function TodayView() {
         title={style === 'notebook' ? capitalize(longDate(date, session.locale)) : weekday}
         sub={style === 'notebook' ? undefined : style === 'timetable' ? capitalize(fmtDate(date, session.locale, { month: 'long', year: 'numeric' })) : capitalize(monthDay(date, session.locale))}
         actions={
-          <Link className={`pill${style === 'notebook' ? '' : ' solid'}`} href={planHref}>
-            {t.planTheDay}
-          </Link>
+          // An empty day asks with its own Start planning: one button, not two.
+          tasks.length > 0 && (
+            <Link className={`pill${style === 'notebook' ? '' : ' solid'}`} href={planHref}>
+              {t.planTheDay}
+            </Link>
+          )
         }
       />
 
@@ -106,7 +109,7 @@ export function TodayView() {
         <DraftText
           key={`${date}:${day.focus || ''}`}
           value={day.focus || ''}
-          placeholder={t.focusPlaceholder}
+          placeholder={focusPrompt(t, date, session.today, session.locale)}
           label={t.dayFocusPlaceholder}
           onCommit={(next) => ops.setFocus(date, next)}
         />
@@ -120,7 +123,7 @@ export function TodayView() {
           {!tasks.length && (
             <div className="empty-plan">
               <h2>{t.nothingPlanned}</h2>
-              <p>{week.backlog.length ? t.nothingPlannedLead : t.emptyDay}</p>
+              <p>{week.backlog.length ? t.nothingPlannedLead : t.nothingPlannedAdd}</p>
               <Link className="pill solid" href={planHref}>
                 {t.startPlanning}
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
@@ -160,7 +163,10 @@ export function TodayView() {
             >
               <span className="dow">{capitalize(dow(d.date, session.locale))}</span>
               <span className="num">{dayNum(d.date)}</span>
-              <span className={`hrs${d.over ? ' over' : ''}`}>{d.planned ? minutesLabel(d.planned) : '–'}</span>
+              {/* Its planned time; tasks with no time still count, so the day doesn't look empty. */}
+              <span className={`hrs${d.over ? ' over' : ''}`}>
+                {d.planned ? minutesLabel(d.planned) : d.tasks.length ? (d.tasks.length === 1 ? t.oneTask : fill(t.tasksN, { n: d.tasks.length })) : '–'}
+              </span>
             </button>
           ))}
         </div>

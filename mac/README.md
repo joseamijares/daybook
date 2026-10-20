@@ -14,7 +14,7 @@ signed with Developer ID and notarized, macOS 14 or later.
   token can't import), and switches to it. It's what the phone, AI agents,
   Linear and a Frame TV need. Settings → Use this Mac only switches back. A
   Mac set up with a cloud Daybook before 0.2 stays connected.
-- **Window:** the web app itself (Today, Week, Backlog, Shut down), with the
+- **Window:** the web app itself (Today, Week, Backlog, Wrap up), with the
   painting of the day. Use ⌘1–⌘4 for the four screens. Connected to a cloud
   Daybook, the page signs itself in once with your saved key.
 - **Menu bar:** today's painting with the day set over it, then:
@@ -36,7 +36,7 @@ signed with Developer ID and notarized, macOS 14 or later.
 - **Frame design:** switch the TV between Day and night, Salon and Painting
   in Settings.
 - **Shutdown reminder:** a daily notification (6 pm by default). It opens the
-  Shut down screen.
+  Wrap up screen.
 - **Updates:** once a day the app checks for a new version and offers it
   with its notes; Install Update installs it and reopens Daybook. Daybook →
   Check for Updates… (or Settings → Updates → Check now) checks right away,
