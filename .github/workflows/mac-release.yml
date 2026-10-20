@@ -149,7 +149,7 @@ jobs:
 
       # package-dmg.sh builds the app's own copy of the pages (mac/scripts/build-web.sh).
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
