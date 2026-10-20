@@ -12,10 +12,26 @@ enum APIError: LocalizedError {
     }
 }
 
-/// Talks to a Daybook server with DAYBOOK_KEY as a bearer token.
+/// Asks Daybook on this Mac (DeviceEngine): a method, a path with its query, a JSON body.
+typealias DeviceSend = @Sendable (_ method: String, _ path: String, _ body: Data?) async throws -> (status: Int, data: Data)
+
+/// Talks to a Daybook server with DAYBOOK_KEY as a bearer token, or to Daybook
+/// on this Mac, which answers the same routes the same way.
 struct DaybookAPI: Sendable {
     let baseURL: URL
     let key: String
+    var device: DeviceSend?
+
+    init(baseURL: URL, key: String) {
+        self.baseURL = baseURL
+        self.key = key
+    }
+
+    init(device: @escaping DeviceSend) {
+        baseURL = DeviceScheme.home
+        key = ""
+        self.device = device
+    }
 
     static let decoder: JSONDecoder = {
         let d = JSONDecoder()
@@ -30,15 +46,23 @@ struct DaybookAPI: Sendable {
     private func request(_ path: String, query: [URLQueryItem] = [], method: String = "GET", body: [String: Any]? = nil) async throws -> Data {
         var comps = URLComponents(url: baseURL.appending(path: path), resolvingAgainstBaseURL: false)!
         if !query.isEmpty { comps.queryItems = query }
-        var req = URLRequest(url: comps.url!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
-        req.httpMethod = method
-        if !key.isEmpty { req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization") }
-        if let body {
-            req.httpBody = try JSONSerialization.data(withJSONObject: body)
-            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let json = try body.map { try JSONSerialization.data(withJSONObject: $0) }
+        let data: Data
+        let code: Int
+        if let device {
+            (code, data) = try await device(method, "/" + path + (comps.percentEncodedQuery.map { "?" + $0 } ?? ""), json)
+        } else {
+            var req = URLRequest(url: comps.url!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+            req.httpMethod = method
+            if !key.isEmpty { req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization") }
+            if let json {
+                req.httpBody = json
+                req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            }
+            let (read, response) = try await URLSession.shared.data(for: req)
+            data = read
+            code = (response as? HTTPURLResponse)?.statusCode ?? 0
         }
-        let (data, response) = try await URLSession.shared.data(for: req)
-        let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         if code == 401 { throw APIError.unauthorized }
         guard (200 ..< 300).contains(code) else {
             let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String ?? "no details"
@@ -85,6 +109,17 @@ struct DaybookAPI: Sendable {
 
     func setFrameDesign(_ layout: String) async throws -> FrameSettings {
         try Self.decoder.decode(FrameSettings.self, from: try await request("api/frame/settings", method: "PUT", body: ["layout": layout]))
+    }
+
+    /// Every task, day and week, as one Daybook export (lib/backup.ts).
+    func export() async throws -> Data {
+        try await request("api/export")
+    }
+
+    /// Brings an export in, merged by id (owner only: the DAYBOOK_KEY, not a token).
+    func importBackup(_ backup: Data) async throws {
+        let parsed = try JSONSerialization.jsonObject(with: backup)
+        _ = try await request("api/import", method: "POST", body: ["backup": parsed])
     }
 
     func syncFrame() async throws -> FrameSyncResult {

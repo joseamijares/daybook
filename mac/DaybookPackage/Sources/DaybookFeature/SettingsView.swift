@@ -1,8 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// Where your Daybook lives, its key, the shutdown reminder, the Frame (two-way
-/// sync and the TV's design) and updates. Every control is drawn in the salon
+/// Where your days live (this Mac, or a cloud Daybook and its key), the
+/// shutdown reminder, the Frame (two-way sync and the TV's design) and updates. Every control is drawn in the salon
 /// style, so nothing inherits the menu bar's dark appearance.
 struct SettingsView: View {
     @Bindable var model: DaybookModel
@@ -15,21 +15,32 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 22) {
             header
 
-            SettingsSection(title: "Connection") {
-                LineField(title: "Daybook URL", text: $url, prompt: "https://your-daybook.vercel.app",
-                          hint: "Your deployment, or http://localhost:3000 while developing.")
-                LineField(title: "Key", text: $key, prompt: model.hasKey ? "Saved in your Keychain" : "DAYBOOK_KEY or a dbk_ token",
-                          hint: needsKey
-                              ? "Required, see below."
-                              : model.hasKey ? "Leave empty to keep the saved key." : "Your DAYBOOK_KEY, or a token made for this Mac.",
-                          secure: true,
-                          highlight: needsKey)
-                if needsKey || !model.hasKey { KeyHelp() }
-            }
+            if model.place == .mac {
+                SettingsSection(title: "Your days") {
+                    SettingRow(title: "Kept on this Mac", caption: "A cloud Daybook is only needed for the same days on your phone, your AI agents, Linear or a Frame TV.") {
+                        Button("Connect…") { model.showConnect(); done() }.buttonStyle(PillStyle())
+                    }
+                }
+            } else {
+                SettingsSection(title: "Cloud Daybook") {
+                    LineField(title: "Daybook URL", text: $url, prompt: "https://your-daybook.vercel.app",
+                              hint: "Your deployment, or http://localhost:3000 while developing.")
+                    LineField(title: "Key", text: $key, prompt: model.hasKey ? "Saved in your Keychain" : "DAYBOOK_KEY or a dbk_ token",
+                              hint: needsKey
+                                  ? "Required, see below."
+                                  : model.hasKey ? "Leave empty to keep the saved key." : "Your DAYBOOK_KEY, or a token made for this Mac.",
+                              secure: true,
+                              highlight: needsKey)
+                    if needsKey || !model.hasKey { KeyHelp() }
+                    SettingRow(title: "Use this Mac only", caption: "Back to the days kept on this Mac. The cloud Daybook stays as it is.") {
+                        Button("Switch") { Task { await model.useThisMac(); done() } }.buttonStyle(PillStyle())
+                    }
+                }
 
-            SettingsSection(title: "Linear and AI agents") {
-                SettingRow(title: "Connections", caption: "Connect Linear, the Frame, and Claude, ChatGPT, Cursor, Grok and others.") {
-                    Button("Open") { model.open("/settings") }.buttonStyle(PillStyle())
+                SettingsSection(title: "Linear and AI agents") {
+                    SettingRow(title: "Connections", caption: "Connect Linear, the Frame, and Claude, ChatGPT, Cursor, Grok and others.") {
+                        Button("Open") { model.open("/settings") }.buttonStyle(PillStyle())
+                    }
                 }
             }
 
@@ -44,15 +55,21 @@ struct SettingsView: View {
             }
 
             SettingsSection(title: "Frame") {
-                SettingRow(
-                    title: "Two-way sync",
-                    caption: model.session?.frame == true
-                        ? "Every 2 minutes. Ticks made on Frame Desk or the TV come back here."
-                        : "Connect Frame Dashboard on your Daybook server first."
-                ) {
-                    SalonToggle(isOn: $model.frameSyncOn)
+                if model.place == .mac {
+                    SettingRow(title: "Your plan on a Frame TV", caption: "The Frame reads a cloud Daybook: connect one above, then Frame Dashboard on it.") {
+                        EmptyView()
+                    }
+                } else {
+                    SettingRow(
+                        title: "Two-way sync",
+                        caption: model.session?.frame == true
+                            ? "Every 2 minutes. Ticks made on Frame Desk or the TV come back here."
+                            : "Connect Frame Dashboard on your Daybook server first."
+                    ) {
+                        SalonToggle(isOn: $model.frameSyncOn)
+                    }
+                    DesignPicker(model: model)
                 }
-                DesignPicker(model: model)
             }
 
             if let updates = model.updates { UpdatesSection(updates: updates) }
@@ -63,19 +80,12 @@ struct SettingsView: View {
 
             HStack(spacing: 8) {
                 Spacer()
-                if model.isConfigured { Button("Cancel") { done() }.buttonStyle(PillStyle()) }
-                Button(saving ? "Connecting…" : "Save") {
-                    saving = true
-                    Task {
-                        await model.saveSettings(url: url, key: key)
-                        saving = false
-                        key = ""
-                        if model.isConfigured { done() }
-                    }
+                if model.place == .mac {
+                    Button("Done") { done() }.buttonStyle(PillStyle(solid: true)).keyboardShortcut(.defaultAction)
+                } else {
+                    if model.isConfigured { Button("Cancel") { done() }.buttonStyle(PillStyle()) }
+                    save
                 }
-                .buttonStyle(PillStyle(solid: true))
-                .disabled(saving || url.isEmpty)
-                .keyboardShortcut(.defaultAction)
             }
         }
         .animation(.smooth(duration: 0.35), value: model.reminderOn)
@@ -88,13 +98,28 @@ struct SettingsView: View {
         .onAppear { url = model.baseURL }
     }
 
+    private var save: some View {
+                Button(saving ? "Connecting…" : "Save") {
+                    saving = true
+                    Task {
+                        await model.saveSettings(url: url, key: key)
+                        saving = false
+                        key = ""
+                        if model.isConfigured { done() }
+                    }
+                }
+                .buttonStyle(PillStyle(solid: true))
+                .disabled(saving || url.isEmpty)
+                .keyboardShortcut(.defaultAction)
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("SETTINGS").font(Salon.label()).tracking(1.4).foregroundStyle(Salon.cobalt)
             Text("Your Daybook").font(Salon.display(40)).foregroundStyle(Salon.ink)
             HStack(spacing: 6) {
                 Circle().fill(model.isConfigured ? Salon.cobalt : Salon.amber).frame(width: 6, height: 6)
-                Text(model.isConfigured ? "Connected to \(host)" : needsKey ? "Reached \(host) · it needs your key" : "Not connected yet")
+                Text(model.place == .mac ? "On this Mac" : model.isConfigured ? "Connected to \(host)" : needsKey ? "Reached \(host) · it needs your key" : "Not connected yet")
                     .font(Salon.text(12)).foregroundStyle(needsKey ? Salon.amber : Salon.ink2)
             }
         }

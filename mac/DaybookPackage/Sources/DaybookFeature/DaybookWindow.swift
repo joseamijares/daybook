@@ -1,14 +1,16 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import WebKit
 
 /// The full Daybook (Today, Week, Backlog, Shut down) in a window: the web
-/// app itself, so it always matches the server. The page's own key form signs
-/// the window in once; WebKit keeps the session cookie after that. The page
+/// app itself. On this Mac it's the app's own copy of the pages (DeviceScheme),
+/// with nothing to set up; connected to a cloud Daybook, it's that server's
+/// pages, signed in once with the saved key (WebKit keeps the cookie). The page
 /// also learns the app's version and updates, for its Settings screen.
 public struct DaybookWindow: View {
     @Bindable var model: DaybookModel
-    /// The launch scene plays over the window once per launch while the app reaches
-    /// its Daybook and the page signs in; a Mac not set up yet goes straight to setup.
+    /// The launch scene plays over the window once per launch while the page loads
+    /// (and, in the cloud, signs in).
     @State private var scene: Bool
     /// The page has signed in and painted (components/mac.ts "ready"), or gave up.
     @State private var pageReady = false
@@ -22,7 +24,9 @@ public struct DaybookWindow: View {
         ZStack {
             Salon.wall.ignoresSafeArea()
             if model.isConfigured, let url = model.webURL(model.windowPath) {
-                WebView(url: url, key: model.key, mac: macState, check: { model.updates?.check() }, ready: { pageReady = true })
+                WebView(url: url, key: model.key, mac: macState, check: { model.updates?.check() },
+                        connect: { model.showConnect() }, ready: { pageReady = true })
+                    .id(model.place) // a fresh page when the days move to or from the cloud
                     .ignoresSafeArea() // the painting runs under the title bar
                     .transition(.opacity)
             } else if model.isChecking {
@@ -31,9 +35,14 @@ public struct DaybookWindow: View {
                 LaunchScene(ready: false, hung: true) {}
                     .transition(.opacity)
             } else {
-                // Not set up yet, or the saved key no longer opens it: the welcome screen.
-                OnboardingView(model: model)
+                // Connected to a cloud Daybook whose saved key no longer opens it.
+                ConnectView(model: model, rejected: true)
                     .transition(.opacity)
+            }
+        }
+        .overlay {
+            if model.connecting && model.isConfigured {
+                ConnectView(model: model).transition(.opacity)
             }
         }
         .overlay {
@@ -78,13 +87,13 @@ struct WebView: NSViewRepresentable {
     let key: String
     var mac: MacState?
     var check: () -> Void = {}
+    var connect: () -> Void = {}
     var ready: () -> Void = {}
 
     func makeCoordinator() -> Coordinator { Coordinator(key: key) }
 
     func makeNSView(context: Context) -> WKWebView {
-        let config = WKWebViewConfiguration()
-        config.websiteDataStore = .default()
+        let config = DeviceScheme.configuration()
         config.userContentController.add(context.coordinator, name: "daybookMac")
         let view = WKWebView(frame: .zero, configuration: config)
         view.navigationDelegate = context.coordinator
@@ -93,6 +102,7 @@ struct WebView: NSViewRepresentable {
         view.allowsBackForwardNavigationGestures = true
         view.alphaValue = 0 // fades up once the first page has painted
         context.coordinator.check = check
+        context.coordinator.connect = connect
         context.coordinator.ready = ready
         context.coordinator.tell(view, mac: mac, home: url)
         view.load(URLRequest(url: url))
@@ -109,6 +119,7 @@ struct WebView: NSViewRepresentable {
     func updateNSView(_ view: WKWebView, context: Context) {
         context.coordinator.key = key
         context.coordinator.check = check
+        context.coordinator.connect = connect
         context.coordinator.ready = ready
         context.coordinator.tell(view, mac: mac, home: url)
         guard context.coordinator.loaded != url else { return }
@@ -128,10 +139,11 @@ struct WebView: NSViewRepresentable {
     }
 
     @MainActor
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler, WKDownloadDelegate {
         var key: String
         var loaded: URL?
         var check: () -> Void = {}
+        var connect: () -> Void = {}
         var ready: () -> Void = {}
         /// The page in view said it's ready ("ready" from components/mac.ts) before the window showed it.
         private var saidReady = false
@@ -217,14 +229,14 @@ struct WebView: NSViewRepresentable {
         }
 
         /// The page's Update and Check now, "ready" once it has signed in and
-        /// painted, and "haptic" as a dragged task lifts, finds a new place and
-        /// lands (components/mac.ts). Only the Daybook's own page in the main
-        /// frame can ask, and only for the update window, the launch scene or a
-        /// tick on the trackpad.
+        /// painted, "connect" from its Settings, and "haptic" as a dragged task
+        /// lifts, finds a new place and lands (components/mac.ts). Only the
+        /// Daybook's own page in the main frame can ask, and only for the update
+        /// window, the launch scene, the cloud form or a tick on the trackpad.
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             guard message.name == "daybookMac", message.frameInfo.isMainFrame, let home = loaded,
                   let body = message.body as? [String: Any], let action = body["action"] as? String,
-                  ["check", "install", "ready", "haptic"].contains(action) else { return }
+                  ["check", "install", "ready", "connect", "haptic"].contains(action) else { return }
             let from = message.frameInfo.securityOrigin
             let fromPort = from.port == 0 ? Self.defaultPort(from.protocol) : from.port
             guard from.protocol == home.scheme, from.host.lowercased() == home.host?.lowercased(), fromPort == Self.port(home) else { return }
@@ -234,6 +246,8 @@ struct WebView: NSViewRepresentable {
             case "ready":
                 // A page the window hasn't shown yet (the one before the sign-in) can't end the scene.
                 if shown { ready() } else { saidReady = true }
+            case "connect":
+                connect()
             default:
                 check()
             }
@@ -345,14 +359,43 @@ struct WebView: NSViewRepresentable {
             alert.beginSheetModal(for: window) { _ in completionHandler() }
         }
 
-        // Links that leave Daybook (Linear issues, painting sources) open in the browser.
+        // Links that leave Daybook (Linear issues, painting sources) open in the
+        // browser; a copy the page saves (Keep a copy, Export) is a download.
         func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
+            if action.shouldPerformDownload {
+                decisionHandler(.download)
+                return
+            }
             if let target = action.request.url, let host = target.host, host != loaded?.host, action.navigationType == .linkActivated {
                 NSWorkspace.shared.open(target)
                 decisionHandler(.cancel)
                 return
             }
             decisionHandler(.allow)
+        }
+
+        func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
+            download.delegate = self
+        }
+
+        /// Where a copy goes: the person picks, starting in Downloads with the page's name for it.
+        func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String, completionHandler: @escaping @MainActor (URL?) -> Void) {
+            let panel = NSSavePanel()
+            panel.nameFieldStringValue = suggestedFilename
+            panel.directoryURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
+            panel.canCreateDirectories = true
+            guard let window = webView?.window else { return completionHandler(panel.runModal() == .OK ? panel.url : nil) }
+            panel.beginSheetModal(for: window) { completionHandler($0 == .OK ? panel.url : nil) }
+        }
+
+        /// Import: the page's file picker as an open panel.
+        func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor ([URL]?) -> Void) {
+            let panel = NSOpenPanel()
+            panel.allowsMultipleSelection = parameters.allowsMultipleSelection
+            panel.canChooseDirectories = false
+            panel.allowedContentTypes = [.json]
+            guard let window = webView.window else { return completionHandler(panel.runModal() == .OK ? panel.urls : nil) }
+            panel.beginSheetModal(for: window) { completionHandler($0 == .OK ? panel.urls : nil) }
         }
     }
 }

@@ -27,6 +27,9 @@ DMG="$OUT/Daybook.dmg"
 rm -rf "$STAGE" "$DMG" "$OUT/notary.json"
 mkdir -p "$OUT"
 
+# The app's own copy of the pages: a new Mac keeps its days here, with no server.
+scripts/build-web.sh
+
 # Xcode adds get-task-allow (debugger access) to every `build` unless told not
 # to, and the notary service rejects an app that has it.
 build() {

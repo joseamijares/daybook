@@ -4,9 +4,19 @@ The full Daybook in a window, plus a glance at today in the menu bar.
 [Download Daybook.dmg](https://github.com/joseamijares/daybook/releases/latest/download/Daybook.dmg):
 signed with Developer ID and notarized, macOS 14 or later.
 
+- **Starts on this Mac:** a new Mac needs no server, address or key. The
+  window shows Daybook's own pages, bundled in the app (built from the web app
+  by `scripts/build-web.sh`, served as `daybook://app/`), and keeps the days in
+  that page's storage on this Mac. The first screen has one button, Start.
+- **A cloud Daybook, only if you want one:** Settings → Connect a cloud
+  Daybook (in the window's Settings, or the menu bar's) asks for its address
+  and key, brings the days on this Mac along (that needs the `DAYBOOK_KEY`; a
+  token can't import), and switches to it. It's what the phone, AI agents,
+  Linear and a Frame TV need. Settings → Use this Mac only switches back. A
+  Mac set up with a cloud Daybook before 0.2 stays connected.
 - **Window:** the web app itself (Today, Week, Backlog, Shut down), with the
-  painting of the day. Use ⌘1–⌘4 for the four screens. The page signs itself
-  in once with your saved key.
+  painting of the day. Use ⌘1–⌘4 for the four screens. Connected to a cloud
+  Daybook, the page signs itself in once with your saved key.
 - **Menu bar:** today's painting with the day set over it, then:
   - the focus line;
   - meetings from Frame Dashboard;
@@ -20,7 +30,7 @@ signed with Developer ID and notarized, macOS 14 or later.
 
   The text beside the icon is your next meeting when it's close, otherwise
   how many to-dos are left.
-- **Frame sync:** every 2 minutes, and after each edit, the app asks your
+- **Frame sync (a cloud Daybook):** every 2 minutes, and after each edit, the app asks your
   Daybook to sync with Frame Dashboard in both directions. Ticks made on Frame
   Desk or the TV come back, and Daybook's week goes out.
 - **Frame design:** switch the TV between Day and night, Salon and Painting
@@ -34,10 +44,14 @@ signed with Developer ID and notarized, macOS 14 or later.
 - **Opening:** a cold launch plays the salon hang (the lamp, the paintings,
   Daybook's mark and today's date) while the window signs in, then fades into
   Today. See [Opening](#opening).
-- The key is stored in the login Keychain. The app is sandboxed, with network
-  access only.
+- **Menu bar on this Mac:** the popover reads and writes the same days
+  through the bundled pages, loaded out of sight (`DeviceEngine.swift`).
+- The key (a cloud Daybook's) is stored in the login Keychain; a Mac that
+  never connects one never asks the Keychain. The app is sandboxed, with
+  network access and the files you pick (Export and Import).
 
 ```bash
+mac/scripts/build-web.sh                           # the app's own pages, first (Node 20+, pnpm)
 open mac/Daybook.xcworkspace                       # run the Daybook scheme (macOS 14+)
 swift test --package-path mac/DaybookPackage       # unit tests
 SNAPSHOT_DIR=/tmp swift test --package-path mac/DaybookPackage   # also renders /tmp/popover.png
@@ -75,14 +89,16 @@ Developer Program membership and, on the Mac that builds:
    (leave out the issuer for an individual key). The script's header lists
    every option.
 
-On first launch, enter your Daybook URL (for example
-`https://your-daybook.vercel.app`, or `http://localhost:3000` while
-developing) and your `DAYBOOK_KEY`.
+On first launch it starts on this Mac. To use a cloud Daybook instead
+(for example `https://your-daybook.vercel.app`, or `http://localhost:3000`
+while developing), Settings → Connect a cloud Daybook and enter its
+`DAYBOOK_KEY`. A build without `scripts/build-web.sh` shows a page that says
+to run it. `package-dmg.sh` runs it for every release.
 
 | Path | What |
 | --- | --- |
 | `Daybook/DaybookApp.swift` | The app shell: window, menu bar item, Go menu, notification handling |
-| `DaybookPackage/Sources/DaybookFeature/` | Everything else: API client, model, popover, settings, updates (`Updates.swift`), the web window, Keychain, fonts |
+| `DaybookPackage/Sources/DaybookFeature/` | Everything else: API client, model, popover, settings, updates (`Updates.swift`), the web window, the cloud form (`ConnectView.swift`), the bundled pages (`DeviceScheme.swift`, `DeviceEngine.swift`, `Web/`), Keychain, fonts |
 | `Config/` | Build settings, `Info.plist` (App Transport Security for localhost, the update feed and its key), entitlements |
 
 ## Releasing from GitHub

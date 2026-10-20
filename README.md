@@ -25,8 +25,10 @@ Daybook in the cloud and open it with its key.
   make: see [Deploy your own](#deploy-your-own). Then choose **Open it with
   your key** under Start.
 - **On a Mac.** [Download Daybook.dmg](https://github.com/joseamijares/daybook/releases/latest/download/Daybook.dmg),
-  drag it into Applications and open it. It asks once for your cloud
-  Daybook's address and key, and updates itself from then on.
+  drag it into Applications and open it. Press Start my day: your days stay on that
+  Mac, with nothing to set up. It updates itself from then on. To share the
+  days with a cloud Daybook (your phone, agents, Linear, the Frame), use
+  Settings → Connect.
 - **With your AI agents.** In a cloud Daybook, Settings → AI agents makes a
   token and the exact setup for Claude, ChatGPT, Cursor, Codex and more. See
   [Connect your agents](#connect-your-agents).
@@ -78,7 +80,8 @@ story; without one, it uses the same rotation as the Frame's Impressionists pack
   cobalt), Modern (white and one red dot) or Nocturne (blue-black and gilt).
   Settings → Appearance, with an option to turn to Nocturne after shutdown.
 - **Mac app.** The full Daybook in a window, a glance at today in the menu
-  bar, a shutdown reminder, and Frame sync every two minutes. It opens on a
+  bar, and a shutdown reminder; your days stay on the Mac until you connect a
+  cloud Daybook (then Frame sync every two minutes too). It opens on a
   wall of paintings and updates itself. Signed and notarized: [download Daybook.dmg](https://github.com/joseamijares/daybook/releases/latest/download/Daybook.dmg)
   (macOS 14+, Apple silicon and Intel). See [mac/README.md](mac/README.md).
 
@@ -136,7 +139,8 @@ app, agents, Linear and Frame:
    can make it every 10 minutes (`*/10 * * * *`).
 4. Deploy, open the site, choose **Open it with your key** at the bottom of
    the first screen, and enter your key once in each browser you use.
-5. In the Mac app, set the URL to your deployment and paste the same key.
+5. In the Mac app, Settings → Connect a cloud Daybook: the address of your
+   deployment and the same key. The days already on that Mac come along.
 
 When you deploy a new version, pages that are already open show a small
 **Update** mark beside the Settings gear; a click reloads them.

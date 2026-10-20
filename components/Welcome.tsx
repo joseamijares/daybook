@@ -5,9 +5,11 @@
 // press: a small footnote says how to set up your own Daybook (sync, the TV)
 // and, on a server that keeps one, opens it with its key. Settings → "Use a
 // cloud Daybook instead" comes back here with the key form open (/?own).
+// In the Mac app's own copy (DEVICE) it's the button alone: a cloud Daybook is
+// the app's Settings, never a first step.
 
 import { useState } from 'react';
-import { api, type Session, setMode, startOnDevice, stringsFor, useLook } from './client';
+import { api, DEVICE, type Session, setMode, startOnDevice, stringsFor, useLook } from './client';
 import { Masthead } from './Masthead';
 
 const SETUP_URL = 'https://github.com/joseamijares/daybook#deploy-your-own';
@@ -49,7 +51,7 @@ export function Welcome({ session, onDone }: { session: Session; onDone: () => P
       <Masthead title={t.welcomeTitle} sub={t.welcomeSub} />
 
       <div className="welcome-start">
-        <p className="lead">{t.welcomeLead}</p>
+        <p className="lead">{DEVICE ? t.welcomeLeadMac : t.welcomeLead}</p>
         <div>
           <button type="button" className={solid} onClick={start}>
             {t.start}
@@ -57,7 +59,7 @@ export function Welcome({ session, onDone }: { session: Session; onDone: () => P
         </div>
       </div>
 
-      {session.cloud && own ? (
+      {DEVICE ? null : session.cloud && own ? (
         <div className="welcome-own">
           <p className="ask">{t.ownHave}</p>
           <form className="keyform" onSubmit={signIn}>

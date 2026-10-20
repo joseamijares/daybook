@@ -4,6 +4,14 @@
 
 ### Getting started
 
+- The Mac app starts on the Mac (0.2.0). A new install no longer asks for a
+  Daybook's address and key: it opens on the same one-button first screen,
+  **Start my day**, and keeps your days on that Mac. The app carries its own
+  copy of the pages, so there's no server to set up. A cloud Daybook (for your
+  phone, AI agents, Linear or a Frame TV) is Settings → **Connect a cloud
+  Daybook**, which brings the days on the Mac along; Settings → **Use this Mac
+  only** goes back. Macs already connected to a cloud Daybook stay connected.
+  Keep a copy and Import work in the Mac window (save and open panels).
 - Even simpler first screen: what Daybook does in one line and one button,
   **Start my day**, that keeps your days in this browser. Everything else is a
   small footnote: "Want it on your TV or on all your devices? Set up your own

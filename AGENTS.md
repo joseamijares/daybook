@@ -29,7 +29,13 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
   frame-dashboard's `lib/art.js` so both show the same painting.
 - `cli/daybook.mjs` must stay dependency-free; it runs straight from a clone.
 - `mac/` is the SwiftUI Mac app (window = the web app in a WKWebView; menu bar popover = native, reading
-  `/api/session` and `/api/week`). Mirror API shape changes in `mac/DaybookPackage/Sources/DaybookFeature/Models.swift`
+  `/api/session` and `/api/week`). A new Mac starts on this Mac: the app bundles a static copy of the pages
+  (`pnpm build:device`, `DAYBOOK_DEVICE=1` in `next.config.ts`, copied by `mac/scripts/build-web.sh` into
+  `DaybookFeature/Web/`, served as `daybook://app/` by `DeviceScheme.swift`), every request answered by
+  `lib/localApi.ts`; the popover asks the same pages out of sight (`DeviceEngine.swift`, `window.daybookDevice`).
+  `DEVICE` in `components/client.tsx` marks that copy. A cloud Daybook is only Settings → Connect
+  (`ConnectView.swift`), never the first screen. Pages and routes must keep building with `pnpm build:device`
+  (no route-only features in pages). Mirror API shape changes in `mac/DaybookPackage/Sources/DaybookFeature/Models.swift`
   and run `swift test --package-path mac/DaybookPackage`. The window tells the page the app's version and updates
   (`window.daybookMac`, `components/mac.ts`), and only your Daybook's own page can ask it to check, or say
   it's `ready` (signed in and painted) so the window's launch scene (`LaunchScene.swift`) gives way to it.
@@ -63,7 +69,7 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
   without the file: match the existing screens, in all three designs, and say so in the PR).
 - When you change a tool, a route or an env var, update `docs/agents.md`, `public/llms.txt` and
   `.env.example` in the same change.
-- Run `pnpm verify` (lint, typecheck, tests, build) before opening a PR.
+- Run `pnpm verify` (lint, typecheck, tests, build, the Mac app's device build, the site) before opening a PR.
 
 ## Definition of done
 

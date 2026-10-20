@@ -3,7 +3,7 @@
 // The Mac app's window (mac/, DaybookWindow.swift) tells the page it's there:
 // it sets window.daybookMac on your Daybook's pages, replaces it and fires a
 // "daybookmac" event when something changes (an update was found), and takes
-// "check", "install", "ready" and "haptic" back through a WebKit message
+// "check", "install", "ready", "connect" and "haptic" back through a WebKit message
 // handler. In a browser there's no window.daybookMac and nothing here shows.
 
 import { useSyncExternalStore } from 'react';
@@ -59,10 +59,10 @@ export function useDaybookMac() {
 
 /**
  * Asks the Mac app to check for updates, or to show the one it found (Sparkle's
- * window installs it), or tells it the page is ready: signed in and painted, so
- * its launch scene can give way to the app.
+ * window installs it), or to connect a cloud Daybook (its own form), or tells it
+ * the page is ready: signed in and painted, so its launch scene can give way to the app.
  */
-export function askMac(action: 'check' | 'install' | 'ready') {
+export function askMac(action: 'check' | 'install' | 'ready' | 'connect') {
   window.webkit?.messageHandlers?.daybookMac?.postMessage({ action });
 }
 
