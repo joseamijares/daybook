@@ -2,7 +2,7 @@ name: Windows release
 
 # A windows-v* tag builds Daybook for Windows (windows/, Tauri) and attaches its
 # installers to that tag's GitHub release: Daybook-setup.exe (per user, no admin)
-# and Daybook.msi. They aren't code-signed yet, so SmartScreen warns the first
+# and Daybook.msi, never marked Latest (that's the Mac app's). They aren't code-signed yet, so SmartScreen warns the first
 # time and the release notes say how to open it. Pull requests that touch the
 # app or the pages build it too, as a workflow artifact.
 
@@ -97,5 +97,7 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else
-            gh release create "$TAG" dist/* --title "Daybook for Windows ${TAG#windows-v}" --notes-file "$notes"
+            # Never "Latest": the Mac app updates from releases/latest/download/appcast.xml,
+            # and the README links releases/latest/download/Daybook.dmg.
+            gh release create "$TAG" dist/* --title "Daybook for Windows ${TAG#windows-v}" --notes-file "$notes" --latest=false
           fi
