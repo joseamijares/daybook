@@ -120,13 +120,13 @@ const en = {
     lede: 'Three ways to hang it: the Mac app, any browser, or your own cloud. All free.',
     mac: {
       title: 'Daybook for Mac',
-      meta: 'macOS 14 or later · Apple silicon and Intel · 4 MB',
+      meta: 'macOS 14 or later · Apple silicon and Intel · 25 MB',
       steps: [
         'Download Daybook.dmg and open it.',
         'Drag Daybook into Applications, then open it.',
-        'Paste your Daybook’s address and key. Today appears in the menu bar.',
+        'Press Start my day. Your days stay on that Mac, and today appears in the menu bar.',
       ],
-      note: 'Needs a Daybook in the cloud: see Your own cloud. Signed with a Developer ID and notarized by Apple, and it updates itself from then on.',
+      note: 'No account and nothing to set up. For your phone, agents or a Frame TV, connect your own cloud later in Settings. Signed with a Developer ID and notarized by Apple, and it updates itself from then on.',
     },
     web: {
       title: 'In any browser',
@@ -317,13 +317,13 @@ const es: Copy = {
     lede: 'Tres maneras de colgarlo: la app de Mac, cualquier navegador o tu propia nube. Todas gratis.',
     mac: {
       title: 'Daybook para Mac',
-      meta: 'macOS 14 o posterior · Apple silicon e Intel · 4 MB',
+      meta: 'macOS 14 o posterior · Apple silicon e Intel · 25 MB',
       steps: [
         'Descarga Daybook.dmg y ábrelo.',
         'Arrastra Daybook a Aplicaciones y ábrelo.',
-        'Pega la dirección y la llave de tu Daybook. El día aparece en la barra de menús.',
+        'Presiona Empezar mi día. Tus días se quedan en esa Mac y el día aparece en la barra de menús.',
       ],
-      note: 'Necesita un Daybook en la nube: ve Tu propia nube. Firmada con Developer ID y notarizada por Apple, y desde ahí se actualiza sola.',
+      note: 'Sin cuenta y sin nada que configurar. Para tu teléfono, tus agentes o una tele Frame, conecta tu propia nube después en Ajustes. Firmada con Developer ID y notarizada por Apple, y desde ahí se actualiza sola.',
     },
     web: {
       title: 'En cualquier navegador',

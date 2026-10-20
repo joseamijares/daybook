@@ -53,7 +53,7 @@ import Testing
                              linear: false, frame: false, art: nil)
     #expect(DaybookModel.waiting(setUp: true, address: home, answer: nil)) // offline, or the first try failed
     #expect(!DaybookModel.waiting(setUp: true, address: home, answer: rejected)) // the key no longer opens it
-    #expect(!DaybookModel.waiting(setUp: false, address: home, answer: nil)) // first launch: setup at once
+    #expect(!DaybookModel.waiting(setUp: false, address: home, answer: nil)) // never connected: nothing to wait for
     #expect(!DaybookModel.waiting(setUp: true, address: nil, answer: nil)) // an address it can't ask
 }
 

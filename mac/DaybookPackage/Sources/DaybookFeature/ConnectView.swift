@@ -45,7 +45,7 @@ struct ConnectView: View {
                 .font(Salon.display(40)).foregroundStyle(Salon.ink).padding(.top, 6)
             Text(rejected
                 ? "The saved key no longer opens \(host). Enter it again, or go back to keeping your days on this Mac."
-                : "Your days are kept on this Mac, and that’s all most people need. A Daybook in the cloud puts the same days on your phone and other computers, and lets your AI agents, Linear and a Frame TV use them.")
+                : "Your days are kept on this Mac, and that’s all most people need. A cloud Daybook is your own copy of Daybook online (free on Vercel and Upstash): it puts the same days on your phone and other computers, and lets AI assistants, Linear and a Frame TV use them.")
                 .font(Salon.text(13)).foregroundStyle(Salon.ink2).padding(.top, 8)
                 .fixedSize(horizontal: false, vertical: true)
 

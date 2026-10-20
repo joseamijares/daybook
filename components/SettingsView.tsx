@@ -29,7 +29,7 @@ export function SettingsView() {
   const { t, session } = useSession();
   return (
     <section className="placard wide settings" aria-label={t.settings}>
-      <Masthead title={t.settings} sub={t.settingsSub} />
+      <Masthead title={t.settings} sub={session.local ? t.settingsSubLocal : t.settingsSub} />
 
       <AppearanceSettings />
       <MacApp />
@@ -141,7 +141,7 @@ function DataSettings() {
     <div className="settings-block" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div className="section-head">
         <span className="label">{t.dataHead}</span>
-        <span className="meta">{local ? t.dataOnDevice : session.storage === 'upstash' ? 'Upstash Redis' : t.storageFile}</span>
+        <span className="meta">{local ? (DEVICE ? t.dataOnMac : t.dataOnDevice) : session.storage === 'upstash' ? 'Upstash Redis' : t.storageFile}</span>
       </div>
       <p className="meta" style={{ margin: 0, fontSize: 15, lineHeight: '22px' }}>
         {DEVICE ? t.dataLeadMac : local ? t.dataLead : t.dataLeadCloud}

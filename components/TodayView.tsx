@@ -174,7 +174,9 @@ export function TodayView() {
                     ? t.copyNoneMac
                     : t.copyNone
                   : fill(DEVICE ? t.copyAgoMac : t.copyAgo, { days: copy.days })
-                : t.dataOnDevice
+                : DEVICE
+                  ? t.dataOnMac
+                  : t.dataOnDevice
               : [frameAt && `${t.frameUpdated} ${frameAt}`, linearAt && `${t.linearSynced} ${linearAt}`].filter(Boolean).join(' · ') || t.agentsHint}
           </span>
           <span style={{ display: 'flex', gap: 14 }}>

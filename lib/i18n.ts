@@ -177,6 +177,7 @@ const en = {
   notNow: 'Not now',
   dataHead: 'Your data',
   dataOnDevice: 'On this device',
+  dataOnMac: 'On this Mac',
   dataLead: 'Your days live only in this browser. Clearing its site data, or a private window, loses them, so keep a copy.',
   dataLeadCloud: 'Download everything as one file, or bring in a file exported from another Daybook, on a device or in the cloud.',
   dataLeadMac: 'Your days live only on this Mac, inside Daybook. Keep a copy now and then.',
@@ -188,7 +189,7 @@ const en = {
   imported: 'Imported {tasks} tasks and {days} days.',
   switchCloud: 'Use a cloud Daybook instead',
   switchCloudLead: 'Export first, then import there. This browser keeps its copy.',
-  switchCloudLeadMac: 'Only needed for the same days on your phone, your AI agents, Linear or a Frame TV. Your days come along.',
+  switchCloudLeadMac: 'Only needed to see your days on your phone or a Frame TV, or to let AI assistants and Linear use them. It’s your own copy of Daybook online, free to set up; your days here are copied to it.',
   connectBtn: 'Connect…',
   connectCloud: 'Connect a cloud Daybook',
   switchDevice: 'Leave this browser',
@@ -282,6 +283,7 @@ const en = {
   doneToBottom: 'Move finished tasks to the bottom',
   doneToBottomLead: 'Tick a task and it goes under the ones still to do. Off: it stays where it was.',
   settingsSub: 'Appearance, connections and agents',
+  settingsSubLocal: 'Appearance and your data',
   backlogSub: '{n} tasks · {linear} from Linear',
 };
 
@@ -462,6 +464,7 @@ const es: typeof en = {
   notNow: 'Ahora no',
   dataHead: 'Tus datos',
   dataOnDevice: 'En este dispositivo',
+  dataOnMac: 'En esta Mac',
   dataLead: 'Tus días viven solo en este navegador. Si borras sus datos o usas una ventana privada se pierden, así que guarda una copia.',
   dataLeadCloud: 'Descarga todo en un archivo, o trae uno exportado de otro Daybook, en un dispositivo o en la nube.',
   dataLeadMac: 'Tus días viven solo en esta Mac, dentro de Daybook. Guarda una copia de vez en cuando.',
@@ -473,7 +476,7 @@ const es: typeof en = {
   imported: 'Importadas {tasks} tareas y {days} días.',
   switchCloud: 'Usar un Daybook en la nube',
   switchCloudLead: 'Exporta primero y luego importa allá. Este navegador conserva su copia.',
-  switchCloudLeadMac: 'Solo hace falta para tener los mismos días en tu teléfono, tus agentes de IA, Linear o una tele Frame. Tus días se vienen contigo.',
+  switchCloudLeadMac: 'Solo hace falta para ver tus días en tu teléfono o en una tele Frame, o para que asistentes de IA y Linear los usen. Es tu propia copia de Daybook en línea, gratis de configurar; tus días de aquí se copian ahí.',
   connectBtn: 'Conectar…',
   connectCloud: 'Conectar un Daybook en la nube',
   switchDevice: 'Salir de este navegador',
@@ -566,6 +569,7 @@ const es: typeof en = {
   doneToBottom: 'Mover las tareas terminadas al final',
   doneToBottomLead: 'Al marcar una tarea, baja debajo de las pendientes. Apagado: se queda donde estaba.',
   settingsSub: 'Apariencia, conexiones y agentes',
+  settingsSubLocal: 'Apariencia y tus datos',
   backlogSub: '{n} tareas · {linear} de Linear',
 };
 
