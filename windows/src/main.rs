@@ -6,6 +6,9 @@
 // No console window behind the app in a release build.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::ffi::OsStr;
+use std::path::{Path, PathBuf};
+
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::webview::DownloadEvent;
@@ -24,6 +27,22 @@ fn words() -> Words {
     } else {
         Words { open: "Open Daybook", quit: "Quit Daybook" }
     }
+}
+
+/// A file in Downloads that isn't there yet: daybook-2026-10-20.json, then
+/// daybook-2026-10-20 (1).json, as a browser names a second download.
+fn unused(dir: &Path, name: &OsStr) -> PathBuf {
+    let first = dir.join(name);
+    if !first.exists() {
+        return first;
+    }
+    let file = Path::new(name);
+    let stem = file.file_stem().unwrap_or(name).to_string_lossy();
+    let ext = file.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+    (1..)
+        .map(|n| dir.join(format!("{stem} ({n}){ext}")))
+        .find(|path| !path.exists())
+        .unwrap_or(first)
 }
 
 /// Brings the window back: from the tray, or when Daybook is opened again.
@@ -53,7 +72,7 @@ fn main() {
                 .on_download(move |_, event| {
                     if let DownloadEvent::Requested { destination, .. } = event {
                         if let (Some(dir), Some(name)) = (&downloads, destination.file_name()) {
-                            *destination = dir.join(name);
+                            *destination = unused(dir, name);
                         }
                     }
                     true

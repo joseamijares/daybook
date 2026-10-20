@@ -39,11 +39,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # pnpm build:windows sets the variable the POSIX way; cmd.exe can't, so set it here.
+      # .npmrc's shell-emulator sets DAYBOOK_DEVICE=windows in cmd.exe as well.
       - name: Build the pages
-        run: pnpm exec next build
+        run: pnpm build:windows
         env:
-          DAYBOOK_DEVICE: windows
           DAYBOOK_LOCALE: ''
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2

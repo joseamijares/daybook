@@ -23,7 +23,9 @@ on this PC in the window's storage. A Tauri 2 app on WebView2, which Windows 10 
 ## Build
 
 Needs Node 22 and pnpm (as the web app does), Rust, and the Tauri CLI
-(`cargo install tauri-cli --version "^2" --locked`).
+(`cargo install tauri-cli --version "^2" --locked`). On Windows, Rust also needs the Microsoft
+C++ Build Tools with the **Desktop development with C++** workload
+([Tauri's prerequisites](https://v2.tauri.app/start/prerequisites/)).
 
 ```sh
 pnpm build:windows          # the pages, into .next-windows/
@@ -31,8 +33,9 @@ cd windows && cargo tauri build
 ```
 
 On Windows that gives `target/release/bundle/nsis/Daybook_*-setup.exe` (per user, no admin)
-and `target/release/bundle/msi/Daybook_*.msi`. In cmd.exe or PowerShell, set the variable
-yourself before the pages build: `$env:DAYBOOK_DEVICE="windows"; pnpm exec next build`.
+and `target/release/bundle/msi/Daybook_*.msi`. `pnpm build:windows` works in cmd.exe and
+PowerShell too: `.npmrc` turns on pnpm's shell emulator, so `DAYBOOK_DEVICE=windows` is set
+the same way everywhere.
 
 On a Mac, `cargo tauri build --debug --bundles app` builds the same app as a `.app`, enough to
 try the pages, the storage and the tray (the menu bar stands in for it).
