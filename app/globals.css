@@ -1823,6 +1823,10 @@ textarea {
 
 /* The walkthrough: the video in a dialog over the wall, its title and Close on a placard strip. */
 dialog.walkthrough {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  height: fit-content;
   width: min(1120px, calc(100vw - 64px));
   max-height: calc(100vh - 64px);
   padding: 0;
