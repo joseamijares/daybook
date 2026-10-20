@@ -43,7 +43,7 @@ jobs:
       update-signature: ${{ steps.update.outputs.signature }}
       update-length: ${{ steps.update.outputs.length }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Read the version
         id: version
