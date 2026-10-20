@@ -9,7 +9,7 @@
 // the app's Settings, never a first step.
 
 import { useState } from 'react';
-import { api, DEVICE, type Session, setMode, startOnDevice, stringsFor, useLook } from './client';
+import { api, DEVICE, ON_PC, type Session, setMode, startOnDevice, stringsFor, useLook } from './client';
 import { Masthead } from './Masthead';
 
 const SETUP_URL = 'https://github.com/joseamijares/daybook#deploy-your-own';
@@ -51,7 +51,7 @@ export function Welcome({ session, onDone }: { session: Session; onDone: () => P
       <Masthead title={t.welcomeTitle} sub={t.welcomeSub} />
 
       <div className="welcome-start">
-        <p className="lead">{DEVICE ? t.welcomeLeadMac : t.welcomeLead}</p>
+        <p className="lead">{ON_PC ? t.welcomeLeadPC : DEVICE ? t.welcomeLeadMac : t.welcomeLead}</p>
         <div>
           <button type="button" className={solid} onClick={start}>
             {t.start}
