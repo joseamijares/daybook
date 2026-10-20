@@ -2,9 +2,11 @@ name: Windows release
 
 # A windows-v* tag builds Daybook for Windows (windows/, Tauri) and attaches its
 # installers to that tag's GitHub release: Daybook-setup.exe (per user, no admin)
-# and Daybook.msi, never marked Latest (that's the Mac app's). They aren't code-signed yet, so SmartScreen warns the first
-# time and the release notes say how to open it. Pull requests that touch the
-# app or the pages build it too, as a workflow artifact.
+# and Daybook.msi, never marked Latest (that's the Mac app's). With the ESIGNER_*
+# secrets (windows/README.md, Signing) the app and both installers are code-signed;
+# without them they aren't, SmartScreen says "unknown publisher", and the release
+# notes say how to open it. Pull requests that touch the app or the pages build it
+# too, unsigned, as a workflow artifact.
 
 on:
   push:
@@ -31,6 +33,8 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 45
+    outputs:
+      signed: ${{ steps.signing.outputs.enabled == 'true' }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -49,9 +53,53 @@ jobs:
         with:
           workspaces: windows
       - run: cargo install tauri-cli --version "^2" --locked
+      # Releases are signed when the eSigner secrets are set (windows/README.md,
+      # Signing); pull requests never are, so they spend no signings and see no secrets.
+      - name: Check for a signing certificate
+        id: signing
+        shell: bash
+        env:
+          ESIGNER_USERNAME: ${{ secrets.ESIGNER_USERNAME }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/windows-v* && -n "$ESIGNER_USERNAME" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_REF" == refs/tags/windows-v* ]]; then
+            echo "::warning title=Not signed::The ESIGNER_* secrets aren't set, so SmartScreen will say \"unknown publisher\". See Signing in windows/README.md."
+          fi
+      - name: Get CodeSignTool
+        if: steps.signing.outputs.enabled == 'true'
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP 'CodeSignTool.zip'
+          Invoke-WebRequest -Uri 'https://github.com/SSLcom/CodeSignTool/releases/download/v1.3.2/CodeSignTool-v1.3.2-windows.zip' -OutFile $zip
+          # v1.3.2's published zip; a different file stops the release here.
+          if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne '4afc32e8b7f79bbe1de7e4e7049aaad4e0f754357613b9bbec0e3052f06fd36b') {
+            throw 'The CodeSignTool download is not the one this workflow was written for.'
+          }
+          $dir = Join-Path $env:RUNNER_TEMP 'CodeSignTool'
+          Expand-Archive $zip -DestinationPath $dir
+          "CODE_SIGN_TOOL_PATH=$dir" >> $env:GITHUB_ENV
       - name: Build the app
         working-directory: windows
-        run: cargo tauri build
+        shell: pwsh
+        env:
+          SIGN: ${{ steps.signing.outputs.enabled }}
+          ESIGNER_USERNAME: ${{ steps.signing.outputs.enabled == 'true' && secrets.ESIGNER_USERNAME || '' }}
+          ESIGNER_PASSWORD: ${{ steps.signing.outputs.enabled == 'true' && secrets.ESIGNER_PASSWORD || '' }}
+          ESIGNER_CREDENTIAL_ID: ${{ steps.signing.outputs.enabled == 'true' && secrets.ESIGNER_CREDENTIAL_ID || '' }}
+          ESIGNER_TOTP_SECRET: ${{ steps.signing.outputs.enabled == 'true' && secrets.ESIGNER_TOTP_SECRET || '' }}
+        run: |
+          if ($env:SIGN -eq 'true') {
+            # Tauri signs the app, the uninstaller and both installers with scripts/sign.ps1.
+            $sign = Join-Path $env:GITHUB_WORKSPACE 'windows\scripts\sign.ps1'
+            $config = @{ bundle = @{ windows = @{ signCommand = @{ cmd = 'powershell'; args = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $sign, '%1') } } } }
+            $file = Join-Path $env:RUNNER_TEMP 'signing.json'
+            $config | ConvertTo-Json -Depth 8 | Set-Content -Path $file -Encoding utf8
+            cargo tauri build --config $file
+          } else {
+            cargo tauri build
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Collect the installers
         shell: bash
         run: |
@@ -83,13 +131,24 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
+          SIGNED: ${{ needs.build.outputs.signed }}
         run: |
           set -euo pipefail
           notes="$RUNNER_TEMP/notes.md"
           cat > "$notes" <<'MD'
           **Install**
           1. Download `Daybook-setup.exe` and open it. It installs for you alone, no administrator needed. (`Daybook.msi` is the same app for IT-managed PCs.)
-          2. This build isn't code-signed yet, so Windows SmartScreen says it "protected your PC". Choose **More info**, then **Run anyway**.
+          MD
+          if [ "$SIGNED" = true ]; then
+            cat >> "$notes" <<'MD'
+          2. It's code-signed. While it's new, Windows SmartScreen may still say it "protected your PC"; choose **More info**, check the publisher, then **Run anyway**. That fades as more people install it.
+          MD
+          else
+            cat >> "$notes" <<'MD'
+          2. This build isn't code-signed, so Windows SmartScreen says it "protected your PC" from an unknown publisher. Choose **More info**, then **Run anyway**.
+          MD
+          fi
+          cat >> "$notes" <<'MD'
           3. Daybook opens on this PC: your days live here, inside Daybook. Closing the window keeps it in the tray, by the clock; right-click its icon to quit.
 
           Updating? Install the new one over it. Your days stay.
