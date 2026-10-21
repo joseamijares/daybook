@@ -17,10 +17,21 @@ if (-not (Test-Path $exe)) { throw "$exe isn't built yet: run cargo tauri build 
 $config = Get-Content (Join-Path $windows 'tauri.conf.json') -Raw | ConvertFrom-Json
 $version = "$($config.version).0" # the Store wants four parts, the last one 0
 
-$identity = if ($env:MSIX_IDENTITY_NAME) { $env:MSIX_IDENTITY_NAME } else { 'Daybook.Preview' }
-$publisher = if ($env:MSIX_PUBLISHER) { $env:MSIX_PUBLISHER } else { 'CN=Daybook Preview' }
-$publisherName = if ($env:MSIX_PUBLISHER_DISPLAY_NAME) { $env:MSIX_PUBLISHER_DISPLAY_NAME } else { 'Daybook' }
-if (-not $env:MSIX_IDENTITY_NAME) { Write-Warning 'MSIX_IDENTITY_NAME is not set: built with a placeholder identity the Store will refuse.' }
+# All three from Partner Center, or none: half an identity would make a package the
+# Store refuses without saying why.
+$given = @($env:MSIX_IDENTITY_NAME, $env:MSIX_PUBLISHER, $env:MSIX_PUBLISHER_DISPLAY_NAME) | Where-Object { $_ }
+if ($given.Count -eq 3) {
+  $identity = $env:MSIX_IDENTITY_NAME
+  $publisher = $env:MSIX_PUBLISHER
+  $publisherName = $env:MSIX_PUBLISHER_DISPLAY_NAME
+} elseif ($given.Count -eq 0) {
+  $identity = 'Daybook.Preview'
+  $publisher = 'CN=Daybook Preview'
+  $publisherName = 'Daybook'
+  Write-Warning 'The MSIX_* variables are not set: built with a placeholder identity the Store will refuse.'
+} else {
+  throw 'Set all three of MSIX_IDENTITY_NAME, MSIX_PUBLISHER and MSIX_PUBLISHER_DISPLAY_NAME (Partner Center, Product identity), or none.'
+}
 
 # The package's files: the app, its logos and the manifest.
 $layout = Join-Path ([IO.Path]::GetTempPath()) "daybook-msix-$PID"

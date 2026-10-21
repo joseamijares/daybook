@@ -203,7 +203,7 @@ const en = {
     committers: 'Committers and reviewers',
     committersNote: 'Write code and review every pull request from anyone else.',
     approvers: 'Approvers',
-    approversNote: 'Approve each release by hand before it is signed.',
+    approversNote: 'Approve each release by hand in SignPath before it is signed.',
     privacyTitle: 'Privacy',
     privacy:
       'Daybook for Windows will not transfer any information to other networked systems unless specifically requested by the user. Your days stay on your PC, in Daybook’s own storage. The app has no analytics and no tracking.',
@@ -428,7 +428,7 @@ const es: Copy = {
     committers: 'Autores y revisores',
     committersNote: 'Escriben el código y revisan cada pull request de cualquier otra persona.',
     approvers: 'Aprobadores',
-    approversNote: 'Aprueban a mano cada versión antes de firmarla.',
+    approversNote: 'Aprueban a mano cada versión en SignPath antes de firmarla.',
     privacyTitle: 'Privacidad',
     privacy:
       'Daybook para Windows no transfiere información a otros sistemas en red, salvo que la persona usuaria lo pida expresamente. Tus días se quedan en tu PC, en el almacenamiento de Daybook. La app no tiene analítica ni rastreo.',

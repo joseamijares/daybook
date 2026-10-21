@@ -18,8 +18,10 @@
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
   <Dependencies>
-    <!-- Windows 10 1809 and later already have WebView2, which the app runs in. -->
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+    <!-- Windows 11, where WebView2 (which the app runs in) is part of the system. The
+         package can't bring WebView2 along, so Windows 10 installs Daybook-setup.exe,
+         whose installer fetches WebView2 when it's missing. -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.22000.0" MaxVersionTested="10.0.26100.0" />
   </Dependencies>
   <Resources>
     <Resource Language="en-us" />

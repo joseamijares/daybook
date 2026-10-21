@@ -58,7 +58,7 @@ export function Signing({ c }: { c: Copy }) {
           <p>{s.privacy}</p>
         </section>
       </main>
-      <Footer c={c} />
+      <Footer c={c} other={c.lang === 'es' ? '/code-signing' : '/es/code-signing'} />
     </>
   );
 }

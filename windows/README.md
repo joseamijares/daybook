@@ -117,7 +117,9 @@ To publish it once:
    privacy policy at /code-signing#privacy, age rating). Microsoft reviews it, usually in a
    few days.
 
-A Store install keeps its own days, apart from an install from `Daybook-setup.exe`: Windows
+The Store package needs Windows 11, where WebView2 is part of the system; on Windows 10,
+people install `Daybook-setup.exe`, which fetches WebView2 when it's missing. A Store install
+keeps its own days, apart from an install from `Daybook-setup.exe`: Windows
 gives Store apps their own storage. Export a copy in one and import it in the other to move.
 
 ## Where the days live
