@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Daybook for Windows, as SignPath signs it: the zip the release workflow uploads
+  (.github/workflows/windows-release.yml) holds the two installers. Paste this into
+  the project's artifact configuration in SignPath. The workflow passes "version"
+  from windows/tauri.conf.json, so a setup.exe of another name or version isn't
+  signed (SignPath restricts product name and version on PE files, not on MSIs).
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+  </parameters>
+  <zip-file>
+    <pe-file path="Daybook-setup.exe" product-name="Daybook" product-version="${version}">
+      <authenticode-sign />
+    </pe-file>
+    <msi-file path="Daybook.msi">
+      <authenticode-sign />
+    </msi-file>
+  </zip-file>
+</artifact-configuration>
