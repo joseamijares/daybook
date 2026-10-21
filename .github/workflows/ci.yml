@@ -31,6 +31,6 @@ jobs:
       - run: pnpm build:device # the Mac app's own copy of the pages
       - run: pnpm site:verify
       - name: Secret scan
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
