@@ -45,9 +45,12 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
   `windows/src/main.rs`). `ON_PC` in `components/client.tsx` swaps "this Mac" copy for "this PC" and hides the
   cloud connect row (no cloud Daybook on Windows yet). A tray icon (Open, Quit); closing the window hides it. No
   menu-bar-style glance, no auto-update yet. `.github/workflows/windows-release.yml` builds the installers on
-  `windows-latest`; a `windows-v*` tag publishes them (never as Latest, which is the Mac app's update feed) and
-  signs them through SSL.com eSigner (`windows/scripts/sign.ps1`) when the `ESIGNER_*` secrets are set. Rust
-  isn't part of `pnpm verify`.
+  `windows-latest`; a `windows-v*` tag publishes them (never as Latest, which is the Mac app's update feed),
+  signed by SignPath Foundation (free, an approver accepts each request; `windows/signpath/`) when
+  `SIGNPATH_API_TOKEN` is set, or else by SSL.com eSigner (`windows/scripts/sign.ps1`) with the `ESIGNER_*`
+  secrets. SignPath requires the site's code signing policy page (`site/components/Signing.tsx`,
+  `/code-signing`): keep its roles and privacy statement true. Every build also packs `Daybook.msix` for the
+  Microsoft Store (`windows/scripts/msix.ps1`, `windows/msix/`). Rust isn't part of `pnpm verify`.
 - `components/updates.tsx` is the small "Update" mark by the Settings gear: a newer Mac app (from the window),
   or a newer deploy than the open page (its build commit, `NEXT_PUBLIC_DAYBOOK_SHA`, vs `/api/health`'s).
 - Motion lives in `app/globals.css` (section "Motion") and must respect `prefers-reduced-motion`.

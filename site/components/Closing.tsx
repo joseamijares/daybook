@@ -35,6 +35,7 @@ export function Footer({ c }: { c: Copy }) {
             {c.footer.other}
           </a>
           <a href={`${REPO_URL}/blob/main/LICENSE`}>{c.footer.license}</a>
+          <a href={c.lang === 'es' ? '/es/code-signing' : '/code-signing'}>{c.footer.signing}</a>
         </nav>
       </div>
     </footer>

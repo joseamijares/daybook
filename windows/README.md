@@ -17,7 +17,7 @@ on this PC in the window's storage. A Tauri 2 app on WebView2, which Windows 10 
 
 - A glance at today from the tray (the Mac app's menu bar popover).
 - Connecting a cloud Daybook (phone, Frame TV, AI agents, Linear). Settings doesn't offer it.
-- A signed release: the workflow signs once the certificate below is set up. Until then
+- A signed release: the workflow signs once SignPath (below) is set up. Until then
   SmartScreen warns the first time (**More info → Run anyway**).
 - Updating itself: install a newer one over it, your days stay.
 
@@ -49,30 +49,76 @@ and `Daybook.msi`. Pull requests that touch the app or the pages build them as a
 
 ## Signing
 
-Releases are signed with an OV code-signing certificate held by SSL.com eSigner, which signs
-from CI with no hardware key. Azure Artifact Signing would be cheaper, but it only takes
-organizations from the US, Canada, the EU and the UK. Signing puts the publisher's name on the
-SmartScreen screen instead of "unknown publisher". Windows still warns about a new app until
-enough people have installed it, and that fades on its own.
+Signing puts a publisher's name on the SmartScreen screen instead of "unknown publisher".
+Windows still warns about a new app until enough people have installed it; that fades on its
+own. The installers on GitHub are signed one of two ways; set up one, not both.
+
+### SignPath Foundation (free, the one we use)
+
+SignPath Foundation signs open-source projects for free. The certificate is theirs, so
+Windows shows **SignPath Foundation** as the publisher. In return Daybook keeps its
+[code signing policy](https://daybooksalon.vercel.app/code-signing) page (`site/`, linked
+from every footer), and a person approves each release in SignPath before it's signed.
 
 To set it up once:
 
-1. Buy an **OV code signing** certificate from SSL.com for the organization (the name
-   SmartScreen will show), and choose **eSigner** as the way to sign.
-2. Pass SSL.com's validation of the organization: documents and a call. It takes a few days.
-3. Enroll the certificate in eSigner. Choose the **TOTP** (authenticator) option and keep the
-   secret it shows: the workflow needs it to sign without someone typing a code.
-4. Add four repository secrets (Settings → Secrets and variables → Actions):
-   - `ESIGNER_USERNAME`: the SSL.com account's username
-   - `ESIGNER_PASSWORD`: its password
-   - `ESIGNER_CREDENTIAL_ID`: the certificate's eSigner credential ID
-   - `ESIGNER_TOTP_SECRET`: the TOTP secret from step 3
+1. Apply at [signpath.org/apply](https://signpath.org/apply.html) with the answers in
+   `signpath/application.md`. Approval takes a while; they check the project by hand.
+2. When they accept it, in SignPath: create (or check) the project `daybook` with the signing
+   policy `release-signing`, link it to this GitHub repository as a trusted build system,
+   and paste `signpath/artifact-configuration.xml` as its artifact configuration.
+3. Turn on two-factor sign-in for SignPath and GitHub (they require it), and create an API
+   token for a CI user that may submit signing requests.
+4. In this repository (Settings → Secrets and variables → Actions):
+   - secret `SIGNPATH_API_TOKEN`: that token
+   - variable `SIGNPATH_ORGANIZATION_ID`: the organization's ID in SignPath
+   - variables `SIGNPATH_PROJECT_SLUG` and `SIGNPATH_POLICY_SLUG`, only if they aren't
+     `daybook` and `release-signing`
+5. Push a `windows-v*` tag. The workflow builds the installers, uploads them, and waits up
+   to three hours while an approver accepts the request in SignPath; the signed installers
+   then replace the unsigned ones, after Windows confirms their signatures.
+
+### SSL.com eSigner (paid)
+
+An OV certificate in Jamak's own name, about $310 a year: $129 for the certificate and $180
+for a year of eSigner signing. Azure Artifact Signing would be cheaper, but it only takes
+organizations from the US, Canada, the EU and the UK.
+
+1. Buy an **OV code signing** certificate from SSL.com for the organization, and choose
+   **eSigner** as the way to sign.
+2. Pass SSL.com's validation of the organization (documents and a call, a few days).
+3. Enroll the certificate in eSigner with the **TOTP** option and keep its secret.
+4. Add four repository secrets: `ESIGNER_USERNAME`, `ESIGNER_PASSWORD`,
+   `ESIGNER_CREDENTIAL_ID` and `ESIGNER_TOTP_SECRET`.
 5. Push a `windows-v*` tag. The workflow downloads CodeSignTool (pinned to v1.3.2, checked by
    hash), and Tauri signs the app, its uninstaller and both installers with
    `scripts/sign.ps1`, which fails the release if Windows doesn't see a valid signature.
 
-Only `windows-v*` tags sign: pull requests build unsigned and never see the secrets. Each
-release uses about five signings of the eSigner plan's monthly allowance.
+eSigner is used only when `SIGNPATH_API_TOKEN` isn't set. Only `windows-v*` tags sign: pull
+requests build unsigned and never see the secrets.
+
+## Microsoft Store
+
+The Store signs what it publishes, so a Store install never shows SmartScreen. Every build
+also makes `Daybook.msix` (`scripts/msix.ps1`, `msix/AppxManifest.xml`), the workflow
+artifact **Daybook-msix**. It's unsigned and installs only through the Store.
+
+To publish it once:
+
+1. Open a [Partner Center](https://partner.microsoft.com/dashboard/registration) developer
+   account. Individuals register free; a company account has a one-time fee.
+2. Create an app and reserve its name. "Daybook" may already be taken; then pick another
+   (for example "Daybook Salon") and use it everywhere the Store asks for it.
+3. Under Product identity, copy three values into repository variables:
+   `MSIX_IDENTITY_NAME` (Package/Identity/Name), `MSIX_PUBLISHER` (Package/Identity/Publisher,
+   `CN=…`) and `MSIX_PUBLISHER_DISPLAY_NAME` (Package/Properties/PublisherDisplayName).
+4. Push a `windows-v*` tag, download **Daybook-msix** from that workflow run, and upload
+   `Daybook.msix` to a new submission with the listing (description, screenshots, the
+   privacy policy at /code-signing#privacy, age rating). Microsoft reviews it, usually in a
+   few days.
+
+A Store install keeps its own days, apart from an install from `Daybook-setup.exe`: Windows
+gives Store apps their own storage. Export a copy in one and import it in the other to move.
 
 ## Where the days live
 
