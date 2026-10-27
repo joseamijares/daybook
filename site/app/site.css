@@ -2491,3 +2491,91 @@ html:has(.screen[open]) {
     margin-right: auto;
   }
 }
+
+/* The code signing policy (components/Signing.tsx): one column of text on the wall. */
+.policy {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 56px max(24px, env(safe-area-inset-right, 0px)) 96px max(24px, env(safe-area-inset-left, 0px));
+}
+.policy__home {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  font-size: 14px;
+  color: var(--on-wall-3);
+  text-decoration: none;
+}
+.policy__home:hover {
+  color: var(--bone);
+}
+.policy__head {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.policy h1 {
+  font: 400 56px/1.02 var(--serif);
+  letter-spacing: -0.02em;
+  color: var(--bone);
+}
+.policy h2 {
+  margin-bottom: 14px;
+  font: 400 30px/1.15 var(--serif);
+  color: var(--bone);
+}
+.policy p,
+.policy dd span {
+  max-width: 62ch;
+  font-size: 17px;
+  line-height: 28px;
+  color: var(--on-wall-2);
+}
+.policy__lede {
+  font-size: 19px;
+  line-height: 30px;
+}
+.policy__attribution {
+  padding: 14px 18px;
+  border-left: 2px solid var(--gilt);
+  background: var(--wall-2);
+  color: var(--bone);
+}
+.policy a {
+  color: var(--bone);
+  text-underline-offset: 3px;
+}
+.policy__roles {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.policy__roles > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(236, 230, 216, 0.14);
+}
+.policy__roles dt {
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--on-wall-3);
+}
+.policy__roles dd {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 18px;
+}
+@media (max-width: 700px) {
+  .policy h1 {
+    font-size: 42px;
+  }
+}

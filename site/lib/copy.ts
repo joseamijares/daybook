@@ -179,8 +179,35 @@ const en = {
     docs: 'Docs for agents',
     frame: 'Frame Dashboard',
     license: 'MIT License',
+    signing: 'Code signing policy',
     other: 'Español',
     otherHref: '/es',
+  },
+  signing: {
+    meta: {
+      title: 'Code signing policy · Daybook',
+      description: 'How Daybook for Windows is signed, who approves each release, and what the app sends over the network: nothing you didn’t ask for.',
+    },
+    eyebrow: 'Daybook for Windows',
+    title: 'Code signing policy',
+    lede: 'The Windows installers are signed, so Windows can show who published Daybook and confirm nobody changed it after it was built.',
+    attribution: {
+      before: 'Free code signing provided by ',
+      between: ', certificate by ',
+      after: '.',
+    },
+    signedTitle: 'What is signed',
+    signed:
+      'Daybook-setup.exe and Daybook.msi, attached to the GitHub releases tagged windows-v*. GitHub Actions builds them from the source in this repository; nothing built elsewhere is signed.',
+    rolesTitle: 'Who decides',
+    committers: 'Committers and reviewers',
+    committersNote: 'Write code and review every pull request from anyone else.',
+    approvers: 'Approvers',
+    approversNote: 'Approve each release by hand in SignPath before it is signed.',
+    privacyTitle: 'Privacy',
+    privacy:
+      'Daybook for Windows will not transfer any information to other networked systems unless specifically requested by the user. Your days stay on your PC, in Daybook’s own storage. The app has no analytics and no tracking.',
+    back: 'Back to Daybook',
   },
   consent: {
     // {tools}: the ones switched on, e.g. "Google Analytics" or "Google Analytics and Microsoft Clarity".
@@ -376,8 +403,36 @@ const es: Copy = {
     docs: 'Docs para agentes',
     frame: 'Frame Dashboard',
     license: 'Licencia MIT',
+    signing: 'Política de firma de código',
     other: 'English',
     otherHref: '/',
+  },
+  signing: {
+    meta: {
+      title: 'Política de firma de código · Daybook',
+      description: 'Cómo se firma Daybook para Windows, quién aprueba cada versión y qué envía la app por la red: nada que no hayas pedido.',
+    },
+    eyebrow: 'Daybook para Windows',
+    title: 'Política de firma de código',
+    lede: 'Los instaladores de Windows van firmados, así Windows puede mostrar quién publica Daybook y confirmar que nadie lo cambió después de compilarlo.',
+    // SignPath Foundation's required wording, kept in English.
+    attribution: {
+      before: 'Free code signing provided by ',
+      between: ', certificate by ',
+      after: '.',
+    },
+    signedTitle: 'Qué se firma',
+    signed:
+      'Daybook-setup.exe y Daybook.msi, adjuntos a las versiones de GitHub con etiqueta windows-v*. GitHub Actions los compila desde el código de este repositorio; nada compilado en otro lado se firma.',
+    rolesTitle: 'Quién decide',
+    committers: 'Autores y revisores',
+    committersNote: 'Escriben el código y revisan cada pull request de cualquier otra persona.',
+    approvers: 'Aprobadores',
+    approversNote: 'Aprueban a mano cada versión en SignPath antes de firmarla.',
+    privacyTitle: 'Privacidad',
+    privacy:
+      'Daybook para Windows no transfiere información a otros sistemas en red, salvo que la persona usuaria lo pida expresamente. Tus días se quedan en tu PC, en el almacenamiento de Daybook. La app no tiene analítica ni rastreo.',
+    back: 'Volver a Daybook',
   },
   consent: {
     text: 'Usamos {tools} para ver cómo se lee esta página.',

@@ -23,6 +23,19 @@ export function metadataFor(lang: Lang): Metadata {
   };
 }
 
+// The code signing policy (/code-signing, /es/code-signing), which SignPath
+// Foundation asks every signed project to publish.
+export function signingMetadataFor(lang: Lang): Metadata {
+  const c = copy[lang];
+  const path = lang === 'es' ? '/es/code-signing' : '/code-signing';
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: c.signing.meta.title,
+    description: c.signing.meta.description,
+    alternates: { canonical: path, languages: { en: '/code-signing', es: '/es/code-signing', 'x-default': '/code-signing' } },
+  };
+}
+
 // The day the page was prerendered, in UTC like the rotation.
 export function builtOn(): string {
   return new Date().toISOString().slice(0, 10);

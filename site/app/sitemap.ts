@@ -6,5 +6,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: `${SITE_URL}/`, lastModified: new Date(), changeFrequency: 'daily', priority: 1, alternates: { languages } },
     { url: `${SITE_URL}/es`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9, alternates: { languages } },
+    {
+      url: `${SITE_URL}/code-signing`,
+      changeFrequency: 'monthly',
+      priority: 0.3,
+      alternates: { languages: { en: `${SITE_URL}/code-signing`, es: `${SITE_URL}/es/code-signing` } },
+    },
+    {
+      url: `${SITE_URL}/es/code-signing`,
+      changeFrequency: 'monthly',
+      priority: 0.3,
+      alternates: { languages: { en: `${SITE_URL}/code-signing`, es: `${SITE_URL}/es/code-signing` } },
+    },
   ];
 }
