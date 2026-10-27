@@ -19,14 +19,9 @@ import { capitalize, useMeetings } from './day';
 import { DraftText } from './DraftText';
 import { useOps } from './ops';
 import { arranged, type SortRow, TASK_TYPE, useSortable } from './sortable';
-import { AddRow, Editor, Handle, type Move, type Patch, PlusIcon, useTaskNotes } from './TaskRow';
+import { AddRow, Editor, Handle, type Move, type Patch, PlusIcon, useTaskNotes, X } from './TaskRow';
 
 type Source = 'backlog' | 'linear';
-const X = () => (
-  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
-    <path d="M2 2l6 6M8 2 2 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-  </svg>
-);
 const Bin = () => (
   <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden>
     <path d="M2.5 4h9M5.5 4V2.5h3V4M3.75 4l.6 7.5h5.3l.6-7.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />

@@ -15,6 +15,26 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_DAYBOOK_SHA: process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_SHA || "dev",
     NEXT_PUBLIC_DAYBOOK_DEVICE: windows ? "windows" : device ? "1" : "",
   },
+  // Nothing frames Daybook, sniffs its types or follows its links with a key in
+  // the address. The device copy has no server to send headers.
+  ...(device
+    ? {}
+    : {
+        async headers() {
+          return [
+            {
+              source: "/(.*)",
+              headers: [
+                { key: "X-Content-Type-Options", value: "nosniff" },
+                { key: "X-Frame-Options", value: "DENY" },
+                { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+                { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+                { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+              ],
+            },
+          ];
+        },
+      }),
   // No dev badge over the painting (and none in screenshots).
   devIndicators: false,
   // Static export has no partial prerendering: the device copy builds without it.
