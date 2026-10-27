@@ -928,7 +928,18 @@ textarea {
   border-radius: 8px;
   box-shadow: 0 1px 0 var(--rule), 0 12px 28px -16px rgba(0, 0, 0, 0.4);
 }
+.editor .head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.editor .head .icon-btn {
+  flex-shrink: 0;
+  margin: -2px -6px 0 0;
+}
 .editor .title-input {
+  flex: 1;
+  min-width: 0;
   width: 100%;
   border: 0;
   border-bottom: 1.5px solid var(--accent);

@@ -25,6 +25,12 @@ export const PlusIcon = ({ size = 14 }: { size?: number }) => (
   </svg>
 );
 
+export const X = () => (
+  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+    <path d="M2 2l6 6M8 2 2 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+  </svg>
+);
+
 export const Handle = () => (
   <svg width="8" height="12" viewBox="0 0 8 12" aria-hidden>
     {[2, 6, 10].map((y) => (
@@ -107,7 +113,10 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
         <Check on={task.done} onClick={onToggle} label={task.title} />
         <div className="body" role="button" tabIndex={0} aria-expanded={open} onClick={toggleOpen} onKeyDown={onKey}>
           <span className="line">
-            <span className={`name strike${task.done ? ' is-done' : ''}`}>{task.title}</span>
+            {/* The strike sits on an inline span so it runs through every line of a long title. */}
+            <span className="name">
+              <span className={`strike${task.done ? ' is-done' : ''}`}>{task.title}</span>
+            </span>
             {task.tag && <span className="hashtag">#{task.tag}</span>}
           </span>
           {meta.length > 0 && (
@@ -124,7 +133,7 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
 }
 
 // An open task, in place: rename it, tag it, time it, move it or delete it.
-// Enter saves, Escape closes without saving.
+// Enter saves; Escape or the close button leaves it as it was.
 export function Editor({
   task,
   tags,
@@ -168,7 +177,12 @@ export function Editor({
 
   return (
     <div className="editor" role="group" aria-label={task.title}>
-      <input className="title-input" autoFocus value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={keys} aria-label={t.titleField} />
+      <div className="head">
+        <input className="title-input" autoFocus value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={keys} aria-label={t.titleField} />
+        <button type="button" className="icon-btn" onClick={onClose} aria-label={t.close} title={t.close}>
+          <X />
+        </button>
+      </div>
       <div className="fields">
         <label className="field">
           <span>{t.tagField}</span>

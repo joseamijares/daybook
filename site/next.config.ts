@@ -23,6 +23,20 @@ const nextConfig: NextConfig = {
   // straight from the CDN, so they arrive with the entrance animation instead
   // of waiting on the on-demand image optimizer.
   images: { unoptimized: true },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       { source: '/.well-known/llms.txt', destination: '/llms.txt' },
