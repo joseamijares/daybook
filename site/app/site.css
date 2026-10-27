@@ -1701,6 +1701,42 @@ html:has(.screen[open]) {
   text-underline-offset: 3px;
 }
 
+/* "How to use it · 2:29": opens the walkthrough lightbox (Film.tsx HowtoLink). */
+.howto-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+.howto-link:hover {
+  text-decoration: underline;
+}
+.howto-link__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ink);
+  flex-shrink: 0;
+}
+.howto-link__icon svg {
+  width: 8px;
+  height: 8px;
+  margin-left: 1px;
+  fill: var(--bone);
+}
+.howto-link__time {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+.install__howto {
+  margin-top: 14px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
 .faq {
   max-width: 1440px;
   margin: 0 auto;

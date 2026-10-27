@@ -31,6 +31,12 @@ const en = {
     medium: '2026 · Moving image, silent · 0:50',
     close: 'Close the video',
   },
+  howto: {
+    watch: 'How to use it',
+    length: '2:29',
+    work: 'How to use Daybook for Mac',
+    body: 'A walkthrough of one day in Daybook for Mac: download it, plan the morning, work the day, move things in Week, wrap up at night, and Settings, agents, Linear and Frame.',
+  },
   today: {
     caption: 'Today on every Daybook, as the app hangs it',
     source: 'Source',
@@ -253,6 +259,12 @@ const es: Copy = {
     work: 'Daybook, en cincuenta segundos',
     medium: '2026 · Imagen en movimiento, sin sonido, en inglés · 0:50',
     close: 'Cerrar el video',
+  },
+  howto: {
+    watch: 'Cómo usarlo (en inglés)',
+    length: '2:29',
+    work: 'Cómo usar Daybook para Mac',
+    body: 'Un recorrido por un día en Daybook para Mac, narrado en inglés: descárgalo, planea la mañana, trabaja el día, mueve cosas en la semana, cierra el día, y Ajustes, agentes, Linear y Frame.',
   },
   today: {
     caption: 'Hoy en cada Daybook, como lo cuelga la app',
