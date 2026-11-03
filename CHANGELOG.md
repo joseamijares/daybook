@@ -42,6 +42,10 @@
   week in Frame Dashboard's screen shape, and `/tv/api/version` tells the
   screen when anything changed. A TV reads them with its own read-only
   `DAYBOOK_SCREEN_KEY`, which can't change anything.
+- Frame Desk can talk to Daybook directly: point it at your Daybook's
+  address plus `/tv`, with an agent token. Ticking, adding or removing a
+  to-do there changes Daybook, its design and art settings are Daybook's, and
+  the meetings it reads from the Mac's calendars show on the TV.
 - Tick a task and it moves to the bottom of the day, under the ones still to
   do, so the next thing is always on top. On Today the list glides into its
   new order; the Mac menu bar does the same. Settings → Appearance → "Move

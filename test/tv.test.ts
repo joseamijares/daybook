@@ -3,10 +3,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET as versionGet, POST as versionPost } from '@/app/tv/api/version/route';
+import { PUT as eventsPut } from '@/app/tv/api/events/route';
+import { GET as planGet, PUT as planPut } from '@/app/tv/api/plan/route';
+import { GET as settingsGet, PUT as settingsPut } from '@/app/tv/api/settings/route';
 import { GET as weekGet } from '@/app/tv/api/week/route';
 import { setAppearance } from '@/lib/appearanceStore';
 import { authorized, screenAuthorized } from '@/lib/auth';
-import { addTask, setDay, setWeekFocus, updateTask } from '@/lib/daybook';
+import { addTask, backlog, getWeek, setDay, setWeekFocus, updateTask } from '@/lib/daybook';
 import { fileStore, setStore } from '@/lib/store';
 import { nextVersion, planVersion, type Store } from '@/lib/storage';
 import { tvWeek } from '@/lib/tv';
@@ -167,5 +170,93 @@ describe('the screen key', () => {
     delete process.env.DAYBOOK_SCREEN_KEY;
     expect(await screenAuthorized(req('/tv/api/week?k='))).toBe(false);
     expect(await screenAuthorized(req('/tv/api/week?k=screen'))).toBe(false);
+  });
+});
+
+const master = { authorization: 'Bearer master', 'content-type': 'application/json' };
+const send = (url: string, method: string, body: unknown, headers: Record<string, string> = master) =>
+  req(url, { method, headers, body: JSON.stringify(body) });
+
+describe('Frame Desk against Daybook', () => {
+  // Frame Desk's edit: read the plan, change a day, save the whole week.
+  async function edit(change: (tasks: { text: string; done: boolean; tag: string | null }[]) => void) {
+    const plan = await (await planGet(req('/tv/api/plan?week=2026-10-12', { headers: master }), undefined)).json();
+    const day = plan.days['2026-10-12'] || { focus: null, tasks: [] };
+    change(day.tasks);
+    plan.days['2026-10-12'] = day;
+    return planPut(send('/tv/api/plan', 'PUT', plan), undefined);
+  }
+
+  it('ticks, adds and removes to-dos in Daybook', async () => {
+    const a = await addTask({ title: 'Write tests', date: '2026-10-12' });
+    await addTask({ title: 'Review', date: '2026-10-12' });
+
+    expect((await edit((t) => (t.find((x) => x.text === 'Write tests')!.done = true))).status).toBe(200);
+    expect((await edit((t) => t.push({ text: 'Call the framer', done: false, tag: null }))).status).toBe(200);
+    expect((await edit((t) => t.splice(t.findIndex((x) => x.text === 'Review'), 1))).status).toBe(200);
+
+    const day = (await getWeek('2026-10-12')).days[0];
+    expect(day.tasks.map((t) => [t.title, t.done])).toEqual([
+      ['Write tests', true],
+      ['Call the framer', false],
+    ]);
+    expect(day.tasks[0].id).toBe(a.id);
+    // Removed on the Frame: to the backlog, never deleted.
+    expect((await backlog()).map((t) => t.title)).toEqual(['Review']);
+  });
+
+  it("keeps what Daybook changed after Frame Desk's read", async () => {
+    const a = await addTask({ title: 'Write tests', date: '2026-10-12' });
+    const plan = await (await planGet(req('/tv/api/plan?week=2026-10-12', { headers: master }), undefined)).json();
+    await updateTask(a.id, { done: true }); // in Daybook, meanwhile
+    plan.days['2026-10-12'].focus = 'From the Mac';
+    await planPut(send('/tv/api/plan', 'PUT', plan), undefined);
+    const day = (await getWeek('2026-10-12')).days[0];
+    expect(day.tasks[0].done).toBe(true);
+    expect(day.focus).toBe('From the Mac');
+  });
+
+  it('refuses a plan that is not a week, and the screen key', async () => {
+    expect((await planPut(send('/tv/api/plan', 'PUT', { weekOf: '2026-10-13', days: {} }), undefined)).status).toBe(400);
+    expect((await planPut(send('/tv/api/plan', 'PUT', { weekOf: '2026-10-12', days: { '2026-10-20': { tasks: [] } } }), undefined)).status).toBe(400);
+    expect((await planGet(req('/tv/api/plan?k=screen'), undefined)).status).toBe(401);
+    expect((await planPut(send('/tv/api/plan?k=screen', 'PUT', { weekOf: '2026-10-12', days: {} }, {}), undefined)).status).toBe(401);
+  });
+
+  it('switches the design and keeps the packs', async () => {
+    const before = await (await settingsGet(req('/tv/api/settings?k=screen'), undefined)).json();
+    expect(before).toMatchObject({ enabled: ['impressionists'], layout: 'bleed' });
+    expect(before.layouts.map((l: { id: string }) => l.id)).toEqual(['bleed', 'salon', 'painting']);
+    expect((await settingsPut(send('/tv/api/settings', 'PUT', { layout: 'salon' }), undefined)).status).toBe(200);
+    expect((await tvWeek()).layout).toBe('salon');
+    expect((await settingsPut(send('/tv/api/settings', 'PUT', { layout: 'mural' }), undefined)).status).toBe(400);
+    expect((await settingsPut(send('/tv/api/settings', 'PUT', { packs: ['nope'] }), undefined)).status).toBe(400);
+    expect((await settingsPut(send('/tv/api/settings', 'PUT', {}), undefined)).status).toBe(400);
+    expect((await settingsPut(send('/tv/api/settings?k=screen', 'PUT', { layout: 'bleed' }, {}), undefined)).status).toBe(401);
+  });
+
+  it("shows the Mac's meetings on the TV, once, and moves the version", async () => {
+    const v = await planVersion();
+    vi.setSystemTime(new Date('2026-10-12T15:00:05Z'));
+    const res = await eventsPut(
+      send('/tv/api/events', 'PUT', {
+        weekOf: '2026-10-12',
+        source: 'Frame Desk',
+        events: [
+          { title: 'Standup', start: '2026-10-13T15:00:00Z', end: '2026-10-13T15:15:00Z' },
+          { title: 'Standup', start: '2026-10-13T15:00:00Z', end: '2026-10-13T15:15:00Z' },
+          { title: 'Holiday', allDay: true, date: '2026-10-14' },
+          { title: 'Next week', start: '2026-10-20T15:00:00Z' },
+        ],
+      }),
+      undefined,
+    );
+    expect(await res.json()).toMatchObject({ ok: true, weekOf: '2026-10-12', count: 3 });
+    expect(await planVersion()).not.toBe(v);
+    const w = await tvWeek();
+    expect(w.days[1].events.map((e) => e.title)).toEqual(['Standup']);
+    expect(w.days[2].events).toEqual([{ title: 'Holiday', location: null, allDay: true, date: '2026-10-14' }]);
+    expect(w.eventsSyncedAt).not.toBeNull();
+    expect((await eventsPut(send('/tv/api/events', 'PUT', { weekOf: '2026-10-12', events: [{ start: 'x' }] }), undefined)).status).toBe(400);
   });
 });
