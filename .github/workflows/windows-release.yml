@@ -38,11 +38,11 @@ jobs:
     outputs:
       signed: ${{ steps.signing.outputs.enabled == 'true' || steps.signpath.outputs.enabled == 'true' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # .npmrc's shell-emulator sets DAYBOOK_DEVICE=windows in cmd.exe as well.
@@ -131,7 +131,7 @@ jobs:
       - name: Upload the installers for signing
         id: unsigned
         if: steps.signpath.outputs.enabled == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Daybook-windows-unsigned
           path: dist
@@ -161,7 +161,7 @@ jobs:
             Write-Output "$name signed by $($signature.SignerCertificate.Subject)"
             Copy-Item $file -Destination 'dist' -Force
           }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Daybook-windows
           path: dist
@@ -177,7 +177,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Path store | Out-Null
           ./windows/scripts/msix.ps1 (Join-Path $PWD 'store\Daybook.msix')
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Daybook-msix
           path: store
@@ -191,7 +191,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: Daybook-windows
           path: dist
