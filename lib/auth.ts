@@ -1,7 +1,8 @@
 // Who may use Daybook:
 // - DAYBOOK_KEY, the master key: `Authorization: Bearer <key>` or `?key=`;
 // - agent tokens (dbk_…) created in Settings, one per connection, revocable;
-// - the browser's httpOnly session cookie, set after signing in once.
+// - the browser's httpOnly session cookie, set after signing in once;
+// - DAYBOOK_SCREEN_KEY, for the TV's reads only (screenAuthorized).
 // With no DAYBOOK_KEY only `next dev` is open (your own machine while you
 // develop). Any other server without a key, on Vercel or anywhere else, has no
 // cloud Daybook: it offers only "on this device".
@@ -48,6 +49,17 @@ export async function authorized(req: Request): Promise<boolean> {
   }
   for (const t of [bearer, query, tokenCookie]) if (looksLikeToken(t) && (await verifyToken(t))) return true;
   return false;
+}
+
+/**
+ * The TV: DAYBOOK_SCREEN_KEY, read-only, as `?k=` (baked into the TV apps' URL) or a
+ * bearer, on the /tv/api reads only. Anyone who may use Daybook may read them too.
+ */
+export async function screenAuthorized(req: Request): Promise<boolean> {
+  const { bearer } = credentials(req);
+  const k = new URL(req.url).searchParams.get('k');
+  const key = process.env.DAYBOOK_SCREEN_KEY;
+  return sameSecret(k, key) || sameSecret(bearer, key) || authorized(req);
 }
 
 /** The browser session (or master key) only: managing tokens and secrets isn't for agents. */
