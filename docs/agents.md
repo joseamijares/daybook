@@ -38,7 +38,11 @@ Send either one in one of these ways:
 
 The TV on the wall has its own key, `DAYBOOK_SCREEN_KEY`, sent as `?k=` in
 the URL the TV apps load. It only reads `/tv/api/week` and `/tv/api/version`,
-so a key baked into a TV can't change anything.
+so a key baked into a TV can't change anything. It can still read the week's
+tasks and meetings, and as part of a URL it can end up in server, proxy and
+browser logs. Send it as `Authorization: Bearer` wherever the client can. If a
+screen URL is shared or logged, set a new `DAYBOOK_SCREEN_KEY` and rebuild the
+TV apps with it.
 
 If `DAYBOOK_KEY` is unset, only `pnpm dev` is open (for development on your
 own machine). Any other server then has no cloud Daybook at all, only "on

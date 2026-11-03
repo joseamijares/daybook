@@ -8,7 +8,7 @@ import { setAppearance } from '@/lib/appearanceStore';
 import { authorized, screenAuthorized } from '@/lib/auth';
 import { addTask, setDay, setWeekFocus, updateTask } from '@/lib/daybook';
 import { fileStore, setStore } from '@/lib/store';
-import { planVersion } from '@/lib/storage';
+import { nextVersion, planVersion, type Store } from '@/lib/storage';
 import { tvWeek } from '@/lib/tv';
 
 const req = (url: string, init: RequestInit = {}) => new Request(`http://localhost${url}`, init);
@@ -62,6 +62,44 @@ describe('the TV week', () => {
     expect(w.tomorrow).toMatchObject({ date: '2026-10-19', focus: 'Monday plan' });
   });
 
+  it('says when the Frame can\'t be read, instead of showing a free day', async () => {
+    process.env.FRAME_DASHBOARD_URL = 'https://frame.test';
+    process.env.FRAME_DASHBOARD_WRITE_KEY = 'w';
+    const fetch = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
+    try {
+      const w = await tvWeek();
+      expect(w.errors).toEqual(['Meetings unavailable: offline']);
+      expect(w.days[0].events).toEqual([]);
+      // The painting falls back to Daybook's own.
+      expect(w.days[0].art.image).toMatch(/^\/art\//);
+    } finally {
+      fetch.mockRestore();
+      delete process.env.FRAME_DASHBOARD_URL;
+      delete process.env.FRAME_DASHBOARD_WRITE_KEY;
+    }
+  });
+
+  it('asks the Frame once for the whole week', async () => {
+    vi.setSystemTime(new Date('2026-11-09T15:00:00Z')); // a Monday no other test caches
+    process.env.FRAME_DASHBOARD_URL = 'https://frame.test';
+    process.env.FRAME_DASHBOARD_WRITE_KEY = 'w';
+    const days = ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'].map((date) => ({
+      date,
+      events: date === '2026-11-10' ? [{ title: 'Standup', location: null, allDay: false, date, start: `${date}T15:00:00Z`, end: `${date}T15:15:00Z` }] : [],
+    }));
+    const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({ days }));
+    try {
+      const w = await tvWeek();
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(w.errors).toEqual([]);
+      expect(w.days[1].events.map((e) => e.title)).toEqual(['Standup']);
+    } finally {
+      fetch.mockRestore();
+      delete process.env.FRAME_DASHBOARD_URL;
+      delete process.env.FRAME_DASHBOARD_WRITE_KEY;
+    }
+  });
+
   it('is unplanned on an empty week', async () => {
     expect((await tvWeek()).planned).toBe(false);
   });
@@ -78,6 +116,32 @@ describe('the version', () => {
     expect(await planVersion()).toBe(v1);
     await setDay('2026-10-12', { focus: 'Two' });
     expect(await planVersion()).not.toBe(v1);
+  });
+});
+
+describe('the version stamp', () => {
+  it('never repeats, even within one millisecond', () => {
+    const a = nextVersion();
+    const b = nextVersion();
+    expect(Number(b)).toBeGreaterThan(Number(a));
+  });
+
+  it("doesn't fail a write that already happened", async () => {
+    const data: Record<string, unknown> = {};
+    const flaky: Store = {
+      all: async () => ({}),
+      get: async () => null,
+      put: async (kind, id, value) => {
+        if (id === 'version') throw new Error('redis down');
+        data[`${kind}:${id}`] = value;
+      },
+      del: async () => {},
+    };
+    setStore(flaky);
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(addTask({ title: 'Once' })).resolves.toMatchObject({ title: 'Once' });
+    expect(Object.keys(data)).toHaveLength(1);
+    err.mockRestore();
   });
 });
 

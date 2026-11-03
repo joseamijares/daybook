@@ -5,7 +5,7 @@
 
 import { type Artwork, artFor } from './art';
 import { type DayView, getDay, getWeek, type Task } from './daybook';
-import { type FrameEvent, frameArt, frameEvents } from './frame';
+import { type FrameEvent, frameArt, frameEventsOrError } from './frame';
 import { store } from './storage';
 import { addDays, isYmd, today, tzName } from './time';
 
@@ -84,15 +84,18 @@ async function tvDay(d: DayView, events: Record<string, FrameEvent[]>): Promise<
 export async function tvWeek(date?: string): Promise<TvWeek> {
   const t = today();
   const anchor = isYmd(date) ? date : t;
-  const [week, events, settings] = await Promise.all([getWeek(anchor), frameEvents(anchor), getTvSettings()]);
-  const days = await Promise.all(week.days.map((d) => tvDay(d, events)));
+  const [week, frame, settings] = await Promise.all([getWeek(anchor), frameEventsOrError(anchor), getTvSettings()]);
+  const days = await Promise.all(week.days.map((d) => tvDay(d, frame.events)));
+  // The screen prints the first error in its status line.
+  const errors = frame.error ? [`Meetings unavailable: ${frame.error}`] : [];
 
   // The evening view shows tomorrow. On Sunday that is next week's Monday.
   const next = addDays(t, 1);
   let tomorrow = days.find((d) => d.date === next) || null;
   if (!tomorrow && anchor === t) {
-    const [day, nextEvents] = await Promise.all([getDay(next), frameEvents(next)]);
-    tomorrow = await tvDay(day, nextEvents);
+    const [day, nextFrame] = await Promise.all([getDay(next), frameEventsOrError(next)]);
+    tomorrow = await tvDay(day, nextFrame.events);
+    if (nextFrame.error && !errors.length) errors.push(`Meetings unavailable: ${nextFrame.error}`);
   }
 
   const tasks = week.days.flatMap((d) => d.tasks);
@@ -109,7 +112,7 @@ export async function tvWeek(date?: string): Promise<TvWeek> {
     eventsSyncedAt: null,
     days,
     tomorrow,
-    errors: [],
+    errors,
     generatedAt: new Date().toISOString(),
   };
 }

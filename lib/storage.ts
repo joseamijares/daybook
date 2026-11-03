@@ -21,8 +21,14 @@ let factory: (() => Store) | null = null;
 export const VERSION = 'version';
 const watched = (kind: Kind, id: string) => kind === 'tasks' || kind === 'days' || kind === 'weeks' || (kind === 'meta' && id === 'tv');
 
+// From the clock, but always past the last one, so two writes in one millisecond still differ.
+let lastVersion = 0;
+export const nextVersion = () => String((lastVersion = Math.max(Date.now(), lastVersion + 1)));
+
 function stamped(s: Store): Store {
-  const stamp = () => s.put('meta', VERSION, String(Date.now()));
+  // Best effort: the write itself already happened, so a failed stamp mustn't fail it
+  // (a retry would add the task twice). The TV catches up on its next full refresh.
+  const stamp = () => s.put('meta', VERSION, nextVersion()).catch((err) => console.error('version stamp failed', err));
   return {
     all: <T>(kind: Kind) => s.all<T>(kind),
     get: <T>(kind: Kind, id: string) => s.get<T>(kind, id),

@@ -3,14 +3,14 @@
 //      and reloads itself on a new build.
 // POST /tv/api/version                  bump the version: "refresh the screens now"
 import { json, route } from '@/lib/http';
-import { planVersion, store, VERSION } from '@/lib/storage';
+import { nextVersion, planVersion, store, VERSION } from '@/lib/storage';
 
-const BUILD = process.env.VERCEL_DEPLOYMENT_ID || process.env.VERCEL_GIT_COMMIT_SHA || 'dev';
+const BUILD = process.env.VERCEL_DEPLOYMENT_ID || process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_SHA || 'dev';
 
 export const GET = route(async () => json({ version: await planVersion(), build: BUILD }), { screen: true });
 
 export const POST = route(async () => {
-  const version = String(Date.now());
+  const version = nextVersion();
   await store().put('meta', VERSION, version);
   return json({ version, build: BUILD });
 });
