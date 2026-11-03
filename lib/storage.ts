@@ -15,11 +15,11 @@ export interface Store {
 let current: Store | null = null;
 let factory: (() => Store) | null = null;
 
-// A change to the plan (tasks, days, weeks, the TV's settings) also stamps
+// A change to the plan (tasks, days, weeks, the TV's settings and meetings) also stamps
 // meta "version", so a screen can poll that one small value instead of the
 // whole week (the TV asks /tv/api/version every 20 seconds).
 export const VERSION = 'version';
-const watched = (kind: Kind, id: string) => kind === 'tasks' || kind === 'days' || kind === 'weeks' || (kind === 'meta' && id === 'tv');
+const watched = (kind: Kind, id: string) => kind === 'tasks' || kind === 'days' || kind === 'weeks' || (kind === 'meta' && (id === 'tv' || id.startsWith('tv:')));
 
 // From the clock, but always past the last one, so two writes in one millisecond still differ.
 let lastVersion = 0;

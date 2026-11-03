@@ -64,9 +64,10 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
 - `site/` is the public landing page, a separate Next.js app (pnpm workspace) with its own Vercel project and
   Root Directory `site`. It imports `lib/art.ts` for the painting of the day; its copy lives in `site/lib/copy.ts`
   (English and Spanish), not in `lib/i18n.ts`. `pnpm verify` builds it too.
-- `lib/tv.ts` and `app/tv/api/*` serve the TV on the wall (the Frame Dashboard screen) from Daybook, in Frame
-  Dashboard's `/api/week` shape, read with the read-only `DAYBOOK_SCREEN_KEY` (`screenAuthorized()`). Every write
-  to tasks, days or weeks stamps a version (`lib/storage.ts`) the TV polls.
+- `lib/tv.ts` and `app/tv/api/*` serve the TV on the wall (the Frame Dashboard screen) and Frame Desk from Daybook,
+  in Frame Dashboard's API shapes (`week`, `version`, `settings`, `plan`, `events`). The screen reads with the
+  read-only `DAYBOOK_SCREEN_KEY` (`screenAuthorized()`). Frame Desk's whole-week saves go through `mergeFromFrame`.
+  Every write to tasks, days, weeks or the TV's meta stamps a version (`lib/storage.ts`) the TV polls.
 - `lib/frame.ts` is a three-way merge with Frame Dashboard (see docs/agents.md); change its rules only with a
   test in `test/frame.test.ts`.
 

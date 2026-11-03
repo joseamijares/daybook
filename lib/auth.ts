@@ -53,7 +53,7 @@ export async function authorized(req: Request): Promise<boolean> {
 
 /**
  * The TV: DAYBOOK_SCREEN_KEY, read-only, as `?k=` (baked into the TV apps' URL) or a
- * bearer, on the /tv/api reads only. Anyone who may use Daybook may read them too.
+ * bearer, on the TV's reads only (week, version, settings). Anyone who may use Daybook may read them too.
  */
 export async function screenAuthorized(req: Request): Promise<boolean> {
   const { bearer } = credentials(req);
