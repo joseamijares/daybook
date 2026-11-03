@@ -38,6 +38,10 @@
 
 ### The app
 
+- The TV on the wall starts moving into Daybook: `/tv/api/week` serves the
+  week in Frame Dashboard's screen shape, and `/tv/api/version` tells the
+  screen when anything changed. A TV reads them with its own read-only
+  `DAYBOOK_SCREEN_KEY`, which can't change anything.
 - Tick a task and it moves to the bottom of the day, under the ones still to
   do, so the next thing is always on top. On Today the list glides into its
   new order; the Mac menu bar does the same. Settings → Appearance → "Move

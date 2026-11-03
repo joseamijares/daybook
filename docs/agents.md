@@ -36,6 +36,14 @@ Send either one in one of these ways:
   password, so don't paste it anywhere public;
 - the browser's httpOnly session cookie, which is set after signing in once.
 
+The TV on the wall has its own key, `DAYBOOK_SCREEN_KEY`, sent as `?k=` in
+the URL the TV apps load. It only reads `/tv/api/week` and `/tv/api/version`,
+so a key baked into a TV can't change anything. It can still read the week's
+tasks and meetings, and as part of a URL it can end up in server, proxy and
+browser logs. Send it as `Authorization: Bearer` wherever the client can. If a
+screen URL is shared or logged, set a new `DAYBOOK_SCREEN_KEY` and rebuild the
+TV apps with it.
+
 If `DAYBOOK_KEY` is unset, only `pnpm dev` is open (for development on your
 own machine). Any other server then has no cloud Daybook at all, only "on
 this device".
@@ -167,6 +175,8 @@ in clients that support prompts.
 | `GET /api/frame?date=` / `POST /api/frame` | Preview the Frame Dashboard plan, or run a two-way sync |
 | `GET /api/frame/settings` / `PUT /api/frame/settings` | The Frame's design and the designs it offers / `{ layout }` to switch |
 | `GET /api/appearance` / `PUT /api/appearance` | How Daybook looks / `{ style?: "wall" \| "timetable" \| "notebook", palette?: "salon" \| "modern" \| "nocturne", eveningNocturne?: boolean, doneToBottom?: boolean }`. `doneToBottom` (default `true`) moves a task marked done under the ones still to do. `GET /api/session` also returns `appearance` and `closedToday` |
+| `GET /tv/api/week?date=&k=` | The week as the TV on the wall draws it, in Frame Dashboard's `/api/week` shape: `tz`, `locale`, `layout`, `focus`, `planned`, and per day `focus`, `tasks` (`{ text, done, tag }`, unfinished first), `events` and `art`, plus `tomorrow`. Reads with `DAYBOOK_SCREEN_KEY` (`?k=` or bearer) or any Daybook credential |
+| `GET /tv/api/version?k=` / `POST /tv/api/version` | `{ version, build }`: `version` moves on every change to tasks, days or weeks, `build` on every deploy. The TV polls it. POST bumps it ("refresh the screens"); not with the screen key |
 | `GET /api/cron/sync` | Vercel Cron: sync Linear and Frame (bearer `CRON_SECRET` or `DAYBOOK_KEY`) |
 | `GET/POST /api/tokens`, `DELETE /api/tokens/:id` | Agent tokens: list, create (the token is shown once), revoke. Owner only |
 | `GET/PUT/DELETE /api/integrations/linear` | Linear status / `{ apiKey }` to connect (checked, stored encrypted) / disconnect. Owner only |
@@ -203,6 +213,11 @@ Daybook Mac app every two minutes) has three steps:
 
    The tag is the Linear key when there is one. Frame's own per-day notes are
    kept.
+
+Daybook is taking over the TV itself: `/tv/api/week` and `/tv/api/version`
+serve the screen from Daybook's own week, with a read-only `DAYBOOK_SCREEN_KEY`
+for the TV's URL. While a Frame is still connected, the meetings and paintings
+there come from it.
 
 Set `FRAME_AUTO_SYNC=true` to sync after every change, once the response has
 been sent. Meetings stay in Frame's calendar feeds and are never copied into
