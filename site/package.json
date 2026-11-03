@@ -18,10 +18,10 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "typescript": "^5"
+    "typescript": "^6"
   },
   "engines": {
     "node": ">=20"
