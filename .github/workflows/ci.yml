@@ -30,6 +30,7 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - run: pnpm build:device # the Mac app's own copy of the pages
+      - run: pnpm build:windows # the Windows app's copy; its own build runs only when windows/ changes
       - run: pnpm site:verify
       - name: Secret scan
         uses: gitleaks/gitleaks-action@v3

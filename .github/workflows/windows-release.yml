@@ -6,21 +6,17 @@ name: Windows release
 # code-signed by SignPath Foundation when SIGNPATH_API_TOKEN is set, after a person
 # approves the request in SignPath (or by SSL.com eSigner with the ESIGNER_* secrets;
 # windows/README.md, Signing). Without either they aren't, SmartScreen says "unknown
-# publisher", and the release notes say how to open it. Pull requests that touch the
-# app or the pages build it too, unsigned, as a workflow artifact.
+# publisher", and the release notes say how to open it. Pull requests that change
+# windows/ or this workflow build it too, unsigned, as a workflow artifact.
 
 on:
   push:
     tags: ['windows-v*']
   pull_request:
+    # Native code only. Web changes reach the app as its static copy of the pages,
+    # and CI's verify job already builds that copy on Linux (build:device, build:windows).
     paths:
       - 'windows/**'
-      - 'app/**'
-      - 'components/**'
-      - 'lib/**'
-      - 'next.config.ts'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
       - '.github/workflows/windows-release.yml'
 
 permissions:
