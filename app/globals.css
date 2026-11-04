@@ -1818,6 +1818,57 @@ textarea {
   align-items: center;
   margin-left: 4px;
 }
+/* The "?" beside the gear: opens the how-to walkthrough (components/Walkthrough.tsx). */
+.nav button.help {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgba(236, 230, 216, 0.74);
+  cursor: pointer;
+}
+.nav button.help:hover {
+  color: var(--color-bone);
+}
+
+/* The walkthrough: the video in a dialog over the wall, its title and Close on a placard strip. */
+dialog.walkthrough {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  height: fit-content;
+  width: min(1120px, calc(100vw - 64px));
+  max-height: calc(100vh - 64px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--sheet);
+  color: var(--color-card-ink);
+  box-shadow: var(--placard-shadow);
+  overflow: hidden;
+}
+dialog.walkthrough::backdrop {
+  background: var(--veil);
+  backdrop-filter: blur(6px);
+}
+.walkthrough-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+dialog.walkthrough video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--color-wall);
+}
+.welcome .howto-btn {
+  align-self: flex-start;
+}
 /* A newer Daybook (components/updates.tsx): a small lit dot and one word. */
 .update-mark {
   display: inline-flex;
