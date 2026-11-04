@@ -13,14 +13,10 @@ on:
   push:
     tags: ['windows-v*']
   pull_request:
+    # Native code only. Web changes reach the app as its static copy of the pages,
+    # and CI's verify job already builds that copy on Linux (build:device, build:windows).
     paths:
       - 'windows/**'
-      - 'app/**'
-      - 'components/**'
-      - 'lib/**'
-      - 'next.config.ts'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
       - '.github/workflows/windows-release.yml'
 
 permissions:

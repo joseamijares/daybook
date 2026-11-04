@@ -45,7 +45,7 @@ try the pages, the storage and the tray (the menu bar stands in for it).
 
 Push a `windows-v*` tag (`windows-v0.1.0`). `.github/workflows/windows-release.yml` builds both
 installers on `windows-latest` and attaches them to that tag's release as `Daybook-setup.exe`
-and `Daybook.msi`. Pull requests that touch the app or the pages build them as an artifact.
+and `Daybook.msi`. Pull requests that change `windows/` build them as an artifact; CI builds the pages (`pnpm build:windows`) on every pull request.
 
 ## Signing
 
