@@ -19,7 +19,7 @@ import { capitalize, useMeetings } from './day';
 import { DraftText } from './DraftText';
 import { useOps } from './ops';
 import { arranged, type SortRow, TASK_TYPE, useSortable } from './sortable';
-import { AddRow, Editor, Handle, ListIcon, type Move, type Patch, PlusIcon, type SubtaskOps, subtaskCount, useTaskNotes, X } from './TaskRow';
+import { AddRow, Editor, Handle, ListIcon, type Move, type Patch, Peek, PlusIcon, SubsToggle, type SubtaskOps, subtaskCount, usePeek, useTaskNotes, X } from './TaskRow';
 
 type Source = 'backlog' | 'linear';
 const Bin = () => (
@@ -329,9 +329,11 @@ function DayLine({
   const { carried } = useTaskNotes(task, true);
   const subs = subtaskCount(task, t, true);
   const [open, setOpen] = useState(false);
+  const [peek, setPeek] = usePeek(task);
+  const showPeek = peek && !open && task.subtasks.length > 0;
   return (
     <>
-      <div className={['line-row', fresh && 'is-new'].filter(Boolean).join(' ')} {...sort}>
+      <div className={['line-row', fresh && 'is-new', showPeek && 'peeking'].filter(Boolean).join(' ')} {...sort}>
         <span className="handle">
           <Handle />
         </span>
@@ -348,10 +350,15 @@ function DayLine({
         ) : (
           <>
             {subs && (
-              <span className="note subs">
-                <ListIcon />
-                {subs}
-              </span>
+              <SubsToggle
+                className="note subs"
+                count={subs}
+                open={showPeek}
+                onToggle={() => {
+                  setPeek(!showPeek);
+                  if (!showPeek) setOpen(false);
+                }}
+              />
             )}
             {carried && <span className="note carried">{carried}</span>}
             {task.source && (
@@ -368,6 +375,7 @@ function DayLine({
         </button>
       </div>
       {open && <Editor task={task} tags={tags} moves={moves} onPatch={onPatch} onDelete={onDelete} onClose={() => setOpen(false)} subtaskOps={subtaskOps} />}
+      {showPeek && <Peek task={task} ops={subtaskOps} />}
     </>
   );
 }
