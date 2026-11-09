@@ -221,23 +221,34 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
 // A task's subtasks shown under its row, to tick off without opening the task.
 // Adding, renaming and removing stay in the open task.
 function Peek({ task, ops }: { task: Task; ops: SubtaskOps }) {
-  // A tick shows at once; the list follows the task again when the save comes back.
-  const [shown, setShown] = useState({ from: task.subtasks, list: task.subtasks });
-  let list = shown.list;
-  if (shown.from !== task.subtasks) {
-    list = task.subtasks;
-    setShown({ from: task.subtasks, list });
+  // A tick shows at once, over the task as last loaded. When the task comes
+  // back the ticks are dropped (it has them); a tick whose save failed is
+  // taken back, so the box never shows what wasn't saved.
+  const [ticks, setTicks] = useState<{ from: Subtask[]; done: Record<string, boolean> }>({ from: task.subtasks, done: {} });
+  let done = ticks.done;
+  if (ticks.from !== task.subtasks) {
+    done = {};
+    setTicks({ from: task.subtasks, done });
   }
-  const tick = (s: Subtask) => {
-    setShown({ from: task.subtasks, list: list.map((x) => (x.id === s.id ? { ...x, done: !x.done } : x)) });
-    ops.patchSubtask(task.id, s.id, { done: !s.done });
+  const list = task.subtasks.map((s) => (s.id in done ? { ...s, done: done[s.id] } : s));
+  const tick = async (s: Subtask) => {
+    const want = !s.done;
+    setTicks((x) => ({ ...x, done: { ...x.done, [s.id]: want } }));
+    const saved = await ops.patchSubtask(task.id, s.id, { done: want });
+    if (saved === undefined)
+      setTicks((x) => {
+        const next = { ...x.done };
+        if (next[s.id] === want) delete next[s.id];
+        return { ...x, done: next };
+      });
   };
   return (
     <div className="peek">
       {list.map((s) => (
         <div key={s.id} className={`peek-item${s.done ? ' is-done' : ''}`}>
           <Check on={s.done} label={s.title} onClick={() => tick(s)} />
-          <button type="button" className="peek-title" onClick={() => tick(s)} tabIndex={-1}>
+          {/* A bigger target for the pointer; the check is the control for keys and screen readers. */}
+          <button type="button" className="peek-title" onClick={() => tick(s)} tabIndex={-1} aria-hidden>
             {s.title}
           </button>
         </div>

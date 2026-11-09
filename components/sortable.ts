@@ -198,9 +198,9 @@ export function useSortable<T extends HTMLElement = HTMLDivElement>({
     const els = el ? Array.from(el.children).filter((n): n is HTMLElement => n instanceof HTMLElement && (Boolean(n.dataset.sortId) || trails(n))) : [];
     if (l && !els.includes(l.el)) els.push(l.el);
     for (const n of els) {
-      // A lifted row's subtasks followed it without a transition; give theirs back.
-      n.style.transition = animate && n.classList.contains('peek') ? '' : n.style.transition;
       if (!animate) n.style.transition = 'none';
+      // A lifted row's subtasks followed it without a transition; give theirs back.
+      else if (n.classList.contains('peek')) n.style.transition = '';
       n.style.transform = '';
       n.style.translate = '';
       delete n.dataset.lift;
