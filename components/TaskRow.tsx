@@ -51,6 +51,37 @@ function setPeeking(id: string, on: boolean) {
   }
 }
 
+/** Whether a task shows its subtasks on its row (on this device), and a way to change it. */
+export function usePeek(task: Task) {
+  // Rows render only once the day has loaded in the browser, so this reads no storage on the server.
+  const [peek, setPeek] = useState(() => peeking().has(task.id));
+  const set = (on: boolean) => {
+    setPeek(on);
+    setPeeking(task.id, on);
+  };
+  return [peek, set] as const;
+}
+
+/** The subtask count as a toggle: shows the subtasks under the row; it never opens the task. */
+export function SubsToggle({ count, open, onToggle, className = 'subs' }: { count: string; open: boolean; onToggle: () => void; className?: string }) {
+  const { t } = useSession();
+  return (
+    <button
+      type="button"
+      className={`${className} subs-toggle`}
+      aria-expanded={open}
+      aria-label={`${open ? t.hideSubtasks : t.showSubtasks}: ${count}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+    >
+      <Chevron open={open} />
+      {count}
+    </button>
+  );
+}
+
 export const Chevron = ({ open }: { open: boolean }) => (
   <svg className={`chevron${open ? ' open' : ''}`} width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
     <path d="M3.5 2l3 3-3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -135,8 +166,7 @@ export function useTaskNotes(task: Task, short = false) {
 
 export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow', 'backlog'], tags = [], sort, subtaskOps }: Props) {
   const [open, setOpen] = useState(false);
-  // Rows render only once the day has loaded in the browser, so this reads no storage on the server.
-  const [peek, setPeek] = useState(() => peeking().has(task.id));
+  const [peek, setPeek] = usePeek(task);
   const showPeek = peek && !open && Boolean(subtaskOps) && task.subtasks.length > 0;
   const { t } = useSession();
   const { style } = useLook();
@@ -148,24 +178,15 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
   if (subs)
     meta.push(
       subtaskOps ? (
-        <button
+        <SubsToggle
           key="subs"
-          type="button"
-          className="subs subs-toggle"
-          aria-expanded={showPeek}
-          aria-label={`${showPeek ? t.hideSubtasks : t.showSubtasks}: ${subs}`}
-          onClick={(e) => {
-            // Shows the subtasks on the row; it never opens the task.
-            e.stopPropagation();
-            const next = !showPeek;
-            setPeek(next);
-            setPeeking(task.id, next);
-            if (next) setOpen(false);
+          count={subs}
+          open={showPeek}
+          onToggle={() => {
+            setPeek(!showPeek);
+            if (!showPeek) setOpen(false);
           }}
-        >
-          <Chevron open={showPeek} />
-          {subs}
-        </button>
+        />
       ) : (
         <span key="subs" className="subs">
           <ListIcon />
@@ -220,7 +241,7 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
 
 // A task's subtasks shown under its row, to tick off without opening the task.
 // Adding, renaming and removing stay in the open task.
-function Peek({ task, ops }: { task: Task; ops: SubtaskOps }) {
+export function Peek({ task, ops }: { task: Task; ops: SubtaskOps }) {
   // A tick shows at once, over the task as last loaded. When the task comes
   // back the ticks are dropped (it has them); a tick whose save failed is
   // taken back, unless a later tick on the same subtask has replaced it, so

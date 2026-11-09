@@ -1254,6 +1254,16 @@ textarea {
 [data-style="timetable"] .peek {
   --lane: 30px;
 }
+/* Planning: the lane after the drag handle. */
+.line-row + .peek {
+  --lane: 20px;
+}
+.line-row.peeking {
+  border-bottom-color: transparent;
+}
+.line-row + .peek .peek-title {
+  font-size: 14px;
+}
 [data-style="notebook"] .peek {
   --lane: 32px;
   border-bottom-style: dotted;
