@@ -143,6 +143,7 @@ export function TodayView() {
               }}
               onPatch={(p) => ops.patch(task.id, p)}
               onDelete={() => ops.remove(task.id)}
+              subtaskOps={ops}
               moves={isToday ? ['tomorrow', 'backlog'] : ['today', 'backlog']}
               sort={sort.rowProps(task.id)}
             />

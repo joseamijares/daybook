@@ -6,6 +6,7 @@
 //   daybook today | week | backlog   read your plan
 //   daybook add "Draft deck 45m #client" [--date tomorrow]
 //   daybook done <id>
+//   daybook subtask <task-id> "Pull the numbers"   add a subtask under a task
 //
 // Reads DAYBOOK_URL (default http://localhost:3000) and DAYBOOK_KEY from the environment.
 
@@ -156,7 +157,9 @@ function setup(args) {
 }
 
 // ---- plain commands -----------------------------------------------------------
-const fmt = (t) => `${t.done ? '✓' : '○'} ${t.title}${t.estimate ? `  ${t.estimate}m` : ''}${t.source ? `  ${t.source.key}` : t.tag ? `  #${t.tag}` : ''}  [${t.id}]`;
+const fmt = (t) =>
+  `${t.done ? '✓' : '○'} ${t.title}${t.estimate ? `  ${t.estimate}m` : ''}${t.source ? `  ${t.source.key}` : t.tag ? `  #${t.tag}` : ''}  [${t.id}]` +
+  (t.subtasks || []).map((s) => `\n    ${s.done ? '✓' : '·'} ${s.title}  [${s.id}]`).join('');
 
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
@@ -198,8 +201,14 @@ async function main() {
       for (const w of r.warnings || []) console.log(`! ${w}`);
       return;
     }
+    case 'subtask': {
+      const [id, ...title] = rest;
+      const r = await call('POST', `/api/tasks/${id}/subtasks`, { title: title.join(' ') });
+      console.log(fmt(r.task));
+      return;
+    }
     default:
-      console.log(readFileSync(SELF, 'utf8').split('\n').slice(1, 12).map((l) => l.replace(/^\/\/ ?/, '')).join('\n'));
+      console.log(readFileSync(SELF, 'utf8').split('\n').slice(1, 11).map((l) => l.replace(/^\/\/ ?/, '')).join('\n'));
   }
 }
 

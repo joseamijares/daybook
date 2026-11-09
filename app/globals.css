@@ -1010,6 +1010,193 @@ textarea {
   display: flex;
   gap: 8px;
 }
+/* On a narrow card the moves and the save sit on two lines, Save on the right. */
+.editor .bar {
+  flex-wrap: wrap;
+  row-gap: 12px;
+}
+.editor .bar .moves:last-child {
+  margin-left: auto;
+}
+
+/* Subtasks, inside an open task: under the name, before the tag and time. */
+.subtask-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--accent);
+}
+[data-style="notebook"] .subtask-start {
+  font-style: italic;
+  font-weight: 400;
+  font-size: 16px;
+}
+.subtasks {
+  display: flex;
+  flex-direction: column;
+}
+.subtasks-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-card-ink-2);
+}
+.subtasks-head .count {
+  font-weight: 500;
+  color: var(--color-card-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+[data-style="notebook"] .subtasks-head .count {
+  font-style: italic;
+  font-weight: 400;
+}
+.subtask {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  border-top: 1px solid var(--rule);
+}
+.subtask.adding {
+  border-bottom: 1.5px solid var(--rule);
+  transition: border-color 0.18s var(--ease-gallery);
+}
+.subtask.adding:focus-within {
+  border-bottom-color: var(--accent);
+}
+[data-style="notebook"] .subtask {
+  border-top-style: dotted;
+  border-top-color: var(--color-rule-strong);
+}
+.subtask .check {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border-width: 1.3px;
+}
+[data-style="notebook"] .subtask .check {
+  border-radius: 3px;
+}
+.subtask .check svg {
+  width: 9px;
+  height: 9px;
+}
+.check.ghost {
+  border: 1.3px dashed var(--color-rule-strong);
+  pointer-events: none;
+}
+.subtask-title,
+.subtask-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  outline: none;
+  font: inherit;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--color-card-ink);
+}
+.subtask-input::placeholder {
+  color: var(--color-card-ink-3);
+}
+[data-style="timetable"] .subtask-title,
+[data-style="timetable"] .subtask-input {
+  font-size: 14px;
+}
+[data-style="notebook"] .subtask-title,
+[data-style="notebook"] .subtask-input {
+  font-size: 16px;
+  line-height: 22px;
+}
+.subtask-title:focus {
+  box-shadow: 0 1.5px 0 var(--accent);
+}
+.subtask.is-done .subtask-title {
+  color: var(--color-done);
+  text-decoration: line-through;
+}
+.subtask .remove {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: var(--color-rule-strong);
+}
+.subtask .remove:hover {
+  color: var(--color-card-ink);
+}
+.subtask .enter-hint {
+  padding: 2px 6px;
+  border: 1px solid var(--color-rule-strong);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-card-ink-2);
+  opacity: 0;
+  transition: opacity 0.18s var(--ease-gallery);
+}
+.subtask.adding:focus-within .enter-hint {
+  opacity: 1;
+}
+.subtask .add-btn {
+  display: none;
+}
+@media (pointer: coarse) {
+  .subtask {
+    min-height: 44px;
+  }
+  .subtask .remove {
+    width: 36px;
+    height: 36px;
+    margin-right: -6px;
+  }
+  .subtask .enter-hint {
+    display: none;
+  }
+  .subtask .add-btn {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--sheet);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .subtask .add-btn:disabled {
+    opacity: 0.4;
+  }
+}
+
+/* The count on a closed task. Words on the wall label and in the notebook; a
+   small list mark where the row is one line (timetable, planning). */
+.subs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.subs .list-icon {
+  display: none;
+  color: var(--color-card-ink-3);
+}
+[data-style="timetable"] .subs .list-icon,
+.line-row .subs .list-icon {
+  display: block;
+}
 .btn {
   display: inline-flex;
   align-items: center;
@@ -2428,7 +2615,8 @@ textarea {
 }
 .line-row .name {
   flex: 1;
-  min-width: 0;
+  /* The title keeps its room in a narrow column; notes give way first. */
+  min-width: min(8em, 40%);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2461,6 +2649,26 @@ textarea {
   font: inherit;
   color: inherit;
   text-decoration: underline;
+}
+/* In a narrow planning column the notes give way before the title. */
+.line-row .note:not(.fresh) {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* A count cut in half reads wrong: where a row is too narrow for it, it waits
+   in the open task instead. */
+.line-row {
+  container-type: inline-size;
+}
+.line-row .note.subs {
+  flex-shrink: 0;
+}
+@container (max-width: 380px) {
+  .line-row .note.subs {
+    display: none;
+  }
 }
 .line-row .est {
   width: 52px;
@@ -3649,6 +3857,17 @@ html .board-float.col {
   from {
     opacity: 0;
     transform: translate(-50%, 12px);
+  }
+}
+
+/* A new subtask settles into its line. */
+.subtasks .subtask:not(.adding) {
+  animation: subtask-in 0.22s var(--ease-gallery) both;
+}
+@keyframes subtask-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
   }
 }
 

@@ -19,7 +19,7 @@ import { capitalize, useMeetings } from './day';
 import { DraftText } from './DraftText';
 import { useOps } from './ops';
 import { arranged, type SortRow, TASK_TYPE, useSortable } from './sortable';
-import { AddRow, Editor, Handle, type Move, type Patch, PlusIcon, useTaskNotes, X } from './TaskRow';
+import { AddRow, Editor, Handle, ListIcon, type Move, type Patch, PlusIcon, type SubtaskOps, subtaskCount, useTaskNotes, X } from './TaskRow';
 
 type Source = 'backlog' | 'linear';
 const Bin = () => (
@@ -231,6 +231,7 @@ export function PlanView() {
                 // The editor only offers moves off this day, so a new date means it left.
                 onPatch={(p) => (p.date !== undefined && p.date !== date ? thenForget(task.id, ops.patch(task.id, p)) : ops.patch(task.id, p))}
                 onDelete={() => thenForget(task.id, ops.remove(task.id))}
+                subtaskOps={ops}
               />
             ))}
             {sort.slot && <div className="sort-slot" aria-hidden style={{ transform: `translate3d(0, ${sort.slot.top}px, 0)`, height: sort.slot.height }} />}
@@ -275,6 +276,7 @@ export function PlanView() {
                 // Linear owns its issues: a sync would bring a deleted one back.
                 onPatch={task.source ? undefined : (p) => ops.patch(task.id, p)}
                 onDelete={task.source ? undefined : () => ops.remove(task.id)}
+                subtaskOps={ops}
               />
             ))}
             {!candidates.length && !ghosts.length && (source === 'backlog' || session.linear) && <p className="empty">{t.nothingHere}</p>}
@@ -309,6 +311,7 @@ function DayLine({
   tags,
   onPatch,
   onDelete,
+  subtaskOps,
 }: {
   task: Task;
   fresh: boolean;
@@ -319,10 +322,12 @@ function DayLine({
   tags: string[];
   onPatch: (patch: Patch) => void;
   onDelete: () => void;
+  subtaskOps: SubtaskOps;
 }) {
   const { t } = useSession();
   const { style } = useLook();
   const { carried } = useTaskNotes(task, true);
+  const subs = subtaskCount(task, t, true);
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -342,6 +347,12 @@ function DayLine({
           </span>
         ) : (
           <>
+            {subs && (
+              <span className="note subs">
+                <ListIcon />
+                {subs}
+              </span>
+            )}
             {carried && <span className="note carried">{carried}</span>}
             {task.source && (
               <a className="note key" href={task.source.url} target="_blank" rel="noreferrer">
@@ -356,7 +367,7 @@ function DayLine({
           <X />
         </button>
       </div>
-      {open && <Editor task={task} tags={tags} moves={moves} onPatch={onPatch} onDelete={onDelete} onClose={() => setOpen(false)} />}
+      {open && <Editor task={task} tags={tags} moves={moves} onPatch={onPatch} onDelete={onDelete} onClose={() => setOpen(false)} subtaskOps={subtaskOps} />}
     </>
   );
 }
@@ -371,6 +382,7 @@ function PickLine({
   onUndo,
   onPatch,
   onDelete,
+  subtaskOps,
 }: {
   task: Task;
   added?: boolean;
@@ -379,9 +391,11 @@ function PickLine({
   onUndo?: () => void;
   onPatch?: (patch: Patch) => void;
   onDelete?: () => void;
+  subtaskOps?: SubtaskOps;
 }) {
   const { t } = useSession();
   const { style } = useLook();
+  const subs = subtaskCount(task, t, true);
   const [open, setOpen] = useState(false);
   const [asking, setAsking] = useState(false);
   const est = task.estimate ? minutesLabel(task.estimate) : null;
@@ -440,7 +454,15 @@ function PickLine({
         ) : task.source?.state ? (
           <span className="note">{task.source.state}</span>
         ) : (
-          task.tag && <span className={`note${style === 'notebook' ? ' tagged' : ''}`}>{style === 'notebook' ? `#${task.tag}` : capitalize(task.tag)}</span>
+          <>
+            {subs && (
+              <span className="note subs">
+                <ListIcon />
+                {subs}
+              </span>
+            )}
+            {task.tag && <span className={`note${style === 'notebook' ? ' tagged' : ''}`}>{style === 'notebook' ? `#${task.tag}` : capitalize(task.tag)}</span>}
+          </>
         )}
         {!added && !asking && (
           <button type="button" className="add-pill" onClick={onAdd}>
@@ -454,7 +476,7 @@ function PickLine({
           </button>
         )}
       </div>
-      {open && onPatch && onDelete && <Editor task={task} tags={tags} moves={[]} onPatch={onPatch} onDelete={onDelete} onClose={() => setOpen(false)} />}
+      {open && onPatch && onDelete && <Editor task={task} tags={tags} moves={[]} onPatch={onPatch} onDelete={onDelete} onClose={() => setOpen(false)} subtaskOps={subtaskOps} />}
     </>
   );
 }
