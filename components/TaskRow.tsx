@@ -1,8 +1,8 @@
 'use client';
 
-import { type KeyboardEvent, useState } from 'react';
-import type { Task } from '@/lib/daybook';
-import { dow, fill, weekdayName } from '@/lib/i18n';
+import { type KeyboardEvent, useRef, useState } from 'react';
+import type { Subtask, Task } from '@/lib/daybook';
+import { dow, fill, type Strings, weekdayName } from '@/lib/i18n';
 import { minutesLabel } from '@/lib/time';
 import { useLook, useSession } from './client';
 import type { SortRow } from './sortable';
@@ -31,6 +31,13 @@ export const X = () => (
   </svg>
 );
 
+/** Marks a subtask count where it stands without words around it. */
+export const ListIcon = () => (
+  <svg className="list-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+    <path d="M2 3h8M2 6h8M2 9h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+  </svg>
+);
+
 export const Handle = () => (
   <svg width="8" height="12" viewBox="0 0 8 12" aria-hidden>
     {[2, 6, 10].map((y) => (
@@ -43,6 +50,23 @@ export const Handle = () => (
 );
 
 export type Move = 'today' | 'tomorrow' | 'backlog';
+
+/** What an open task needs to change its subtasks (from useOps). Each call saves at once. */
+export interface SubtaskOps {
+  addSubtask: (taskId: string, title: string) => unknown;
+  patchSubtask: (taskId: string, id: string, body: { title?: string; done?: boolean }) => unknown;
+  removeSubtask: (taskId: string, id: string) => unknown;
+}
+
+/** "2 of 4 subtasks", or "4 subtasks" when none are done. Where rows are one line, always "2 of 4". */
+export function subtaskCount(task: Task, t: Strings, short = false): string | null {
+  const n = task.subtasks?.length || 0;
+  if (!n) return null;
+  const done = task.subtasks.filter((s) => s.done).length;
+  if (short) return fill(t.subtasksDoneShort, { done, n });
+  if (!done) return n === 1 ? t.oneSubtask : fill(t.subtasksN, { n });
+  return fill(t.subtasksDone, { done, n });
+}
 export type Patch = { title?: string; date?: string | null; tag?: string | null; estimate?: number | null };
 
 interface Props {
@@ -55,6 +79,7 @@ interface Props {
   tags?: string[];
   /** From useSortable: lets the row be dragged within its list. */
   sort?: SortRow;
+  subtaskOps?: SubtaskOps;
 }
 
 // "45m", "1h30", "1.5h", "90" → minutes; "" → no estimate; anything else → undefined.
@@ -82,12 +107,22 @@ export function useTaskNotes(task: Task, short = false) {
   return { carried, linearState };
 }
 
-export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow', 'backlog'], tags = [], sort }: Props) {
+export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow', 'backlog'], tags = [], sort, subtaskOps }: Props) {
   const [open, setOpen] = useState(false);
+  const { t } = useSession();
+  const { style } = useLook();
   const { carried, linearState } = useTaskNotes(task);
+  const subs = subtaskCount(task, t, style === 'timetable');
 
   const meta: React.ReactNode[] = [];
   if (task.tag) meta.push(<span key="tag" className="tag">{task.tag}</span>);
+  if (subs)
+    meta.push(
+      <span key="subs" className="subs">
+        <ListIcon />
+        {subs}
+      </span>,
+    );
   if (task.source) {
     meta.push(
       <a key="key" className="key" href={task.source.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
@@ -127,7 +162,7 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
         </div>
         <span className="est">{task.estimate ? minutesLabel(task.estimate) : ''}</span>
       </div>
-      {open && <Editor task={task} tags={tags} moves={moves} onPatch={onPatch} onDelete={onDelete} onClose={() => setOpen(false)} />}
+      {open && <Editor task={task} tags={tags} moves={moves} onPatch={onPatch} onDelete={onDelete} onClose={() => setOpen(false)} subtaskOps={subtaskOps} />}
     </>
   );
 }
@@ -141,6 +176,7 @@ export function Editor({
   onPatch,
   onDelete,
   onClose,
+  subtaskOps,
 }: {
   task: Task;
   tags: string[];
@@ -148,6 +184,7 @@ export function Editor({
   onPatch: (patch: Patch) => void;
   onDelete: () => void;
   onClose: () => void;
+  subtaskOps?: SubtaskOps;
 }) {
   const { t } = useSession();
   const [title, setTitle] = useState(task.title);
@@ -183,6 +220,7 @@ export function Editor({
           <X />
         </button>
       </div>
+      {subtaskOps && <Subtasks task={task} ops={subtaskOps} onEscape={onClose} />}
       <div className="fields">
         <label className="field">
           <span>{t.tagField}</span>
@@ -258,6 +296,152 @@ export function Editor({
         </div>
       )}
     </div>
+  );
+}
+
+// A task's subtasks, inside the open task. Each change saves at once (so
+// Escape never loses one); the list shows it before the save comes back.
+function Subtasks({ task, ops, onEscape }: { task: Task; ops: SubtaskOps; onEscape: () => void }) {
+  const { t } = useSession();
+  // Shown now, saved in a moment: the list follows the task again whenever a save comes back.
+  const [shown, setShown] = useState({ from: task.subtasks, list: task.subtasks });
+  let list = shown.list;
+  if (shown.from !== task.subtasks) {
+    list = task.subtasks;
+    setShown({ from: task.subtasks, list });
+  }
+  const set = (next: Subtask[]) => setShown({ from: task.subtasks, list: next });
+  const [writing, setWriting] = useState(list.length > 0);
+  const [draft, setDraft] = useState('');
+  const input = useRef<HTMLInputElement>(null);
+  const drafts = useRef(0);
+  const saved = (s: Subtask) => !s.id.startsWith('new:');
+  const done = list.filter((s) => s.done).length;
+
+  const add = () => {
+    const title = draft.trim();
+    if (!title) return;
+    setDraft('');
+    set([...list, { id: `new:${(drafts.current += 1)}`, title, done: false }]);
+    ops.addSubtask(task.id, title);
+  };
+  const remove = (s: Subtask) => {
+    set(list.filter((x) => x !== s));
+    ops.removeSubtask(task.id, s.id);
+  };
+  const keys = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      add();
+    } else if (e.key === 'Escape') {
+      onEscape();
+    } else if (e.key === 'Backspace' && !draft && list.length && saved(list[list.length - 1])) {
+      e.preventDefault();
+      remove(list[list.length - 1]);
+    }
+  };
+
+  // A subtask an agent adds while this task is open shows the list, not the start link.
+  if (!writing && !list.length) {
+    return (
+      <button
+        type="button"
+        className="subtask-start"
+        onClick={() => {
+          setWriting(true);
+          requestAnimationFrame(() => input.current?.focus());
+        }}
+      >
+        <PlusIcon />
+        {t.addSubtask}
+      </button>
+    );
+  }
+  return (
+    <div className="subtasks" role="group" aria-label={t.subtasks}>
+      {list.length > 0 && (
+        <div className="subtasks-head">
+          <span>{t.subtasks}</span>
+          <span className="count">{fill(t.subtasksDoneShort, { done, n: list.length })}</span>
+        </div>
+      )}
+      {list.map((s) => (
+        <div key={s.id} className={`subtask${s.done ? ' is-done' : ''}${saved(s) ? '' : ' pending'}`}>
+          <Check
+            on={s.done}
+            label={s.title}
+            onClick={() => {
+              if (!saved(s)) return;
+              set(list.map((x) => (x === s ? { ...x, done: !x.done } : x)));
+              ops.patchSubtask(task.id, s.id, { done: !s.done });
+            }}
+          />
+          <SubtaskTitle subtask={s} disabled={!saved(s)} onRename={(title) => ops.patchSubtask(task.id, s.id, { title })} label={t.subtaskField} />
+          <button type="button" className="icon-btn remove" disabled={!saved(s)} onClick={() => remove(s)} aria-label={`${t.removeSubtask}: ${s.title}`} title={t.removeSubtask}>
+            <X />
+          </button>
+        </div>
+      ))}
+      <div className="subtask adding">
+        <span className="check ghost" aria-hidden />
+        <input
+          ref={input}
+          className="subtask-input"
+          value={draft}
+          placeholder={t.addSubtask}
+          aria-label={t.addSubtask}
+          enterKeyHint="enter"
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={keys}
+          // Leaving the line (Save, another field, the close button) keeps what was typed.
+          onBlur={add}
+        />
+        <kbd className="enter-hint" aria-hidden>
+          {t.enterKey}
+        </kbd>
+        <button type="button" className="add-btn" onClick={add} disabled={!draft.trim()}>
+          {t.add}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// A subtask's title, renamed in place: Enter or leaving the line saves it; Escape puts it back.
+function SubtaskTitle({ subtask, disabled, onRename, label }: { subtask: Subtask; disabled: boolean; onRename: (title: string) => void; label: string }) {
+  const [value, setValue] = useState(subtask.title);
+  const [from, setFrom] = useState(subtask.title);
+  const cancelled = useRef(false);
+  if (from !== subtask.title) {
+    setFrom(subtask.title);
+    setValue(subtask.title);
+  }
+  const commit = () => {
+    if (cancelled.current) {
+      cancelled.current = false;
+      return;
+    }
+    const title = value.trim();
+    if (!title) return setValue(subtask.title);
+    if (title !== subtask.title) onRename(title);
+  };
+  return (
+    <input
+      className="subtask-title"
+      value={value}
+      disabled={disabled}
+      aria-label={label}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur();
+        if (e.key === 'Escape') {
+          cancelled.current = true;
+          setValue(subtask.title);
+          e.currentTarget.blur();
+        }
+      }}
+    />
   );
 }
 

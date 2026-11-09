@@ -12,11 +12,32 @@ export function useOps(reload: () => Promise<void>) {
   // last is saved: a reload between two quick drags would show half of each.
   const saving = useRef<Promise<unknown>>(Promise.resolve());
   const pending = useRef(0);
-  return useMemo(
-    () => ({
+  // Subtask changes (and edits to a task) each save the whole task, so they go
+  // one after another: two quick Enters would otherwise both start from the
+  // same task and the second would drop the first. The screen reloads once.
+  const chain = useRef<Promise<unknown>>(Promise.resolve());
+  const queued = useRef(0);
+  return useMemo(() => {
+    const serial = (job: () => Promise<unknown>) => {
+      const next = chain.current.then(job, job);
+      chain.current = next.catch(() => undefined);
+      queued.current += 1;
+      return run(
+        () => next,
+        () => {
+          queued.current -= 1;
+          return queued.current === 0 ? reload() : undefined;
+        },
+      );
+    };
+    return {
       add: (body: { text: string; date?: string | null }) => run(() => api('/api/tasks', { method: 'POST', body }), reload),
-      toggle: (task: Task) => run(() => api(`/api/tasks/${task.id}`, { method: 'PATCH', body: { done: !task.done } }), reload),
-      patch: (id: string, body: Record<string, unknown>) => run(() => api(`/api/tasks/${id}`, { method: 'PATCH', body }), reload),
+      toggle: (task: Task) => serial(() => api(`/api/tasks/${task.id}`, { method: 'PATCH', body: { done: !task.done } })),
+      patch: (id: string, body: Record<string, unknown>) => serial(() => api(`/api/tasks/${id}`, { method: 'PATCH', body })),
+      addSubtask: (taskId: string, title: string) => serial(() => api(`/api/tasks/${taskId}/subtasks`, { method: 'POST', body: { title } })),
+      patchSubtask: (taskId: string, id: string, body: { title?: string; done?: boolean }) =>
+        serial(() => api(`/api/tasks/${taskId}/subtasks/${id}`, { method: 'PATCH', body })),
+      removeSubtask: (taskId: string, id: string) => serial(() => api(`/api/tasks/${taskId}/subtasks/${id}`, { method: 'DELETE' })),
       remove: (id: string) => run(() => api(`/api/tasks/${id}`, { method: 'DELETE' }), reload),
       // Put ids on a day in this order (drag and drop). The screen shows the
       // new order already; this saves it.
@@ -50,7 +71,6 @@ export function useOps(reload: () => Promise<void>) {
           toast(changes ? `${t.sentToFrame} · ${changes} ↓` : t.sentToFrame);
           await refreshSession();
         }, reload),
-    }),
-    [run, reload, toast, t, refreshSession],
-  );
+    };
+  }, [run, reload, toast, t, refreshSession]);
 }

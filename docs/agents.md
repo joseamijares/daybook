@@ -130,10 +130,13 @@ If the client only speaks stdio, run `node cli/daybook.mjs mcp` with
 | `get_today` | A day (default today): focus, tasks, planned vs capacity, meetings (from Frame), journal, shut down or not, and `previous_day` (the latest earlier day with work on it) |
 | `get_week` | The week: its focus, every day, and the backlog |
 | `list_backlog` | Unscheduled tasks, including Linear issues |
-| `add_task` | Add to a day or the backlog. The title can use quick-add: `"Draft deck 45m #client"` |
+| `add_task` | Add to a day or the backlog. The title can use quick-add: `"Draft deck 45m #client"`. `subtasks` (a list of titles) breaks it into small steps |
 | `update_task` | Change the title, estimate, tag or notes, or move the task (`date: "backlog"` unschedules it) |
 | `complete_task` | Mark done or undone. A finished task moves to the bottom of its day (unless Settings → Appearance keeps it in place). For a Linear-linked task, this completes the issue too |
 | `delete_task` | Delete a task (agents are told to ask first) |
+| `add_subtasks` | Add small steps under a task, at the end of its list (up to 50 per task). Subtasks have no estimate, tag or day of their own: they move, roll over and go to the backlog with their task |
+| `update_subtask` | Tick a subtask (`done`) or rename it. Ticking the last one does not finish the task |
+| `delete_subtask` | Remove one subtask |
 | `set_focus` | The focus line for a day, or for the week with `scope: "week"` |
 | `plan_day` | Put these task ids on the day in this order and set the focus. Warns when the day is over capacity |
 | `shutdown_day` | Unfinished tasks go to tomorrow, the backlog, or stay; saves the journal line; returns a one-line recap. A past `date` closes that day late (the morning after): its unfinished work has already rolled onto today and stays there unless carried to the backlog |
@@ -166,9 +169,12 @@ in clients that support prompts.
 | `GET /api/week?date=` | The week containing `date`, with the backlog and, when Frame is connected, `events` by day |
 | `PUT /api/week` | `{ date, focus }` |
 | `GET /api/tasks` | The backlog |
-| `POST /api/tasks` | `{ text }` (quick-add) or `{ title, date?, estimate?, tag?, notes? }` |
+| `POST /api/tasks` | `{ text }` (quick-add) or `{ title, date?, estimate?, tag?, notes? }`; either takes `subtasks?: [titles]` |
 | `PATCH /api/tasks/:id` | `{ title?, date?, estimate?, tag?, notes?, done?, order? }`. `done: true` without `order` moves the task to the bottom of its day when the appearance's `doneToBottom` is on (the default) |
 | `DELETE /api/tasks/:id` | Deletes the task |
+| `POST /api/tasks/:id/subtasks` | `{ title }` or `{ titles: [...] }`: adds subtasks at the end. Returns `{ task }`, 201 |
+| `PATCH /api/tasks/:id/subtasks/:subtaskId` | `{ title?, done? }`. Returns `{ task }` |
+| `DELETE /api/tasks/:id/subtasks/:subtaskId` | Removes one. Returns `{ task }` |
 | `POST /api/shutdown` | `{ date?, note?, carry?: { [id]: "tomorrow" \| "backlog" \| "keep" } }`. A past `date` closes that day late: its unfinished work, already rolled onto today, stays there (`"tomorrow"`) or goes to the backlog, and today stays open |
 | `DELETE /api/shutdown?date=` | Reopen a closed day (tasks already moved stay where they went) |
 | `POST /api/linear` | Sync Linear |
@@ -190,6 +196,8 @@ in clients that support prompts.
 | `POST /api/session` / `DELETE /api/session` | `{ key }` signs the browser in (an httpOnly cookie) / signs it out |
 | `GET /api/mcp` / `OPTIONS /api/mcp` | Server info / CORS preflight for browser-based MCP clients |
 | `GET /api/health` | Public: commit, storage and which integrations are on. No user data |
+
+Every task carries `subtasks: [{ id, title, done }]` (empty when it has none). A subtask lives inside its task: moving, rolling over, sending to the backlog or deleting the task takes its subtasks along. Frame Dashboard and the TV show tasks only, not their subtasks. Each change saves the whole task, so two writers changing the same task at the same moment (an agent and the app) keep the later save; read the task again before acting on it.
 
 ## Frame Dashboard
 
