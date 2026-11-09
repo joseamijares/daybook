@@ -147,7 +147,13 @@ export function useSortable<T extends HTMLElement = HTMLDivElement>({
     const l = lift.current?.lifted ? lift.current : null;
     const els = rows();
     const tops = els.map((n) => n.offsetTop);
-    const sizes = els.map((n, i) => (i < els.length - 1 ? tops[i + 1] - tops[i] : n.offsetHeight));
+    // A row's size is up to the next row, so it counts what hangs under it; the
+    // last row counts its open editor or shown subtasks the same way.
+    const sizes = els.map((n, i) => {
+      if (i < els.length - 1) return tops[i + 1] - tops[i];
+      const under = n.nextElementSibling;
+      return trails(under) ? under.offsetTop + under.offsetHeight - tops[i] : n.offsetHeight;
+    });
     const shift = els.map(() => 0);
     const from = l ? els.indexOf(l.el) : -1;
     let gap: Slot | null = null;
