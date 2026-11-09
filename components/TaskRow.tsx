@@ -31,6 +31,32 @@ export const X = () => (
   </svg>
 );
 
+// Which tasks show their subtasks on the row, remembered on this device.
+const PEEK_KEY = 'daybook.peek';
+function peeking(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(PEEK_KEY) || '[]') as string[]);
+  } catch {
+    return new Set();
+  }
+}
+function setPeeking(id: string, on: boolean) {
+  try {
+    const ids = peeking();
+    if (on) ids.add(id);
+    else ids.delete(id);
+    localStorage.setItem(PEEK_KEY, JSON.stringify([...ids].slice(-200)));
+  } catch {
+    // A private window keeps it for this page only.
+  }
+}
+
+export const Chevron = ({ open }: { open: boolean }) => (
+  <svg className={`chevron${open ? ' open' : ''}`} width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+    <path d="M3.5 2l3 3-3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 /** Marks a subtask count where it stands without words around it. */
 export const ListIcon = () => (
   <svg className="list-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
@@ -109,6 +135,9 @@ export function useTaskNotes(task: Task, short = false) {
 
 export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow', 'backlog'], tags = [], sort, subtaskOps }: Props) {
   const [open, setOpen] = useState(false);
+  // Rows render only once the day has loaded in the browser, so this reads no storage on the server.
+  const [peek, setPeek] = useState(() => peeking().has(task.id));
+  const showPeek = peek && !open && Boolean(subtaskOps) && task.subtasks.length > 0;
   const { t } = useSession();
   const { style } = useLook();
   const { carried, linearState } = useTaskNotes(task);
@@ -118,10 +147,31 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
   if (task.tag) meta.push(<span key="tag" className="tag">{task.tag}</span>);
   if (subs)
     meta.push(
-      <span key="subs" className="subs">
-        <ListIcon />
-        {subs}
-      </span>,
+      subtaskOps ? (
+        <button
+          key="subs"
+          type="button"
+          className="subs subs-toggle"
+          aria-expanded={showPeek}
+          aria-label={`${showPeek ? t.hideSubtasks : t.showSubtasks}: ${subs}`}
+          onClick={(e) => {
+            // Shows the subtasks on the row; it never opens the task.
+            e.stopPropagation();
+            const next = !showPeek;
+            setPeek(next);
+            setPeeking(task.id, next);
+            if (next) setOpen(false);
+          }}
+        >
+          <Chevron open={showPeek} />
+          {subs}
+        </button>
+      ) : (
+        <span key="subs" className="subs">
+          <ListIcon />
+          {subs}
+        </span>
+      ),
     );
   if (task.source) {
     meta.push(
@@ -144,7 +194,7 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
 
   return (
     <>
-      <div className={['row', 'hoverable', task.done && 'is-done'].filter(Boolean).join(' ')} {...sort}>
+      <div className={['row', 'hoverable', task.done && 'is-done', showPeek && 'peeking'].filter(Boolean).join(' ')} {...sort}>
         <Check on={task.done} onClick={onToggle} label={task.title} />
         <div className="body" role="button" tabIndex={0} aria-expanded={open} onClick={toggleOpen} onKeyDown={onKey}>
           <span className="line">
@@ -163,7 +213,36 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
         <span className="est">{task.estimate ? minutesLabel(task.estimate) : ''}</span>
       </div>
       {open && <Editor task={task} tags={tags} moves={moves} onPatch={onPatch} onDelete={onDelete} onClose={() => setOpen(false)} subtaskOps={subtaskOps} />}
+      {showPeek && subtaskOps && <Peek task={task} ops={subtaskOps} />}
     </>
+  );
+}
+
+// A task's subtasks shown under its row, to tick off without opening the task.
+// Adding, renaming and removing stay in the open task.
+function Peek({ task, ops }: { task: Task; ops: SubtaskOps }) {
+  // A tick shows at once; the list follows the task again when the save comes back.
+  const [shown, setShown] = useState({ from: task.subtasks, list: task.subtasks });
+  let list = shown.list;
+  if (shown.from !== task.subtasks) {
+    list = task.subtasks;
+    setShown({ from: task.subtasks, list });
+  }
+  const tick = (s: Subtask) => {
+    setShown({ from: task.subtasks, list: list.map((x) => (x.id === s.id ? { ...x, done: !x.done } : x)) });
+    ops.patchSubtask(task.id, s.id, { done: !s.done });
+  };
+  return (
+    <div className="peek">
+      {list.map((s) => (
+        <div key={s.id} className={`peek-item${s.done ? ' is-done' : ''}`}>
+          <Check on={s.done} label={s.title} onClick={() => tick(s)} />
+          <button type="button" className="peek-title" onClick={() => tick(s)} tabIndex={-1}>
+            {s.title}
+          </button>
+        </div>
+      ))}
+    </div>
   );
 }
 
