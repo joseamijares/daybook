@@ -1207,6 +1207,119 @@ textarea {
 .line-row .subs .list-icon {
   display: block;
 }
+
+/* The count on a task's row is also a toggle: it shows the subtasks under the
+   row, in the title's lane, to tick off without opening the task. */
+.subs-toggle {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.subs-toggle:hover {
+  color: var(--color-card-ink);
+}
+.subs-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.subs-toggle::after {
+  content: '';
+  position: absolute;
+  inset: -6px -8px;
+}
+.chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s var(--ease-gallery);
+}
+.chevron.open {
+  transform: rotate(90deg);
+}
+.row.peeking {
+  padding-bottom: 6px;
+  border-bottom-color: transparent;
+}
+.peek {
+  --lane: 34px;
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 10px var(--lane);
+  border-bottom: 1px solid var(--rule);
+  animation: peek-in 0.2s var(--ease-gallery) backwards; /* not `both`: a drag moves it by transform */
+}
+[data-style="timetable"] .peek {
+  --lane: 30px;
+}
+[data-style="notebook"] .peek {
+  --lane: 32px;
+  border-bottom-style: dotted;
+  border-bottom-color: var(--color-rule-strong);
+}
+.peek:last-child {
+  border-bottom: 0;
+}
+.peek-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+}
+.peek-item .check {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border-width: 1.3px;
+}
+[data-style="notebook"] .peek-item .check {
+  border-radius: 3px;
+}
+.peek-item .check svg {
+  width: 9px;
+  height: 9px;
+}
+.peek-title {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--color-card-ink);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+[data-style="timetable"] .peek-title {
+  font-size: 14px;
+}
+[data-style="notebook"] .peek-title {
+  font-size: 16px;
+  line-height: 22px;
+}
+.peek-item.is-done .peek-title {
+  color: var(--color-done);
+  text-decoration: line-through;
+}
+@keyframes peek-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@media (pointer: coarse) {
+  .peek-item {
+    min-height: 44px;
+  }
+  .subs-toggle::after {
+    inset: -12px -10px;
+  }
+}
 .btn {
   display: inline-flex;
   align-items: center;
@@ -3569,7 +3682,8 @@ textarea {
   animation: none;
 }
 [data-sort-id],
-[data-sort-id] + .editor {
+[data-sort-id] + .editor,
+[data-sort-id] + .peek {
   transition:
     transform 0.5s var(--ease-spring),
     opacity 0.2s var(--ease-gallery);
