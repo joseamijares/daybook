@@ -197,7 +197,7 @@ in clients that support prompts.
 | `GET /api/mcp` / `OPTIONS /api/mcp` | Server info / CORS preflight for browser-based MCP clients |
 | `GET /api/health` | Public: commit, storage and which integrations are on. No user data |
 
-Every task carries `subtasks: [{ id, title, done }]` (empty when it has none). A subtask lives inside its task: moving, rolling over, sending to the backlog or deleting the task takes its subtasks along. Frame Dashboard and the TV show tasks only, not their subtasks.
+Every task carries `subtasks: [{ id, title, done }]` (empty when it has none). A subtask lives inside its task: moving, rolling over, sending to the backlog or deleting the task takes its subtasks along. Frame Dashboard and the TV show tasks only, not their subtasks. Each change saves the whole task, so two writers changing the same task at the same moment (an agent and the app) keep the later save; read the task again before acting on it.
 
 ## Frame Dashboard
 

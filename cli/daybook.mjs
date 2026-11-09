@@ -203,6 +203,7 @@ async function main() {
     }
     case 'subtask': {
       const [id, ...title] = rest;
+      if (!id || !title.join(' ').trim()) throw new Error('usage: daybook subtask <task-id> "Pull the numbers"');
       const r = await call('POST', `/api/tasks/${id}/subtasks`, { title: title.join(' ') });
       console.log(fmt(r.task));
       return;

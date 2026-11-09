@@ -1157,6 +1157,16 @@ textarea {
   .subtask {
     min-height: 44px;
   }
+  /* A finger-sized target for the check, reaching left and up and down but
+     stopping short of the title next to it. */
+  .subtask .check {
+    position: relative;
+  }
+  .subtask .check::after {
+    content: '';
+    position: absolute;
+    inset: -14px -4px -14px -14px;
+  }
   .subtask .remove {
     width: 36px;
     height: 36px;
@@ -3861,7 +3871,7 @@ html .board-float.col {
 }
 
 /* A new subtask settles into its line. */
-.subtasks .subtask:not(.adding) {
+.subtasks .subtask.pending {
   animation: subtask-in 0.22s var(--ease-gallery) both;
 }
 @keyframes subtask-in {

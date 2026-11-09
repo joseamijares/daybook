@@ -366,7 +366,7 @@ function Subtasks({ task, ops, onEscape }: { task: Task; ops: SubtaskOps; onEsca
         </div>
       )}
       {list.map((s) => (
-        <div key={s.id} className={`subtask${s.done ? ' is-done' : ''}`}>
+        <div key={s.id} className={`subtask${s.done ? ' is-done' : ''}${saved(s) ? '' : ' pending'}`}>
           <Check
             on={s.done}
             label={s.title}
@@ -393,9 +393,11 @@ function Subtasks({ task, ops, onEscape }: { task: Task; ops: SubtaskOps; onEsca
           enterKeyHint="enter"
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={keys}
+          // Leaving the line (Save, another field, the close button) keeps what was typed.
+          onBlur={add}
         />
         <kbd className="enter-hint" aria-hidden>
-          Enter
+          {t.enterKey}
         </kbd>
         <button type="button" className="add-btn" onClick={add} disabled={!draft.trim()}>
           {t.add}
