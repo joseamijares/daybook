@@ -223,23 +223,27 @@ export function TaskRow({ task, onToggle, onPatch, onDelete, moves = ['tomorrow'
 function Peek({ task, ops }: { task: Task; ops: SubtaskOps }) {
   // A tick shows at once, over the task as last loaded. When the task comes
   // back the ticks are dropped (it has them); a tick whose save failed is
-  // taken back, so the box never shows what wasn't saved.
-  const [ticks, setTicks] = useState<{ from: Subtask[]; done: Record<string, boolean> }>({ from: task.subtasks, done: {} });
-  let done = ticks.done;
+  // taken back, unless a later tick on the same subtask has replaced it, so
+  // the box never shows what wasn't saved.
+  type Tick = { done: boolean; n: number };
+  const [ticks, setTicks] = useState<{ from: Subtask[]; by: Record<string, Tick> }>({ from: task.subtasks, by: {} });
+  const count = useRef(0);
+  let by = ticks.by;
   if (ticks.from !== task.subtasks) {
-    done = {};
-    setTicks({ from: task.subtasks, done });
+    by = {};
+    setTicks({ from: task.subtasks, by });
   }
-  const list = task.subtasks.map((s) => (s.id in done ? { ...s, done: done[s.id] } : s));
+  const list = task.subtasks.map((s) => (by[s.id] ? { ...s, done: by[s.id].done } : s));
   const tick = async (s: Subtask) => {
-    const want = !s.done;
-    setTicks((x) => ({ ...x, done: { ...x.done, [s.id]: want } }));
-    const saved = await ops.patchSubtask(task.id, s.id, { done: want });
+    const mine: Tick = { done: !s.done, n: (count.current += 1) };
+    setTicks((x) => ({ ...x, by: { ...x.by, [s.id]: mine } }));
+    const saved = await ops.patchSubtask(task.id, s.id, { done: mine.done });
     if (saved === undefined)
       setTicks((x) => {
-        const next = { ...x.done };
-        if (next[s.id] === want) delete next[s.id];
-        return { ...x, done: next };
+        if (x.by[s.id]?.n !== mine.n) return x; // a later tick stands
+        const next = { ...x.by };
+        delete next[s.id];
+        return { ...x, by: next };
       });
   };
   return (
