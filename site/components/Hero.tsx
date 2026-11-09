@@ -1,5 +1,6 @@
 import type { Copy } from '@site/lib/copy';
 import { APP_URL, DEPLOY_URL, MAC_DOWNLOAD_URL, REPO_URL } from '@site/lib/site';
+import { HowtoLink } from './Film';
 import { Mark } from './Mark';
 import { SalonHang } from './SalonHang';
 
@@ -49,6 +50,7 @@ export function Hero({ c }: { c: Copy }) {
           <a className="label__how" href="#install">
             {c.cta.how}
           </a>
+          <HowtoLink c={c} className="label__how" />
         </div>
       </div>
     </header>

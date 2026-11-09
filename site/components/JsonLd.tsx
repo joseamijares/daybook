@@ -1,5 +1,5 @@
 import type { Copy } from '@site/lib/copy';
-import { FILM, MAC_DOWNLOAD_URL, REPO_URL, SITE_URL } from '@site/lib/site';
+import { FILM, HOWTO, MAC_DOWNLOAD_URL, REPO_URL, SITE_URL } from '@site/lib/site';
 
 // Structured data in the server HTML: the app, the site, the video and the visible FAQ.
 const AUTHOR = { '@type': 'Person', name: 'José Antonio Mijares', url: 'https://github.com/joseamijares' };
@@ -32,6 +32,16 @@ export function JsonLd({ c }: { c: Copy }) {
       contentUrl: `${SITE_URL}${FILM.landscape}`,
       uploadDate: FILM.published,
       duration: FILM.duration,
+      inLanguage: 'en',
+    },
+    {
+      '@type': 'VideoObject',
+      name: c.howto.work,
+      description: c.howto.body,
+      thumbnailUrl: `${SITE_URL}${HOWTO.poster}`,
+      contentUrl: `${SITE_URL}${HOWTO.src}`,
+      uploadDate: HOWTO.published,
+      duration: HOWTO.duration,
       inLanguage: 'en',
     },
     {

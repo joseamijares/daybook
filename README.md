@@ -5,6 +5,7 @@ shut down in the evening, and let your AI agents do the typing.
 
 [daybooksalon.vercel.app](https://daybooksalon.vercel.app) ·
 [Watch it in 50 seconds](https://daybooksalon.vercel.app/film/daybook-film.mp4) ·
+[How to use it (2:29)](https://daybooksalon.vercel.app/film/daybook-howto.mp4) ·
 [Download for Mac](https://github.com/joseamijares/daybook/releases/latest/download/Daybook.dmg)
 
 ![Today: the painting of the day beside a museum placard with your day](docs/img/today.jpg)

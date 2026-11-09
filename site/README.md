@@ -56,6 +56,17 @@ ffmpeg -i daybook-9x16.mp4 -an -vf scale=720:1280:flags=lanczos -c:v libx264 -pr
 
 The posters are frame 470 ("02 · Today") of each cut, as WebP.
 
+The how-to walkthrough (`public/film/daybook-howto.mp4`, `HOWTO` in `lib/site.ts`) comes from the same studio,
+`daybook-howto` / `DaybookHowto16x9` (JAM-4363). It keeps its sound (a voice and music), so no `-an`. The Daybook app
+streams this file from the site, so a new cut here changes it everywhere:
+
+```bash
+ffmpeg -i daybook-howto-16x9.mp4 -c:v libx264 -preset slow -tune animation -crf 26 -maxrate 1400k -bufsize 2800k \
+  -pix_fmt yuv420p -c:a aac -b:a 96k -movflags +faststart public/film/daybook-howto.mp4
+```
+
+Its poster, `howto-poster.webp`, is frame 1720 (Step 3, Today).
+
 ## Deploy
 
 A Vercel project with **Root Directory `site`** (framework Next.js; Vercel runs the
