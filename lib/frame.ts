@@ -21,7 +21,7 @@ import { addTask, getWeek, setDay, setWeekFocus, type Task, updateTask, type Wee
 import type { Artwork } from './art';
 import { getSecret } from './secrets';
 import { store } from './store';
-import { weekDays } from './time';
+import { isYmd, mondayOf, today, weekDays } from './time';
 
 const MAX_TASKS = 20;
 const MAX_TEXT = 200;
@@ -225,7 +225,8 @@ interface FrameWeekDay {
 const weekCache = new Map<string, { at: number; days: FrameWeekDay[] }>();
 
 async function frameWeek(date?: string): Promise<FrameWeekDay[]> {
-  const k = date || 'this-week';
+  // Any day of a week answers with the whole week, so cache it once per Monday.
+  const k = mondayOf(isYmd(date) ? date : today());
   const hit = weekCache.get(k);
   if (hit && Date.now() - hit.at < 5 * 60_000) return hit.days;
   const { base } = await frameConfig();
@@ -240,14 +241,17 @@ async function frameWeek(date?: string): Promise<FrameWeekDay[]> {
 }
 
 // Meetings come from Frame's calendar feeds (iCal and Frame Desk's Mac calendars).
-export async function frameEvents(date?: string): Promise<Record<string, FrameEvent[]>> {
-  if (!(await frameEnabled())) return {};
+// `error` says the Frame couldn't be read, so no meetings isn't mistaken for a free day.
+export async function frameEventsOrError(date?: string): Promise<{ events: Record<string, FrameEvent[]>; error: string | null }> {
+  if (!(await frameEnabled())) return { events: {}, error: null };
   try {
-    return Object.fromEntries((await frameWeek(date)).map((d) => [d.date, d.events || []]));
-  } catch {
-    return {};
+    return { events: Object.fromEntries((await frameWeek(date)).map((d) => [d.date, d.events || []])), error: null };
+  } catch (err) {
+    return { events: {}, error: (err as Error).message || 'Frame Dashboard did not answer' };
   }
 }
+
+export const frameEvents = async (date?: string) => (await frameEventsOrError(date)).events;
 
 /** The painting the Frame hangs on that day, so Daybook and the TV match. */
 export async function frameArt(date: string): Promise<Artwork | null> {

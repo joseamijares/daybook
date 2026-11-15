@@ -16,9 +16,17 @@ export interface LinearSource {
   state?: string;
 }
 
+/** A small step inside a task. It moves, rolls over and goes to the backlog with its task. */
+export interface Subtask {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
+  subtasks: Subtask[];
   notes: string | null;
   date: string | null; // null = backlog
   estimate: number | null; // minutes
@@ -45,6 +53,7 @@ export interface Week {
 }
 
 const MAX_TITLE = 200;
+const MAX_SUBTASKS = 50;
 let capacityOverride: number | null = null;
 /** Minutes of planned work that fit in a day (DAYBOOK_CAPACITY_MINUTES, or set on this device). */
 export const capacity = () => capacityOverride || Number(process.env.DAYBOOK_CAPACITY_MINUTES) || 360;
@@ -78,8 +87,11 @@ const byOrder = (a: Task, b: Task) => a.order - b.order || a.createdAt.localeCom
 let lastStamp = 0;
 const nextOrder = () => (lastStamp = Math.max(Date.now(), lastStamp + 1));
 
+// Tasks saved before subtasks existed have none.
+const withSubtasks = (t: Task): Task => (Array.isArray(t.subtasks) ? t : { ...t, subtasks: [] });
+
 export async function allTasks(): Promise<Task[]> {
-  return Object.values(await store().all<Task>('tasks'));
+  return Object.values(await store().all<Task>('tasks')).map(withSubtasks);
 }
 
 // Unfinished tasks from earlier days move to today, remembering where they
@@ -105,6 +117,7 @@ export interface AddTaskInput {
   tag?: string | null;
   notes?: string | null;
   source?: LinearSource | null;
+  subtasks?: string[]; // titles, in order
 }
 
 export async function addTask(input: AddTaskInput): Promise<Task> {
@@ -116,6 +129,7 @@ export async function addTask(input: AddTaskInput): Promise<Task> {
   const t: Task = {
     id: newId(),
     title,
+    subtasks: newSubtasks(input.subtasks, []),
     notes: clean(input.notes, 'notes', 2000),
     date: date ?? null,
     estimate: minutes(input.estimate ?? parsed.estimate),
@@ -135,7 +149,7 @@ export async function addTask(input: AddTaskInput): Promise<Task> {
 export async function getTask(id: string): Promise<Task> {
   const t = await store().get<Task>('tasks', id);
   if (!t) throw new NotFound(`no task with id ${id}`);
-  return t;
+  return withSubtasks(t);
 }
 
 export interface TaskPatch {
@@ -176,6 +190,65 @@ export async function updateTask(id: string, patch: TaskPatch): Promise<Task> {
   }
   await store().put('tasks', id, next);
   return next;
+}
+
+// Subtasks: added under a task, ticked, renamed or removed. Each change saves
+// the whole task, so a subtask is never anywhere its task isn't.
+
+function newSubtasks(titles: unknown, existing: Subtask[]): Subtask[] {
+  if (titles == null) return existing;
+  if (!Array.isArray(titles)) throw new Error('subtasks must be a list of titles');
+  const added: Subtask[] = [];
+  for (const raw of titles) {
+    const title = clean(raw, 'subtask');
+    if (title) added.push({ id: newId(), title, done: false });
+  }
+  if (existing.length + added.length > MAX_SUBTASKS) throw new Error(`a task cannot have more than ${MAX_SUBTASKS} subtasks`);
+  return [...existing, ...added];
+}
+
+async function saveSubtasks(t: Task, subtasks: Subtask[]): Promise<Task> {
+  const next: Task = { ...t, subtasks, updatedAt: now() };
+  await store().put('tasks', t.id, next);
+  return next;
+}
+
+function findSubtask(t: Task, subtaskId: string): number {
+  const i = t.subtasks.findIndex((s) => s.id === subtaskId);
+  if (i < 0) throw new NotFound(`no subtask with id ${subtaskId} on task ${t.id}`);
+  return i;
+}
+
+/** Add one or more subtasks (by title) at the end of a task's list. */
+export async function addSubtasks(taskId: string, titles: string[]): Promise<Task> {
+  const t = await getTask(taskId);
+  const subtasks = newSubtasks(titles, t.subtasks);
+  if (subtasks.length === t.subtasks.length) throw new Error('subtask title is required');
+  return saveSubtasks(t, subtasks);
+}
+
+export interface SubtaskPatch {
+  title?: string;
+  done?: boolean;
+}
+
+export async function updateSubtask(taskId: string, subtaskId: string, patch: SubtaskPatch): Promise<Task> {
+  const t = await getTask(taskId);
+  const i = findSubtask(t, subtaskId);
+  const s = { ...t.subtasks[i] };
+  if (patch.title !== undefined) {
+    const title = clean(patch.title, 'subtask');
+    if (!title) throw new Error('subtask title cannot be empty');
+    s.title = title;
+  }
+  if (patch.done !== undefined) s.done = Boolean(patch.done);
+  return saveSubtasks(t, t.subtasks.map((x, j) => (j === i ? s : x)));
+}
+
+export async function deleteSubtask(taskId: string, subtaskId: string): Promise<Task> {
+  const t = await getTask(taskId);
+  const i = findSubtask(t, subtaskId);
+  return saveSubtasks(t, t.subtasks.filter((_, j) => j !== i));
 }
 
 export async function deleteTask(id: string): Promise<void> {

@@ -7,6 +7,7 @@
 // drag, so drag and drop (components/sortable.ts) keeps its own motion.
 
 import { useCallback, useLayoutEffect, useRef } from 'react';
+import { trails } from './sortable';
 
 const rows = (root: HTMLElement) => Array.from(root.querySelectorAll<HTMLElement>('[data-sort-id]'));
 
@@ -22,9 +23,9 @@ export function useGlide<T extends HTMLElement>(data: unknown) {
       const from = tops.get(row.dataset.sortId || '');
       const dy = from === undefined ? 0 : from - row.getBoundingClientRect().top;
       if (Math.abs(dy) < 1) continue;
-      // The open editor under a row travels with it.
+      // The open editor (or the subtasks shown) under a row travels with it.
       const next = row.nextElementSibling;
-      for (const el of next instanceof HTMLElement && next.classList.contains('editor') ? [row, next] : [row]) {
+      for (const el of trails(next) ? [row, next] : [row]) {
         el.animate([{ transform: `translate3d(0, ${dy}px, 0)` }, { transform: 'none' }], { duration: 460, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
       }
     }

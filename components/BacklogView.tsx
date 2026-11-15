@@ -36,6 +36,7 @@ export function BacklogView() {
               onToggle={() => ops.toggle(task)}
               onPatch={(p) => ops.patch(task.id, p)}
               onDelete={() => ops.remove(task.id)}
+              subtaskOps={ops}
               moves={['today', 'tomorrow']}
               tags={tags}
             />

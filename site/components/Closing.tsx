@@ -18,7 +18,8 @@ export function Faq({ c }: { c: Copy }) {
   );
 }
 
-export function Footer({ c }: { c: Copy }) {
+// `other` overrides where the language link goes (the policy page links its translation).
+export function Footer({ c, other = c.footer.otherHref }: { c: Copy; other?: string }) {
   return (
     <footer className="footer">
       <p className="footer__credits">{c.footer.credits}</p>
@@ -31,10 +32,11 @@ export function Footer({ c }: { c: Copy }) {
           <a href={REPO_URL}>GitHub</a>
           <a href={AGENTS_DOC_URL}>{c.footer.docs}</a>
           <a href={FRAME_URL}>{c.footer.frame}</a>
-          <a href={c.footer.otherHref} hrefLang={c.lang === 'es' ? 'en' : 'es'}>
+          <a href={other} hrefLang={c.lang === 'es' ? 'en' : 'es'}>
             {c.footer.other}
           </a>
           <a href={`${REPO_URL}/blob/main/LICENSE`}>{c.footer.license}</a>
+          <a href={c.lang === 'es' ? '/es/code-signing' : '/code-signing'}>{c.footer.signing}</a>
         </nav>
       </div>
     </footer>

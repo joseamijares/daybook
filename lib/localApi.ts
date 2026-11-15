@@ -7,11 +7,13 @@ import { getAppearance, setAppearance } from './appearanceStore';
 import { artFor } from './art';
 import { exportData, importData } from './backup';
 import {
+  addSubtasks,
   addTask,
   type AddTaskInput,
   backlog,
   capacity,
   type Carry,
+  deleteSubtask,
   deleteTask,
   getDay,
   getDayMeta,
@@ -22,7 +24,9 @@ import {
   setDay,
   setWeekFocus,
   shutdown,
+  type SubtaskPatch,
   type TaskPatch,
+  updateSubtask,
   updateTask,
 } from './daybook';
 import { type KeyValue, LOCAL_KEY, localStore } from './localStore';
@@ -75,6 +79,8 @@ async function route(method: string, url: URL, body: Body): Promise<unknown> {
   const q = (name: string) => url.searchParams.get(name) || undefined;
   const path = url.pathname;
   const task = path.match(/^\/api\/tasks\/([^/]+)$/);
+  const subtasks = path.match(/^\/api\/tasks\/([^/]+)\/subtasks$/);
+  const subtask = path.match(/^\/api\/tasks\/([^/]+)\/subtasks\/([^/]+)$/);
 
   if (path === '/api/session' && method === 'GET') return session();
   if (path === '/api/day' && method === 'GET') return getDay(q('date'));
@@ -96,6 +102,15 @@ async function route(method: string, url: URL, body: Body): Promise<unknown> {
     await deleteTask(task[1]);
     return { deleted: task[1] };
   }
+  if (subtasks && method === 'POST') {
+    const titles = (body.titles as string[] | undefined) ?? (body.title === undefined ? [] : [body.title as string]);
+    return { task: await addSubtasks(subtasks[1], titles) };
+  }
+  if (subtask && method === 'PATCH') {
+    const { title, done } = body as SubtaskPatch;
+    return { task: await updateSubtask(subtask[1], subtask[2], { title, done }) };
+  }
+  if (subtask && method === 'DELETE') return { task: await deleteSubtask(subtask[1], subtask[2]) };
   if (path === '/api/shutdown' && method === 'POST') {
     const r = await shutdown(body.date as string | undefined, { note: body.note as string | undefined, carry: body.carry as Record<string, Carry> });
     return { ...r, warnings: [] };
@@ -125,7 +140,8 @@ export async function handle(method: string, path: string, body?: unknown): Prom
   if (!kv) return { status: 503, data: { error: 'Daybook on this device has not started' } };
   try {
     const data = await route(method.toUpperCase(), new URL(path, 'http://device'), (body as Body) || {});
-    return { status: method.toUpperCase() === 'POST' && path === '/api/tasks' ? 201 : 200, data };
+    const created = method.toUpperCase() === 'POST' && /^\/api\/tasks(\/[^/]+\/subtasks)?$/.test(new URL(path, 'http://device').pathname);
+    return { status: created ? 201 : 200, data };
   } catch (err) {
     const message = (err as Error).message || 'something went wrong';
     if (err instanceof NotFound) return { status: 404, data: { error: message } };

@@ -40,6 +40,19 @@ describe('MCP endpoint', () => {
     expect(day.tasks[0]).toMatchObject({ title: 'Draft deck', estimate_minutes: 45, tag: 'client' });
   });
 
+  it('breaks a task into subtasks and ticks one', async () => {
+    const call = async (name: string, args: Record<string, unknown>) =>
+      JSON.parse((await (await rpc({ jsonrpc: '2.0', id: 9, method: 'tools/call', params: { name, arguments: args } })).json()).result.content[0].text);
+    const { task } = await call('add_task', { title: 'Weekly readout 2h', subtasks: ['Pull the numbers'] });
+    const added = await call('add_subtasks', { task_id: task.id, titles: ['Write the highlights'] });
+    expect(added.task.subtasks.map((s: { title: string }) => s.title)).toEqual(['Pull the numbers', 'Write the highlights']);
+    const ticked = await call('update_subtask', { task_id: task.id, subtask_id: added.task.subtasks[0].id, done: true });
+    expect(ticked.task.subtasks[0].done).toBe(true);
+    expect(ticked.task.done).toBe(false);
+    const removed = await call('delete_subtask', { task_id: task.id, subtask_id: added.task.subtasks[1].id });
+    expect(removed.task.subtasks).toHaveLength(1);
+  });
+
   it('reports tool errors in the result, not as protocol errors', async () => {
     const body = await (await rpc({ jsonrpc: '2.0', id: 5, method: 'tools/call', params: { name: 'complete_task', arguments: { id: 'nope' } } })).json();
     expect(body.result.isError).toBe(true);

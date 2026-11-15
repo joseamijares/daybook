@@ -59,9 +59,18 @@ const STRETCH = 24; // px a row gives when pulled past the end of its list
 // Presses on these do what they do (tick, open a link, type), not drag.
 const CONTROLS = 'button, a, input, textarea, select, label, [contenteditable="true"]';
 
+// What hangs under a row and moves with it: its open editor, or its subtasks shown on the row.
+export const trails = (n: Element | null): n is HTMLElement => n instanceof HTMLElement && (n.classList.contains('editor') || n.classList.contains('peek'));
 const withEditor = (n: HTMLElement) => {
   const next = n.nextElementSibling;
-  return next instanceof HTMLElement && next.classList.contains('editor') ? [n, next] : [n];
+  return trails(next) ? [n, next] : [n];
+};
+// The lifted row's subtasks, shown under it, follow it to where it lands.
+const follow = (l: { el: HTMLElement }, translate: string, transition?: string) => {
+  const next = l.el.nextElementSibling;
+  if (!(next instanceof HTMLElement) || !next.classList.contains('peek')) return;
+  if (transition !== undefined) next.style.transition = transition;
+  next.style.translate = translate;
 };
 
 // What scrolls when a task is held near the edge: the placard, or the page.
@@ -138,7 +147,13 @@ export function useSortable<T extends HTMLElement = HTMLDivElement>({
     const l = lift.current?.lifted ? lift.current : null;
     const els = rows();
     const tops = els.map((n) => n.offsetTop);
-    const sizes = els.map((n, i) => (i < els.length - 1 ? tops[i + 1] - tops[i] : n.offsetHeight));
+    // A row's size is up to the next row, so it counts what hangs under it; the
+    // last row counts its open editor or shown subtasks the same way.
+    const sizes = els.map((n, i) => {
+      if (i < els.length - 1) return tops[i + 1] - tops[i];
+      const under = n.nextElementSibling;
+      return trails(under) ? under.offsetTop + under.offsetHeight - tops[i] : n.offsetHeight;
+    });
     const shift = els.map(() => 0);
     const from = l ? els.indexOf(l.el) : -1;
     let gap: Slot | null = null;
@@ -186,10 +201,12 @@ export function useSortable<T extends HTMLElement = HTMLDivElement>({
     document.documentElement.classList.remove('is-sorting');
     const el = list.current;
     if (el) el.style.paddingBottom = '';
-    const els = el ? Array.from(el.children).filter((n): n is HTMLElement => n instanceof HTMLElement && (Boolean(n.dataset.sortId) || n.classList.contains('editor'))) : [];
+    const els = el ? Array.from(el.children).filter((n): n is HTMLElement => n instanceof HTMLElement && (Boolean(n.dataset.sortId) || trails(n))) : [];
     if (l && !els.includes(l.el)) els.push(l.el);
     for (const n of els) {
       if (!animate) n.style.transition = 'none';
+      // A lifted row's subtasks followed it without a transition; give theirs back.
+      else if (n.classList.contains('peek')) n.style.transition = '';
       n.style.transform = '';
       n.style.translate = '';
       delete n.dataset.lift;
@@ -207,6 +224,7 @@ export function useSortable<T extends HTMLElement = HTMLDivElement>({
     if (Math.abs(to - l.at) > 0.5) waiting.add('translate');
     l.el.dataset.lift = 'settle';
     l.el.style.translate = `0 ${to}px`;
+    follow(l, `0 ${to}px`, 'translate 0.45s var(--ease-spring)');
     let over = false;
     const finish = () => {
       if (over) return;
@@ -246,6 +264,7 @@ export function useSortable<T extends HTMLElement = HTMLDivElement>({
     l.at = delta + (pull ? Math.sign(pull) * STRETCH * (1 - Math.exp(-Math.abs(pull) / (STRETCH * 3))) : 0);
     show(placeOf(l, delta));
     l.el.style.translate = `0 ${l.at}px`;
+    follow(l, `0 ${l.at}px`, 'none');
     l.frame = requestAnimationFrame(frame);
   };
 
@@ -416,7 +435,7 @@ export function useSortable<T extends HTMLElement = HTMLDivElement>({
       const el = e.currentTarget;
       const control = e.target instanceof Element ? e.target.closest(CONTROLS) : null;
       if (control && el.contains(control)) return;
-      if (withEditor(el).length > 1) return; // open: it stays put
+      if (el.nextElementSibling?.classList.contains('editor')) return; // open: it stays put (subtasks shown on the row move with it)
       const l: Lift = { id, el, pointer: e.pointerId, touch: e.pointerType === 'touch', x0: e.clientX, y0: e.clientY, y: e.clientY, grab: 0, at: 0, lifted: false };
       lift.current = l;
       l.off = listen(l);

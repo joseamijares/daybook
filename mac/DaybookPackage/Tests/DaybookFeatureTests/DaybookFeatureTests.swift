@@ -10,7 +10,7 @@ import Testing
       {"date":"2026-10-12","focus":"Copy","note":null,"shutdownAt":null,"isToday":true,"planned":150,"remaining":120,
        "doneCount":1,"capacity":360,"over":0,"tasks":[
         {"id":"a1","title":"Write copy","notes":null,"date":"2026-10-12","estimate":120,"tag":"site","done":false,"doneAt":null,
-         "order":1,"source":null,"rolledFrom":null,"createdAt":"2026-10-12T15:00:00.000Z","updatedAt":"2026-10-12T15:00:00.000Z"},
+         "order":1,"source":null,"rolledFrom":null,"subtasks":[{"id":"s1","title":"Outline tiers","done":true}],"createdAt":"2026-10-12T15:00:00.000Z","updatedAt":"2026-10-12T15:00:00.000Z"},
         {"id":"a2","title":"Fix bug","date":"2026-10-12","estimate":30,"tag":null,"done":true,"order":2,
          "source":{"type":"linear","id":"x","key":"APP-214","url":"https://linear.app/x"},"rolledFrom":"2026-10-09"}]}],
      "backlog":[],
@@ -22,6 +22,8 @@ import Testing
     #expect(day.tasks.count == 2)
     #expect(day.openCount == 1)
     #expect(day.tasks[1].source?.key == "APP-214")
+    #expect(day.tasks[0].subtaskList.first?.title == "Outline tiers")
+    #expect(day.tasks[1].subtaskList.isEmpty) // a task from before subtasks
     #expect(week.events?["2026-10-12"]?.first?.start != nil)
 }
 

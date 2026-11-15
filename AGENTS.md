@@ -44,8 +44,13 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
   That origin holds the PC's days (localStorage), so never change it (`use_https_scheme(false)` in
   `windows/src/main.rs`). `ON_PC` in `components/client.tsx` swaps "this Mac" copy for "this PC" and hides the
   cloud connect row (no cloud Daybook on Windows yet). A tray icon (Open, Quit); closing the window hides it. No
-  menu-bar-style glance, no code signing, no auto-update yet. `.github/workflows/windows-release.yml` builds the
-  installers on `windows-latest` (a `windows-v*` tag publishes them); Rust isn't part of `pnpm verify`.
+  menu-bar-style glance, no auto-update yet. `.github/workflows/windows-release.yml` builds the installers on
+  `windows-latest`; a `windows-v*` tag publishes them (never as Latest, which is the Mac app's update feed),
+  signed by SignPath Foundation (free, an approver accepts each request; `windows/signpath/`) when
+  `SIGNPATH_API_TOKEN` is set, or else by SSL.com eSigner (`windows/scripts/sign.ps1`) with the `ESIGNER_*`
+  secrets. SignPath requires the site's code signing policy page (`site/components/Signing.tsx`,
+  `/code-signing`): keep its roles and privacy statement true. Every build also packs `Daybook.msix` for the
+  Microsoft Store (`windows/scripts/msix.ps1`, `windows/msix/`). Rust isn't part of `pnpm verify`.
 - `components/updates.tsx` is the small "Update" mark by the Settings gear: a newer Mac app (from the window),
   or a newer deploy than the open page (its build commit, `NEXT_PUBLIC_DAYBOOK_SHA`, vs `/api/health`'s).
 - Motion lives in `app/globals.css` (section "Motion") and must respect `prefers-reduced-motion`.
@@ -59,6 +64,10 @@ read [docs/agents.md](docs/agents.md). Humans start at [README.md](README.md).
 - `site/` is the public landing page, a separate Next.js app (pnpm workspace) with its own Vercel project and
   Root Directory `site`. It imports `lib/art.ts` for the painting of the day; its copy lives in `site/lib/copy.ts`
   (English and Spanish), not in `lib/i18n.ts`. `pnpm verify` builds it too.
+- `lib/tv.ts` and `app/tv/api/*` serve the TV on the wall (the Frame Dashboard screen) and Frame Desk from Daybook,
+  in Frame Dashboard's API shapes (`week`, `version`, `settings`, `plan`, `events`). The screen reads with the
+  read-only `DAYBOOK_SCREEN_KEY` (`screenAuthorized()`). Frame Desk's whole-week saves go through `mergeFromFrame`.
+  Every write to tasks, days, weeks or the TV's meta stamps a version (`lib/storage.ts`) the TV polls.
 - `lib/frame.ts` is a three-way merge with Frame Dashboard (see docs/agents.md); change its rules only with a
   test in `test/frame.test.ts`.
 

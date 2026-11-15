@@ -36,6 +36,14 @@ Send either one in one of these ways:
   password, so don't paste it anywhere public;
 - the browser's httpOnly session cookie, which is set after signing in once.
 
+The TV on the wall has its own key, `DAYBOOK_SCREEN_KEY`, sent as `?k=` in
+the URL the TV apps load. It only reads `/tv/api/week`, `/tv/api/version` and `/tv/api/settings`,
+so a key baked into a TV can't change anything. It can still read the week's
+tasks and meetings, and as part of a URL it can end up in server, proxy and
+browser logs. Send it as `Authorization: Bearer` wherever the client can. If a
+screen URL is shared or logged, set a new `DAYBOOK_SCREEN_KEY` and rebuild the
+TV apps with it.
+
 If `DAYBOOK_KEY` is unset, only `pnpm dev` is open (for development on your
 own machine). Any other server then has no cloud Daybook at all, only "on
 this device".
@@ -122,10 +130,13 @@ If the client only speaks stdio, run `node cli/daybook.mjs mcp` with
 | `get_today` | A day (default today): focus, tasks, planned vs capacity, meetings (from Frame), journal, shut down or not, and `previous_day` (the latest earlier day with work on it) |
 | `get_week` | The week: its focus, every day, and the backlog |
 | `list_backlog` | Unscheduled tasks, including Linear issues |
-| `add_task` | Add to a day or the backlog. The title can use quick-add: `"Draft deck 45m #client"` |
+| `add_task` | Add to a day or the backlog. The title can use quick-add: `"Draft deck 45m #client"`. `subtasks` (a list of titles) breaks it into small steps |
 | `update_task` | Change the title, estimate, tag or notes, or move the task (`date: "backlog"` unschedules it) |
 | `complete_task` | Mark done or undone. A finished task moves to the bottom of its day (unless Settings → Appearance keeps it in place). For a Linear-linked task, this completes the issue too |
 | `delete_task` | Delete a task (agents are told to ask first) |
+| `add_subtasks` | Add small steps under a task, at the end of its list (up to 50 per task). Subtasks have no estimate, tag or day of their own: they move, roll over and go to the backlog with their task |
+| `update_subtask` | Tick a subtask (`done`) or rename it. Ticking the last one does not finish the task |
+| `delete_subtask` | Remove one subtask |
 | `set_focus` | The focus line for a day, or for the week with `scope: "week"` |
 | `plan_day` | Put these task ids on the day in this order and set the focus. Warns when the day is over capacity |
 | `shutdown_day` | Unfinished tasks go to tomorrow, the backlog, or stay; saves the journal line; returns a one-line recap. A past `date` closes that day late (the morning after): its unfinished work has already rolled onto today and stays there unless carried to the backlog |
@@ -158,15 +169,23 @@ in clients that support prompts.
 | `GET /api/week?date=` | The week containing `date`, with the backlog and, when Frame is connected, `events` by day |
 | `PUT /api/week` | `{ date, focus }` |
 | `GET /api/tasks` | The backlog |
-| `POST /api/tasks` | `{ text }` (quick-add) or `{ title, date?, estimate?, tag?, notes? }` |
+| `POST /api/tasks` | `{ text }` (quick-add) or `{ title, date?, estimate?, tag?, notes? }`; either takes `subtasks?: [titles]` |
 | `PATCH /api/tasks/:id` | `{ title?, date?, estimate?, tag?, notes?, done?, order? }`. `done: true` without `order` moves the task to the bottom of its day when the appearance's `doneToBottom` is on (the default) |
 | `DELETE /api/tasks/:id` | Deletes the task |
+| `POST /api/tasks/:id/subtasks` | `{ title }` or `{ titles: [...] }`: adds subtasks at the end. Returns `{ task }`, 201 |
+| `PATCH /api/tasks/:id/subtasks/:subtaskId` | `{ title?, done? }`. Returns `{ task }` |
+| `DELETE /api/tasks/:id/subtasks/:subtaskId` | Removes one. Returns `{ task }` |
 | `POST /api/shutdown` | `{ date?, note?, carry?: { [id]: "tomorrow" \| "backlog" \| "keep" } }`. A past `date` closes that day late: its unfinished work, already rolled onto today, stays there (`"tomorrow"`) or goes to the backlog, and today stays open |
 | `DELETE /api/shutdown?date=` | Reopen a closed day (tasks already moved stay where they went) |
 | `POST /api/linear` | Sync Linear |
 | `GET /api/frame?date=` / `POST /api/frame` | Preview the Frame Dashboard plan, or run a two-way sync |
 | `GET /api/frame/settings` / `PUT /api/frame/settings` | The Frame's design and the designs it offers / `{ layout }` to switch |
 | `GET /api/appearance` / `PUT /api/appearance` | How Daybook looks / `{ style?: "wall" \| "timetable" \| "notebook", palette?: "salon" \| "modern" \| "nocturne", eveningNocturne?: boolean, doneToBottom?: boolean }`. `doneToBottom` (default `true`) moves a task marked done under the ones still to do. `GET /api/session` also returns `appearance` and `closedToday` |
+| `GET /tv/api/week?date=&k=` | The week as the TV on the wall draws it, in Frame Dashboard's `/api/week` shape: `tz`, `locale`, `layout`, `focus`, `planned`, and per day `focus`, `tasks` (`{ text, done, tag }`, unfinished first), `events` and `art`, plus `tomorrow`. Reads with `DAYBOOK_SCREEN_KEY` (`?k=` or bearer) or any Daybook credential |
+| `GET /tv/api/version?k=` / `POST /tv/api/version` | `{ version, build }`: `version` moves on every change to tasks, days, weeks or the TV's settings and meetings, `build` on every deploy. The TV polls it. POST bumps it ("refresh the screens"); not with the screen key |
+| `GET /tv/api/plan?week=` / `PUT /tv/api/plan` | Frame Desk: the week as one Frame Dashboard plan document (`{ weekOf, focus, days: { date: { focus, tasks: [{ text, done, tag }] } } }`) / save a whole week. A save is merged like a Frame sync, against the plan last read: to-dos ticked, added or removed there apply (removed ones go to the backlog), and what Daybook changed meanwhile is kept |
+| `GET /tv/api/settings?k=` / `PUT /tv/api/settings` | The TV's art packs and design: `{ packs, enabled, layout, layouts }` / `{ packs?, layout?: "bleed" \| "salon" \| "painting" }`. GET reads with the screen key; PUT doesn't |
+| `GET /tv/api/events?week=` / `PUT /tv/api/events` | Meetings Frame Desk pushes from the Mac's calendars: `{ weekOf, source?, events: [{ title, location?, start, end } \| { title, allDay: true, date }] }` replaces that week's. They show on the TV with the Frame's own, each meeting once |
 | `GET /api/cron/sync` | Vercel Cron: sync Linear and Frame (bearer `CRON_SECRET` or `DAYBOOK_KEY`) |
 | `GET/POST /api/tokens`, `DELETE /api/tokens/:id` | Agent tokens: list, create (the token is shown once), revoke. Owner only |
 | `GET/PUT/DELETE /api/integrations/linear` | Linear status / `{ apiKey }` to connect (checked, stored encrypted) / disconnect. Owner only |
@@ -177,6 +196,8 @@ in clients that support prompts.
 | `POST /api/session` / `DELETE /api/session` | `{ key }` signs the browser in (an httpOnly cookie) / signs it out |
 | `GET /api/mcp` / `OPTIONS /api/mcp` | Server info / CORS preflight for browser-based MCP clients |
 | `GET /api/health` | Public: commit, storage and which integrations are on. No user data |
+
+Every task carries `subtasks: [{ id, title, done }]` (empty when it has none). A subtask lives inside its task: moving, rolling over, sending to the backlog or deleting the task takes its subtasks along. Frame Dashboard and the TV show tasks only, not their subtasks. Each change saves the whole task, so two writers changing the same task at the same moment (an agent and the app) keep the later save; read the task again before acting on it.
 
 ## Frame Dashboard
 
@@ -203,6 +224,16 @@ Daybook Mac app every two minutes) has three steps:
 
    The tag is the Linear key when there is one. Frame's own per-day notes are
    kept.
+
+Daybook is taking over the TV itself: `/tv/api/week` and `/tv/api/version`
+serve the screen from Daybook's own week, with a read-only `DAYBOOK_SCREEN_KEY`
+for the TV's URL. While a Frame is still connected, the meetings and paintings
+there come from it.
+
+Frame Desk works against Daybook too: in its Settings, set the URL to your
+Daybook's address followed by `/tv` (`https://your-daybook.vercel.app/tv`),
+and the key to an agent token from Daybook's Settings → AI agents. Its to-dos,
+design and calendar sync then go straight to Daybook, with no sync step.
 
 Set `FRAME_AUTO_SYNC=true` to sync after every change, once the response has
 been sent. Meetings stay in Frame's calendar feeds and are never copied into

@@ -1,4 +1,4 @@
-import { authorized, isOwner } from './auth';
+import { authorized, isOwner, screenAuthorized } from './auth';
 import './store'; // registers the server's store for the domain
 import { NotFound } from './daybook';
 
@@ -14,9 +14,11 @@ export async function body<T = Record<string, unknown>>(req: Request): Promise<T
 }
 
 // Wraps a route handler: auth, JSON errors, 400 for bad input, 404 for missing.
-export function route<C = unknown>(fn: (req: Request, ctx: C) => Promise<Response>, opts: { owner?: boolean } = {}) {
+// `screen` also lets the TV's read-only key in.
+export function route<C = unknown>(fn: (req: Request, ctx: C) => Promise<Response>, opts: { owner?: boolean; screen?: boolean } = {}) {
   return async (req: Request, ctx: C) => {
-    if (!(await (opts.owner ? isOwner(req) : authorized(req)))) {
+    const allowed = opts.owner ? isOwner : opts.screen ? screenAuthorized : authorized;
+    if (!(await allowed(req))) {
       return json({ error: opts.owner ? 'only the signed-in owner can change this' : 'missing or wrong key' }, 401);
     }
     try {

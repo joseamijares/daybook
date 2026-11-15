@@ -6,9 +6,11 @@
 import { maybeSyncFrame, patchTask } from './actions';
 import './store'; // registers the server's store for the domain
 import {
+  addSubtasks,
   addTask,
   backlog,
   type Carry,
+  deleteSubtask,
   deleteTask,
   getDay,
   getWeek,
@@ -17,6 +19,7 @@ import {
   setWeekFocus,
   shutdown,
   type Task,
+  updateSubtask,
 } from './daybook';
 import { frameEnabled, frameEvents, frameSettings, setFrameDesign, syncFrame } from './frame';
 import { linearEnabled, syncLinear } from './linear';
@@ -26,7 +29,7 @@ const VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
 const SERVER = { name: 'daybook', title: 'Daybook', version: '0.1.0' };
 
 const INSTRUCTIONS = `Daybook is the user's daily planner (a simple Sunsama). Each day has one focus line and a short list of tasks with time estimates in minutes; tasks without a date are the backlog. Unfinished tasks roll over to today automatically.
-Good habits: call get_today before changing anything. Keep a day within its capacity (shown as capacity, in minutes) and say so when it is over. Write focus lines as outcomes ("Landing page copy done"), tasks verb-first. Ask before deleting. Use plan_day for the morning ritual and shutdown_day for the evening one. After planning a week, offer send_to_frame if it is available.`;
+Good habits: call get_today before changing anything. Keep a day within its capacity (shown as capacity, in minutes) and say so when it is over. Write focus lines as outcomes ("Landing page copy done"), tasks verb-first. Break a bigger task into subtasks (small steps, verb-first) instead of many tasks; subtasks have no estimate, tag or day of their own, and finishing them all does not finish the task. Ask before deleting. Use plan_day for the morning ritual and shutdown_day for the evening one. After planning a week, offer send_to_frame if it is available.`;
 
 type Json = Record<string, unknown>;
 interface Tool {
@@ -51,6 +54,7 @@ const brief = (t: Task) => ({
   ...(t.source && { linear: t.source.key, url: t.source.url }),
   ...(t.rolledFrom && { rolled_from: t.rolledFrom }),
   ...(t.notes && { notes: t.notes }),
+  ...(t.subtasks.length > 0 && { subtasks: t.subtasks.map((s) => ({ id: s.id, title: s.title, done: s.done })) }),
 });
 
 async function dayBrief(date?: string) {
@@ -131,12 +135,20 @@ export const tools: Tool[] = [
         estimate_minutes: { type: 'integer', minimum: 0, maximum: 1440 },
         tag: str('One word: a client, project or area.'),
         notes: str('Optional details.'),
+        subtasks: { type: 'array', items: { type: 'string' }, maxItems: 50, description: 'Optional small steps, in order, verb first.' },
       },
       required: ['title'],
     },
     annotations: WRITE,
     run: async (a) => {
-      const t = await addTask({ text: a.title as string, date: a.date as string | undefined, estimate: a.estimate_minutes as number, tag: a.tag as string, notes: a.notes as string });
+      const t = await addTask({
+        text: a.title as string,
+        date: a.date as string | undefined,
+        estimate: a.estimate_minutes as number,
+        tag: a.tag as string,
+        notes: a.notes as string,
+        subtasks: a.subtasks as string[] | undefined,
+      });
       return withWarnings({ task: brief(t) }, [], t.date);
     },
   },
@@ -189,6 +201,48 @@ export const tools: Tool[] = [
       await deleteTask(id as string);
       return { deleted: id };
     },
+  },
+  {
+    name: 'add_subtasks',
+    title: 'Add subtasks',
+    description: "Add small steps under a task, at the end of its list. A task holds up to 50. Subtasks move, roll over and go to the backlog with their task.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        task_id: str('Task id from get_today / get_week / list_backlog.'),
+        titles: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 50, description: 'One title per subtask, verb first.' },
+      },
+      required: ['task_id', 'titles'],
+    },
+    annotations: WRITE,
+    run: async (a) => ({ task: brief(await addSubtasks(a.task_id as string, a.titles as string[])) }),
+  },
+  {
+    name: 'update_subtask',
+    title: 'Tick or rename a subtask',
+    description: 'Mark a subtask done (or not) or rename it. Ticking the last one does not finish the task: use complete_task for that.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        task_id: { type: 'string' },
+        subtask_id: str('Subtask id from the task\'s subtasks.'),
+        title: { type: 'string' },
+        done: { type: 'boolean' },
+      },
+      required: ['task_id', 'subtask_id'],
+    },
+    annotations: WRITE,
+    run: async (a) => ({
+      task: brief(await updateSubtask(a.task_id as string, a.subtask_id as string, { title: a.title as string | undefined, done: a.done as boolean | undefined })),
+    }),
+  },
+  {
+    name: 'delete_subtask',
+    title: 'Remove a subtask',
+    description: 'Remove one subtask from a task.',
+    inputSchema: { type: 'object', properties: { task_id: { type: 'string' }, subtask_id: { type: 'string' } }, required: ['task_id', 'subtask_id'] },
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+    run: async (a) => ({ task: brief(await deleteSubtask(a.task_id as string, a.subtask_id as string)) }),
   },
   {
     name: 'set_focus',

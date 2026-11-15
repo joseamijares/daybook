@@ -16,6 +16,16 @@ public struct DBTask: Codable, Hashable, Sendable, Identifiable {
     public var done: Bool
     public var source: LinearSource? = nil
     public var rolledFrom: String? = nil
+    /// Small steps inside the task. Optional so a Daybook from before subtasks still decodes.
+    public var subtasks: [DBSubtask]? = nil
+
+    public var subtaskList: [DBSubtask] { subtasks ?? [] }
+}
+
+public struct DBSubtask: Codable, Hashable, Sendable, Identifiable {
+    public var id: String
+    public var title: String
+    public var done: Bool
 }
 
 public struct DBDay: Codable, Hashable, Sendable, Identifiable {

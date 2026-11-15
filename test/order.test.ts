@@ -16,6 +16,7 @@ describe('arranged', () => {
   const task = (id: string, date: string | null): Task => ({
     id,
     title: id,
+    subtasks: [],
     notes: null,
     date,
     estimate: null,

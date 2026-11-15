@@ -2,22 +2,21 @@ name: Windows release
 
 # A windows-v* tag builds Daybook for Windows (windows/, Tauri) and attaches its
 # installers to that tag's GitHub release: Daybook-setup.exe (per user, no admin)
-# and Daybook.msi. They aren't code-signed yet, so SmartScreen warns the first
-# time and the release notes say how to open it. Pull requests that touch the
-# app or the pages build it too, as a workflow artifact.
+# and Daybook.msi, never marked Latest (that's the Mac app's). Both installers are
+# code-signed by SignPath Foundation when SIGNPATH_API_TOKEN is set, after a person
+# approves the request in SignPath (or by SSL.com eSigner with the ESIGNER_* secrets;
+# windows/README.md, Signing). Without either they aren't, SmartScreen says "unknown
+# publisher", and the release notes say how to open it. Pull requests that change
+# windows/ or this workflow build it too, unsigned, as a workflow artifact.
 
 on:
   push:
     tags: ['windows-v*']
   pull_request:
+    # Native code only. Web changes reach the app as its static copy of the pages,
+    # and CI's verify job already builds that copy on Linux (build:device, build:windows).
     paths:
       - 'windows/**'
-      - 'app/**'
-      - 'components/**'
-      - 'lib/**'
-      - 'next.config.ts'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
       - '.github/workflows/windows-release.yml'
 
 permissions:
@@ -30,13 +29,16 @@ concurrency:
 jobs:
   build:
     runs-on: windows-latest
-    timeout-minutes: 45
+    # A tag waits up to three hours for someone to approve the signing in SignPath.
+    timeout-minutes: ${{ startsWith(github.ref, 'refs/tags/windows-v') && 240 || 45 }}
+    outputs:
+      signed: ${{ steps.signing.outputs.enabled == 'true' || steps.signpath.outputs.enabled == 'true' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # .npmrc's shell-emulator sets DAYBOOK_DEVICE=windows in cmd.exe as well.
@@ -49,9 +51,55 @@ jobs:
         with:
           workspaces: windows
       - run: cargo install tauri-cli --version "^2" --locked
+      # Releases are signed when the eSigner secrets are set (windows/README.md,
+      # Signing); pull requests never are, so they spend no signings and see no secrets.
+      - name: Check for a signing certificate
+        id: signing
+        shell: bash
+        env:
+          ESIGNER_USERNAME: ${{ secrets.ESIGNER_USERNAME }}
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+        run: |
+          # SignPath (free, below) signs the installers when it's set up; eSigner is the paid way.
+          if [[ "$GITHUB_REF" == refs/tags/windows-v* && -n "$ESIGNER_USERNAME" && -z "$SIGNPATH_API_TOKEN" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_REF" == refs/tags/windows-v* && -z "$SIGNPATH_API_TOKEN" ]]; then
+            echo "::warning title=Not signed::Neither SIGNPATH_API_TOKEN nor the ESIGNER_* secrets are set, so SmartScreen will say \"unknown publisher\". See Signing in windows/README.md."
+          fi
+      - name: Get CodeSignTool
+        if: steps.signing.outputs.enabled == 'true'
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP 'CodeSignTool.zip'
+          Invoke-WebRequest -Uri 'https://github.com/SSLcom/CodeSignTool/releases/download/v1.3.2/CodeSignTool-v1.3.2-windows.zip' -OutFile $zip
+          # v1.3.2's published zip; a different file stops the release here.
+          if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne '4afc32e8b7f79bbe1de7e4e7049aaad4e0f754357613b9bbec0e3052f06fd36b') {
+            throw 'The CodeSignTool download is not the one this workflow was written for.'
+          }
+          $dir = Join-Path $env:RUNNER_TEMP 'CodeSignTool'
+          Expand-Archive $zip -DestinationPath $dir
+          "CODE_SIGN_TOOL_PATH=$dir" >> $env:GITHUB_ENV
       - name: Build the app
         working-directory: windows
-        run: cargo tauri build
+        shell: pwsh
+        env:
+          SIGN: ${{ steps.signing.outputs.enabled }}
+          ESIGNER_USERNAME: ${{ steps.signing.outputs.enabled == 'true' && secrets.ESIGNER_USERNAME || '' }}
+          ESIGNER_PASSWORD: ${{ steps.signing.outputs.enabled == 'true' && secrets.ESIGNER_PASSWORD || '' }}
+          ESIGNER_CREDENTIAL_ID: ${{ steps.signing.outputs.enabled == 'true' && secrets.ESIGNER_CREDENTIAL_ID || '' }}
+          ESIGNER_TOTP_SECRET: ${{ steps.signing.outputs.enabled == 'true' && secrets.ESIGNER_TOTP_SECRET || '' }}
+        run: |
+          if ($env:SIGN -eq 'true') {
+            # Tauri signs the app, the uninstaller and both installers with scripts/sign.ps1.
+            $sign = Join-Path $env:GITHUB_WORKSPACE 'windows\scripts\sign.ps1'
+            $config = @{ bundle = @{ windows = @{ signCommand = @{ cmd = 'powershell'; args = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $sign, '%1') } } } }
+            $file = Join-Path $env:RUNNER_TEMP 'signing.json'
+            $config | ConvertTo-Json -Depth 8 | Set-Content -Path $file -Encoding utf8
+            cargo tauri build --config $file
+          } else {
+            cargo tauri build
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Collect the installers
         shell: bash
         run: |
@@ -60,10 +108,75 @@ jobs:
           cp windows/target/release/bundle/nsis/*.exe dist/Daybook-setup.exe
           cp windows/target/release/bundle/msi/*.msi dist/Daybook.msi
           ls -l dist
-      - uses: actions/upload-artifact@v4
+
+      # SignPath Foundation (windows/README.md, Signing): the installers go up as an
+      # artifact, an approver accepts the request in SignPath, and the signed ones come
+      # back in their place. The artifact configuration in SignPath is
+      # windows/signpath/artifact-configuration.xml.
+      - name: Check for SignPath
+        id: signpath
+        if: startsWith(github.ref, 'refs/tags/windows-v')
+        shell: bash
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+        run: |
+          if [ -n "$SIGNPATH_API_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "version=$(node -p "require('./windows/tauri.conf.json').version")" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Upload the installers for signing
+        id: unsigned
+        if: steps.signpath.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: Daybook-windows-unsigned
+          path: dist
+          if-no-files-found: error
+      - name: Sign with SignPath (waits for an approver)
+        if: steps.signpath.outputs.enabled == 'true'
+        # v3, pinned: it handles the signing token.
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'daybook' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          parameters: |
+            version: ${{ toJSON(steps.signpath.outputs.version) }}
+          wait-for-completion-timeout-in-seconds: 10800
+          output-artifact-directory: dist-signed
+      - name: Use the signed installers
+        if: steps.signpath.outputs.enabled == 'true'
+        shell: pwsh
+        run: |
+          foreach ($name in 'Daybook-setup.exe', 'Daybook.msi') {
+            $file = Join-Path 'dist-signed' $name
+            $signature = Get-AuthenticodeSignature -FilePath $file
+            if ($signature.Status -ne 'Valid') { throw "$name came back from SignPath unsigned: $($signature.Status)" }
+            Write-Output "$name signed by $($signature.SignerCertificate.Subject)"
+            Copy-Item $file -Destination 'dist' -Force
+          }
+      - uses: actions/upload-artifact@v7
         with:
           name: Daybook-windows
           path: dist
+          if-no-files-found: error
+      # The Microsoft Store's package (windows/README.md, Microsoft Store): uploaded to
+      # Partner Center by hand, where the Store signs it. Not attached to the release.
+      - name: Package for the Microsoft Store
+        shell: pwsh
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}
+        run: |
+          New-Item -ItemType Directory -Path store | Out-Null
+          ./windows/scripts/msix.ps1 (Join-Path $PWD 'store\Daybook.msix')
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Daybook-msix
+          path: store
           if-no-files-found: error
 
   release:
@@ -74,7 +187,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: Daybook-windows
           path: dist
@@ -83,19 +196,36 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
+          SIGNED: ${{ needs.build.outputs.signed }}
         run: |
           set -euo pipefail
           notes="$RUNNER_TEMP/notes.md"
           cat > "$notes" <<'MD'
+          Daybook is a daily planner with a painting of the day: write down today's tasks, plan the week, and close the day in the evening. This is the Windows app (a preview): your days stay on your PC.
+
           **Install**
           1. Download `Daybook-setup.exe` and open it. It installs for you alone, no administrator needed. (`Daybook.msi` is the same app for IT-managed PCs.)
-          2. This build isn't code-signed yet, so Windows SmartScreen says it "protected your PC". Choose **More info**, then **Run anyway**.
+          MD
+          if [ "$SIGNED" = true ]; then
+            cat >> "$notes" <<'MD'
+          2. It's code-signed. While it's new, Windows SmartScreen may still say it "protected your PC"; choose **More info**, check the publisher, then **Run anyway**. That fades as more people install it.
+          MD
+          else
+            cat >> "$notes" <<'MD'
+          2. This build isn't code-signed, so Windows SmartScreen says it "protected your PC" from an unknown publisher. Choose **More info**, then **Run anyway**.
+          MD
+          fi
+          cat >> "$notes" <<'MD'
           3. Daybook opens on this PC: your days live here, inside Daybook. Closing the window keeps it in the tray, by the clock; right-click its icon to quit.
 
           Updating? Install the new one over it. Your days stay.
+
+          [Code signing policy](https://daybooksalon.vercel.app/code-signing)
           MD
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else
-            gh release create "$TAG" dist/* --title "Daybook for Windows ${TAG#windows-v}" --notes-file "$notes"
+            # Never "Latest": the Mac app updates from releases/latest/download/appcast.xml,
+            # and the README links releases/latest/download/Daybook.dmg.
+            gh release create "$TAG" dist/* --title "Daybook for Windows ${TAG#windows-v}" --notes-file "$notes" --latest=false
           fi
