@@ -2,14 +2,19 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useSyncExternalStore, type MouseEvent, type Ref } from 'react';
 import type { Copy } from '@site/lib/copy';
-import { FILM } from '@site/lib/site';
+import { FILM, HOWTO } from '@site/lib/site';
 
 // The video, twice: a screening room under the hero, where it plays (muted, it
 // has no sound) while it's in view, and a lightbox that the button in the
 // hero's gilt frame opens. Without JavaScript that button is a link to the
 // screening room. Phones in portrait get the 9:16 cut.
+//
+// The how-to walkthrough (2:29, with a voice and captions) has only a
+// lightbox, opened from "How to use it" in the hero and on the Mac label.
+// Without JavaScript that link plays the file itself.
 
 const OpenFilm = createContext<(e: MouseEvent) => void>(() => {});
+const OpenHowto = createContext<(e: MouseEvent) => void>(() => {});
 
 function subscribe(onChange: () => void) {
   const mq = window.matchMedia(FILM.portraitMedia);
@@ -45,44 +50,76 @@ function FilmVideo({ ref, label, loop }: { ref: Ref<HTMLVideoElement>; label: st
   );
 }
 
-export function FilmProvider({ c, children }: { c: Copy; children: React.ReactNode }) {
+function useLightbox() {
   const dialog = useRef<HTMLDialogElement>(null);
   const video = useRef<HTMLVideoElement>(null);
-
   const open = useCallback((e: MouseEvent) => {
     const d = dialog.current;
     const v = video.current;
-    if (!d || !v || typeof d.showModal !== 'function') return; // the link scrolls to the screening room
+    if (!d || !v || typeof d.showModal !== 'function') return; // the link does it without the lightbox
     e.preventDefault();
     d.showModal();
     v.currentTime = 0;
     v.play().catch(() => {});
   }, []);
+  const close = useCallback(() => dialog.current?.close(), []);
+  const pause = useCallback(() => video.current?.pause(), []);
+  return [dialog, video, open, close, pause] as const;
+}
 
-  const close = () => dialog.current?.close();
+function Screen({ ref, label, closeLabel, onClose, onPause, children }: { ref: Ref<HTMLDialogElement>; label: string; closeLabel: string; onClose: () => void; onPause: () => void; children: React.ReactNode }) {
+  return (
+    <dialog
+      ref={ref}
+      className="screen"
+      aria-label={label}
+      onClose={onPause}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <button type="button" className="screen__close" onClick={onClose} aria-label={closeLabel}>
+        <svg viewBox="0 0 14 14" aria-hidden="true">
+          <path d="M1 1l12 12M13 1L1 13" />
+        </svg>
+      </button>
+      <div className="screen__frame">{children}</div>
+    </dialog>
+  );
+}
+
+export function FilmProvider({ c, children }: { c: Copy; children: React.ReactNode }) {
+  const [filmDialog, filmVideo, openFilm, closeFilm, pauseFilm] = useLightbox();
+  const [howtoDialog, howtoVideo, openHowto, closeHowto, pauseHowto] = useLightbox();
 
   return (
-    <OpenFilm.Provider value={open}>
-      {children}
-      <dialog
-        ref={dialog}
-        className="screen"
-        aria-label={c.film.work}
-        onClose={() => video.current?.pause()}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) close();
-        }}
-      >
-        <button type="button" className="screen__close" onClick={close} aria-label={c.film.close}>
-          <svg viewBox="0 0 14 14" aria-hidden="true">
-            <path d="M1 1l12 12M13 1L1 13" />
-          </svg>
-        </button>
-        <div className="screen__frame">
-          <FilmVideo ref={video} label={c.film.work} />
-        </div>
-      </dialog>
+    <OpenFilm.Provider value={openFilm}>
+      <OpenHowto.Provider value={openHowto}>
+        {children}
+        <Screen ref={filmDialog} label={c.film.work} closeLabel={c.film.close} onClose={closeFilm} onPause={pauseFilm}>
+          <FilmVideo ref={filmVideo} label={c.film.work} />
+        </Screen>
+        <Screen ref={howtoDialog} label={c.howto.work} closeLabel={c.film.close} onClose={closeHowto} onPause={pauseHowto}>
+          <video ref={howtoVideo} className="film-video" poster={HOWTO.poster} aria-label={c.howto.work} controls playsInline preload="none" src={HOWTO.src} />
+        </Screen>
+      </OpenHowto.Provider>
     </OpenFilm.Provider>
+  );
+}
+
+// "How to use it · 2:29": opens the walkthrough. `className` places it.
+export function HowtoLink({ c, className }: { c: Copy; className?: string }) {
+  const open = useContext(OpenHowto);
+  return (
+    <a className={['howto-link', className].filter(Boolean).join(' ')} href={HOWTO.src} onClick={open} aria-haspopup="dialog">
+      <span className="howto-link__icon" aria-hidden="true">
+        <svg viewBox="0 0 12 12">
+          <path d="M3 1.5v9l7.5-4.5z" />
+        </svg>
+      </span>
+      {c.howto.watch}
+      <span className="howto-link__time">{c.howto.length}</span>
+    </a>
   );
 }
 
