@@ -102,3 +102,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Team memory
+
+Memory bank: `proj-daybook`. Use it through the `jamak-memory` MCP server, passing it as `bank_id`. Rules: playbook `standards/memory.md`.
+
+- Before starting a task, recall from this bank and from your own `dev-<id>` bank (`list_banks` shows yours).
+- Before an architecture or tooling decision, reflect on `jamak-playbook` and recall from `jamak-org`.
+- When you learn something a new teammate would need in 3 months (a decision, gotcha, convention, how-to, client fact), retain it to this bank with one `type:` tag.
+- Files beat memory: this `AGENTS.md`, `docs/decisions/` and the playbook win over anything recalled.
+- Never store secrets, credentials or customers' personal data.
