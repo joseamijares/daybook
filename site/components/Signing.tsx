@@ -1,3 +1,4 @@
+import { BASE_PATH } from '@site/lib/base';
 import type { Copy } from '@site/lib/copy';
 import { REPO_URL } from '@site/lib/site';
 import { Footer } from './Closing';
@@ -7,7 +8,7 @@ import { Mark } from './Mark';
 // approves, and what the app sends over the network. Linked from every footer.
 export function Signing({ c }: { c: Copy }) {
   const s = c.signing;
-  const home = c.lang === 'es' ? '/es' : '/';
+  const home = c.lang === 'es' ? `${BASE_PATH}/es` : BASE_PATH;
   return (
     <>
       <main className="policy">
@@ -58,7 +59,7 @@ export function Signing({ c }: { c: Copy }) {
           <p>{s.privacy}</p>
         </section>
       </main>
-      <Footer c={c} other={c.lang === 'es' ? '/code-signing' : '/es/code-signing'} />
+      <Footer c={c} other={c.lang === 'es' ? `${BASE_PATH}/code-signing` : `${BASE_PATH}/es/code-signing`} />
     </>
   );
 }

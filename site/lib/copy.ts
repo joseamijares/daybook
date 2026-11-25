@@ -1,3 +1,4 @@
+import { BASE_PATH } from './base';
 // Every word on the landing page, in English and Mexican Spanish. Components
 // take a Copy and never hold literal text.
 
@@ -187,7 +188,7 @@ const en = {
     license: 'MIT License',
     signing: 'Code signing policy',
     other: 'Español',
-    otherHref: '/es',
+    otherHref: `${BASE_PATH}/es`,
   },
   signing: {
     meta: {
@@ -417,7 +418,7 @@ const es: Copy = {
     license: 'Licencia MIT',
     signing: 'Política de firma de código',
     other: 'English',
-    otherHref: '/',
+    otherHref: BASE_PATH,
   },
   signing: {
     meta: {

@@ -4,12 +4,15 @@ import { SITE_URL } from './site';
 
 export function metadataFor(lang: Lang): Metadata {
   const c = copy[lang];
-  const path = lang === 'es' ? '/es' : '/';
+  // Absolute, so the home page is /daybook and not /daybook/ (a relative '/'
+  // composed with metadataBase keeps the trailing slash).
+  const home = SITE_URL;
+  const path = lang === 'es' ? `${SITE_URL}/es` : home;
   return {
     metadataBase: new URL(SITE_URL),
     title: c.meta.title,
     description: c.meta.description,
-    alternates: { canonical: path, languages: { en: '/', es: '/es', 'x-default': '/' } },
+    alternates: { canonical: path, languages: { en: home, es: `${SITE_URL}/es`, 'x-default': home } },
     openGraph: {
       type: 'website',
       siteName: 'Daybook',

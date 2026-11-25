@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import type { Copy } from '@site/lib/copy';
-import { FRAME_URL } from '@site/lib/site';
+import { asset, FRAME_URL } from '@site/lib/site';
 
 // The Frame at home. One room, two real Frame Dashboard screens: the day
 // screen fades to the night one as you scroll through (--p from Motion).
@@ -14,7 +14,7 @@ export function FrameRoom({ c }: { c: Copy }) {
       <div className="frame-room__stage" data-progress="">
         <Image
           className="frame-room__photo frame-room__photo--day"
-          src="/img/room-day.webp"
+          src={asset('/img/room-day.webp')}
           alt=""
           width={2000}
           height={1116}
@@ -22,7 +22,7 @@ export function FrameRoom({ c }: { c: Copy }) {
         />
         <Image
           className="frame-room__photo frame-room__photo--night"
-          src="/img/room-night.webp"
+          src={asset('/img/room-night.webp')}
           alt={c.frame.alt}
           width={2000}
           height={1116}
