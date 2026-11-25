@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { NextConfig } from 'next';
+import { BASE_PATH } from './lib/base';
 
 // The Mac app's version, for the structured data, read from its build settings
 // so it can't drift from the release (empty if the file isn't there).
@@ -16,6 +17,9 @@ function macVersion() {
 // The landing page. Turbopack's root is the repo root (found from the pnpm
 // lockfile), so lib/art.ts is shared with the app instead of copied.
 const nextConfig: NextConfig = {
+  // Served at joseamijares.com/daybook: the portfolio's vercel.json proxies
+  // /daybook/* to this project, which serves the same paths.
+  basePath: BASE_PATH,
   devIndicators: false,
   env: { MAC_VERSION: macVersion() },
   poweredByHeader: false,
@@ -35,6 +39,14 @@ const nextConfig: NextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
         ],
       },
+    ];
+  },
+  // The old addresses (daybooksalon.vercel.app/, /es, /code-signing, /film/…,
+  // linked from the app, the README and SignPath) move under /daybook.
+  async redirects() {
+    return [
+      { source: '/', destination: BASE_PATH, basePath: false, permanent: false },
+      { source: `/:path((?!${BASE_PATH.slice(1)}/)(?!${BASE_PATH.slice(1)}$).*)`, destination: `${BASE_PATH}/:path`, basePath: false, permanent: false },
     ];
   },
   async rewrites() {

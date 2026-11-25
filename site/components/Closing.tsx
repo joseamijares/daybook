@@ -1,3 +1,4 @@
+import { BASE_PATH } from '@site/lib/base';
 import type { Copy } from '@site/lib/copy';
 import { AGENTS_DOC_URL, FRAME_URL, REPO_URL } from '@site/lib/site';
 import { Mark } from './Mark';
@@ -24,7 +25,7 @@ export function Footer({ c, other = c.footer.otherHref }: { c: Copy; other?: str
     <footer className="footer">
       <p className="footer__credits">{c.footer.credits}</p>
       <div className="footer__bar">
-        <a className="footer__lockup" href={c.lang === 'es' ? '/es' : '/'}>
+        <a className="footer__lockup" href={c.lang === 'es' ? `${BASE_PATH}/es` : BASE_PATH}>
           <Mark size={20} />
           <span>Daybook</span>
         </a>
@@ -36,7 +37,7 @@ export function Footer({ c, other = c.footer.otherHref }: { c: Copy; other?: str
             {c.footer.other}
           </a>
           <a href={`${REPO_URL}/blob/main/LICENSE`}>{c.footer.license}</a>
-          <a href={c.lang === 'es' ? '/es/code-signing' : '/code-signing'}>{c.footer.signing}</a>
+          <a href={c.lang === 'es' ? `${BASE_PATH}/es/code-signing` : `${BASE_PATH}/code-signing`}>{c.footer.signing}</a>
         </nav>
       </div>
     </footer>

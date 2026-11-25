@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import type { Copy } from '@site/lib/copy';
 import { src, work } from '@site/lib/art';
-import { MAC_DOWNLOAD_URL } from '@site/lib/site';
+import { asset, MAC_DOWNLOAD_URL } from '@site/lib/site';
 
 const TOOLS = [
   'get_today',
@@ -46,7 +46,7 @@ export function MacAgents({ c }: { c: Copy }) {
           </div>
           <Image
             className="desk__popover"
-            src="/img/mac-popover.webp"
+            src={asset('/img/mac-popover.webp')}
             alt={c.mac.alt}
             width={760}
             height={1306}
@@ -54,7 +54,7 @@ export function MacAgents({ c }: { c: Copy }) {
         </div>
         <p className="also__body">{c.mac.body}</p>
         <a className="link-gilt" href={MAC_DOWNLOAD_URL}>
-          <Image src="/img/mac-icon.webp" alt="" width={28} height={28} aria-hidden="true" />
+          <Image src={asset('/img/mac-icon.webp')} alt="" width={28} height={28} aria-hidden="true" />
           {c.mac.link} <span aria-hidden="true">↓</span>
         </a>
       </div>

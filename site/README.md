@@ -1,6 +1,9 @@
 # Daybook site
 
-Live at **https://daybooksalon.vercel.app** (Vercel project `daybook-site`).
+Live at **https://joseamijares.com/daybook** (Vercel project `daybook-site`, proxied there by the
+portfolio, `joseamijares/joseamijares`). The project itself serves everything under `/daybook`
+(`basePath`, from `lib/base.ts`), and its old addresses (`daybooksalon.vercel.app/`, `/es`,
+`/code-signing`, `/film/…`) redirect there.
 
 The public landing page for Daybook: the salon hang. The painting of the day hangs
 in a gilt frame under a picture lamp among the collection, with Daybook's own wall
@@ -68,6 +71,13 @@ ffmpeg -i daybook-howto-16x9.mp4 -c:v libx264 -preset slow -tune animation -crf 
 Its poster, `howto-poster.webp`, is frame 1720 (Step 3, Today).
 
 ## Deploy
+
+**Under /daybook.** `next.config.ts` sets `basePath: '/daybook'`. It covers `next/link` and
+Next's own assets, but not `<img>`, `<video>`, `next/image` sources or plain `<a>`: use
+`asset()` and `BASE_PATH` from `lib/site.ts` for those. `NEXT_PUBLIC_SITE_URL` is the origin
+only (`https://joseamijares.com`); `SITE_URL` adds the base path. The portfolio's `vercel.json`
+rewrites `/daybook/:path*` to `https://daybooksalon.vercel.app/daybook/:path*`, and its
+robots.txt lists `/daybook/sitemap.xml`.
 
 A Vercel project with **Root Directory `site`** (framework Next.js; Vercel runs the
 pnpm install at the repo root). Environment variables are in `.env.example`.

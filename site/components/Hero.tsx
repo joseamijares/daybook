@@ -1,3 +1,4 @@
+import { BASE_PATH } from '@site/lib/base';
 import type { Copy } from '@site/lib/copy';
 import { APP_URL, DEPLOY_URL, MAC_DOWNLOAD_URL, REPO_URL } from '@site/lib/site';
 import { HowtoLink } from './Film';
@@ -8,7 +9,7 @@ export function Hero({ c }: { c: Copy }) {
   return (
     <header className="hero">
       <nav className="nav" aria-label="Daybook">
-        <a className="nav__lockup" href={c.lang === 'es' ? '/es' : '/'}>
+        <a className="nav__lockup" href={c.lang === 'es' ? `${BASE_PATH}/es` : BASE_PATH}>
           <Mark size={20} />
           <span>Daybook</span>
         </a>

@@ -1,9 +1,23 @@
 // Where the page lives and where its links go. Every value can be set per
 // deployment; see site/.env.example.
 
+// The page lives under /daybook (joseamijares.com/daybook, proxied there by the
+// portfolio's vercel.json). BASE_PATH is also next.config's basePath.
+import { BASE_PATH } from './base';
+
+export { BASE_PATH };
+
 const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
 
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || (vercelUrl ? `https://${vercelUrl}` : 'http://localhost:3218')).replace(/\/$/, '');
+// The origin alone (NEXT_PUBLIC_SITE_URL is an origin, no path).
+export const ORIGIN = (process.env.NEXT_PUBLIC_SITE_URL || (vercelUrl ? `https://${vercelUrl}` : 'http://localhost:3218')).replace(/\/+$/, '');
+
+// The page's own URL: canonical links, hreflang, the sitemap and llms.txt.
+export const SITE_URL = `${ORIGIN}${BASE_PATH}`;
+
+// A file in public/ as the browser asks for it. basePath covers next/link and
+// Next's own assets, not <img>, <video> or next/image sources.
+export const asset = (path: string) => `${BASE_PATH}${path}`;
 
 export const REPO_URL = 'https://github.com/joseamijares/daybook';
 export const DEPLOY_URL = 'https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjoseamijares%2Fdaybook';
@@ -24,10 +38,10 @@ export const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID || null;
 // The 50-second video (made in jamak-launch-videos, JAM-4347; v3 2026-10-15): silent, so it
 // can play muted inline. Phones in portrait get the 9:16 cut.
 export const FILM = {
-  landscape: '/film/daybook-film.mp4',
-  portrait: '/film/daybook-film-9x16.mp4',
-  poster: '/film/poster.webp',
-  posterPortrait: '/film/poster-9x16.webp',
+  landscape: asset('/film/daybook-film.mp4'),
+  portrait: asset('/film/daybook-film-9x16.mp4'),
+  poster: asset('/film/poster.webp'),
+  posterPortrait: asset('/film/poster-9x16.webp'),
   portraitMedia: '(max-width: 700px) and (orientation: portrait)',
   duration: 'PT50S',
   published: '2026-10-15T12:00:00-06:00',
@@ -36,8 +50,8 @@ export const FILM = {
 // The how-to walkthrough (jamak-launch-videos daybook-howto, JAM-4363): 16:9, with a voice (English) and burned-in
 // captions. The app streams this same file from the site (components/Walkthrough.tsx).
 export const HOWTO = {
-  src: '/film/daybook-howto.mp4',
-  poster: '/film/howto-poster.webp',
+  src: asset('/film/daybook-howto.mp4'),
+  poster: asset('/film/howto-poster.webp'),
   duration: 'PT2M29S',
   published: '2026-10-20T12:00:00-06:00',
 };

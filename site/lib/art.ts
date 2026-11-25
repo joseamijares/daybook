@@ -1,6 +1,7 @@
 // The painting of the day comes from the app's own rotation, so the landing
 // page, every Daybook and every Frame hang the same work on the same day.
 import { artFor, type Artwork } from '../../lib/art';
+import { asset } from './site';
 import works from '../../lib/art.json';
 
 export { artFor, type Artwork };
@@ -38,11 +39,11 @@ export function formatDay(ymd: string, locale: string, options: Intl.DateTimeFor
 // The scan as the site serves it (copied from the app's public/art), and a
 // small copy (longest side 640px, scripts/make-thumbs.sh) for the wall and ledges.
 export function src(a: Artwork): string {
-  return `/${a.image}`;
+  return asset(`/${a.image}`);
 }
 
 export function thumb(a: Artwork): string {
-  return `/art-small/${a.slug}.webp`;
+  return asset(`/art-small/${a.slug}.webp`);
 }
 
 // Fit a painting inside a box without cropping it.
